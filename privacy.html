@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,follow">
+<title>개인정보 처리 안내 | LABDAM</title>
+<meta name="description" content="LABDAM과 LabInsight, Caffeine Atlas의 실제 데이터 처리 구조 및 개인정보 보호 점검 현황을 안내합니다.">
+<link rel="canonical" href="https://haru-today.github.io/privacy.html">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<style>
+:root{color-scheme:light;--ink:#19313d;--muted:#556974;--line:#dfe9ec;--teal:#246e72}*{box-sizing:border-box}body{margin:0;background:#f8fafb;color:var(--ink);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.8}a{color:#14616a;text-underline-offset:3px}a:focus-visible{outline:3px solid #24898d;outline-offset:3px}header{background:white;border-bottom:1px solid var(--line)}.shell{width:min(900px,calc(100% - 36px));margin:auto}.top{display:flex;justify-content:space-between;align-items:center;gap:18px;min-height:70px}.brand{font-weight:850;font-size:1.3rem;text-decoration:none;color:var(--ink)}nav{display:flex;gap:16px;flex-wrap:wrap;font-size:.89rem}main{padding:55px 0 90px}h1{font-size:clamp(1.8rem,4vw,2.5rem);line-height:1.3;margin:0 0 12px}h2{font-size:1.25rem;margin:30px 0 12px}p,li{font-size:.96rem}p{margin:8px 0 13px}.lead{color:var(--muted);margin-bottom:28px}.alert{border-left:3px solid #c28c3e;background:#fff9ef;padding:14px 19px;margin:25px 0}.alert strong{display:block}.section{background:white;border:1px solid var(--line);padding:9px 27px 28px;border-radius:12px;margin:20px 0}.section ul{padding-left:21px}table{width:100%;border-collapse:collapse;font-size:.86rem}th,td{border-bottom:1px solid var(--line);text-align:left;padding:12px 8px;vertical-align:top}th{width:24%;background:#f5f8f9}footer{padding:30px 0 60px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}.small{font-size:.86rem;color:var(--muted)}@media(max-width:600px){.section{padding:9px 16px 20px}th{width:32%}main{padding-top:33px}}
+</style>
+</head><body>
+<header><div class="shell top"><a class="brand" href="/">LABDAM.</a><nav aria-label="정책 메뉴"><a href="/">통합 포털</a><a href="./terms.html">이용 안내</a></nav></div></header>
+<main class="shell">
+<p class="small">LABDAM · Personal Health Atlas · 게시 기준 2026년 10월 13일</p>
+<h1>개인정보 처리 안내</h1>
+<p class="lead">하나의 LABDAM 통합 포털과 두 서비스(LabInsight, Caffeine Atlas)의 데이터 처리 차이를 설명합니다. 설명은 공개 저장소 코드 기준으로 작성했으며, 실제 외부 제공사 설정이나 서버 운영 현황을 모두 검증한 것은 아닙니다.</p>
+<div class="alert" role="note"><strong>정식 개인정보처리방침 확정 전 확인할 사항</strong>운영 주체의 법적 명칭·책임자 및 전용 연락 창구, Google Sheets 접근 권한·보유기간·삭제 절차, 외부 처리 및 국외 이전 사항은 확인이 필요합니다. 이 페이지를 법적 준수나 보안 인증 완료 표시로 해석하지 마세요. 식별 가능한 실제 유전자·건강정보를 연구 저장소로 전송하지 않는 것을 권장합니다.</div>
+<section class="section"><h2>1. 적용 범위와 서비스 구분</h2>
+<table><tbody>
+<tr><th>LABDAM 통합 포털</th><td><a href="/">LABDAM 홈페이지</a> · 두 서비스를 소개하고 연결합니다. 포털 자체의 건강검진·유전자형 입력 기능은 없습니다.</td></tr>
+<tr><th>LabInsight</th><td><a href="/labinsight/">건강검진 결과 입력·해석</a> · 입력한 검사 수치 및 참고범위를 브라우저에서 처리합니다. 예약 기능은 개인정보 없는 샘플 체험입니다.</td></tr>
+<tr><th>Caffeine Atlas</th><td><a href="/caffeine-atlas/">카페인 유전자 리포트</a> · 유전자형 입력·로컬 분석 외에 사용자가 별도로 저장에 동의하고 실행하면 Google Apps Script를 통해 Google Sheets로 기록될 수 있습니다.</td></tr>
+</tbody></table></section>
+<section class="section"><h2>2. 처리되는 정보와 목적</h2>
+<p><strong>LABDAM 포털:</strong> 서비스 선택·접속 안내가 목적입니다. 포털에는 이름·검사값 입력란이 없습니다. 다만 GitHub Pages 등 호스팅 제공자의 접속 로그·네트워크 기록 처리 여부는 제공사 정책에 따릅니다.</p>
+<p><strong>LabInsight:</strong> 입력한 연령·성별 선택값·키·몸무게·혈압·검사 수치·검사기관 참고범위를 브라우저 안에서 비교하고 리포트에 표시합니다. 최근 검사 리포트는 동일 탭의 <code>sessionStorage</code>에 저장될 수 있으며, 오래된 버전의 <code>localStorage</code> 리포트는 열 때 임시 저장소로 옮겨집니다. 탭·세션 복원 시 남을 수 있으므로 삭제 기능을 이용하세요. 샘플 예약은 이름·전화번호·생년월일을 요구하지 않으며 샘플 센터·검진 종류·선택 날짜·시간만 탭 임시 저장소에 기록합니다.</p>
+<p><strong>Caffeine Atlas:</strong> 브라우저 내 분석에는 Sample ID, 날짜, 검체 종류, 성별 선택값, SNP 4종(rs762551, rs2069514, rs2472297, rs6968865)의 유전자형 등이 이용됩니다. 선택적 Google Sheets 저장을 승인하고 실행하면 이러한 항목과 분석 점수·판정, 전체 리포트 JSON이 Google Apps Script 및 Sheets로 전송될 수 있습니다. 엑셀 일괄 입력도 같은 저장 기능을 지원합니다. Sample ID에 이름·학번·환자번호 등 직접 식별자를 입력하지 마세요.</p>
+<p><strong>문의:</strong> Caffeine Atlas의 문의 양식은 작성 후 기기의 이메일 앱을 열어 사용자가 발송하도록 구성되어 있습니다. 작성자명·선택 연락처·문의 내용이 이메일에 포함될 수 있습니다. 검사결과나 유전자형을 문의 내용에 작성하지 마세요.</p>
+</section>
+<section class="section"><h2>3. 저장·보유 및 삭제</h2>
+<ul>
+<li>LabInsight의 리포트는 <code>sessionStorage</code>에 저장되며, 리포트의 “이 탭의 검사 결과 삭제” 버튼으로 삭제할 수 있습니다. 임시 저장이라도 자동으로 즉시 사라지는 것은 보장되지 않습니다.</li>
+<li>LabInsight의 샘플 예약 기록은 탭의 <code>sessionStorage</code>에서 삭제 버튼으로 정리할 수 있습니다. 구형 브라우저 예약 기록은 앱 시작 시 제거하도록 구현했습니다.</li>
+<li>Caffeine Atlas의 현재 공개 코드에서는 Google Sheets 저장 자료의 확정 보유기간·자동 삭제·정보주체별 삭제 인증 절차를 확인하지 못했습니다. <strong>자동으로 삭제된다고 안내하지 않습니다.</strong> 이용 전 관리 책임자에게 확인해야 합니다.</li>
+<li>이용자가 저장한 HTML·PDF·CSV 리포트, 스크린샷과 이메일 송신 기록은 각 기기·메일 서비스에 남을 수 있으며 사이트 내 삭제 버튼으로 제거되지 않습니다.</li>
+</ul></section>
+<section class="section"><h2>4. 외부 서비스 및 제공사</h2>
+<p>LABDAM 계열 정적 페이지는 GitHub Pages로 제공됩니다. LabInsight에서 이미지 글자 인식 버튼을 누르면 Tesseract.js 코드·언어 데이터 등을 가져오기 위해 외부 CDN에 접속하며 브라우저에서 분석합니다. Caffeine Atlas는 사용자가 저장을 실행한 경우 Google Apps Script와 Google Sheets를 이용합니다. 기관 간 처리위탁·국외 이전의 법적 분류, 처리 위치·기간·권한은 실제 운영 설정 확인 전 확정해 기재할 수 없습니다.</p>
+<p>외부 병원 공식 페이지나 GitHub 문의 페이지를 여는 경우 해당 사이트의 정책이 적용됩니다.</p></section>
+<section class="section"><h2>5. 정보주체 권리와 문의</h2>
+<p>개인정보에 대한 열람·정정·삭제·처리정지 등 권리와 민감정보 처리 관련 요청은 적법한 운영 담당자를 통해 접수·처리해야 합니다. <strong>현재 서비스 전용 개인정보 담당자, 연락 수단 및 실명 확인 절차는 확정되지 않았습니다.</strong> 일반 기능 오류는 <a href="https://github.com/Haru-today/haru-today.github.io/issues/new">LABDAM GitHub 이슈</a>로 알릴 수 있지만, 이는 비공개 개인정보 열람·삭제 접수 창구가 아닙니다. 공개 이슈에 신분증, 환자정보, 건강·유전 데이터를 올리지 마세요.</p>
+<p>실제 데이터 보유 여부·접근 권한과 삭제 절차를 확인하는 운영 절차를 확정하기 전에는 실사용자 민감정보를 저장용 클라우드 기능에 보내지 않는 것을 권장합니다.</p></section>
+<section class="section"><h2>6. 안전성·한계 및 변경 공지</h2>
+<p>데이터 최소화, 로컬 임시 저장, 허용된 정적 파일 제공, 브라우저 자동 테스트 등의 조치를 구현하고 있으나, 의료정보 보안 인증·법률 준수 검증·실시간 서버 보안감사를 완료한 것은 아닙니다. 보관 정책이나 외부 연동이 달라지면 이 안내를 갱신해야 합니다.</p>
+<p>관련 기준: <a href="https://www.law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&amp;lsJoLnkSeq=1029335401">개인정보 보호법 제23조</a>, <a href="https://pipc.go.kr/np/cop/bbs/selectBoardList.do?bbsId=BS217&amp;mCode=G010030000">개인정보보호위원회 개인정보 처리방침 작성지침(2026.4.)</a>.</p></section>
+</main><footer><div class="shell">LABDAM · 개인 건강 통합 포털 <a href="/">홈</a> · <a href="./terms.html">이용 안내</a> · 이 안내는 공개 코드 기반 점검본입니다.</div></footer>
+</body></html>
