@@ -50,3 +50,24 @@ test("no false claim of completed legal compliance or automatic cloud deletion",
   assert.match(privacy, /미확정|확정되지 않았습니다/);
   assert.doesNotMatch(privacy, /개인정보 안전성 인증 완료/);
 });
+
+test("mobile and keyboard navigation remain accessible", () => {
+  assert.match(html, /href="#main"/);
+  assert.match(html, /id="main"/);
+  assert.match(html, /aria-label="주요 메뉴"/);
+  assert.match(html, /@media\(prefers-reduced-motion:reduce\)/);
+  assert.match(html, /\.topnav a\{min-height:44px\}/);
+  assert.match(html, /name="referrer" content="no-referrer"/);
+  assert.match(html, /건강검진 수치 입력·해석/);
+});
+
+test("sitemap lists exactly three canonical service endpoints, excluding redirect and private screens", () => {
+  const map = fs.readFileSync("sitemap.xml", "utf8");
+  const entries = [...map.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
+  assert.deepEqual(entries, [
+    "https://haru-today.github.io/",
+    "https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html",
+    "https://haru-today.github.io/labinsight/"
+  ]);
+  assert.doesNotMatch(map, /\/privacy\.html|\/report\.html|\/checkup\.html/);
+});
