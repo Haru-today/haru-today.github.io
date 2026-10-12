@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
   <meta name="theme-color" content="#101e29">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="application-name" content="LABDAM">
@@ -23,7 +24,7 @@
   <meta name="twitter:title" content="LABDAM 랩담 | 개인 건강 통합 포털">
   <meta name="twitter:description" content="LabInsight와 Caffeine Atlas를 연결하는 디지털 헬스케어 브랜드 LABDAM.">
   <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"WebSite","name":"LABDAM","alternateName":["랩담","Personal Health Atlas"],"url":"https://haru-today.github.io/","inLanguage":"ko-KR","description":"건강검진 결과 조회와 유전자형 기반 정보 서비스를 연결하는 디지털 헬스케어 브랜드"}
+  {"@context":"https://schema.org","@type":"WebSite","name":"LABDAM","alternateName":["랩담","Personal Health Atlas"],"url":"https://haru-today.github.io/","inLanguage":"ko-KR","description":"건강검진 수치 입력·해석과 유전자형 연구·교육 정보를 연결하는 개인 건강 통합 포털"}
   </script>
   <style>
     :root{color-scheme:light;--ink:#172b36;--muted:#586b76;--bg:#f7f9fa;--border:#dce6e9;--navy:#142c38;--teal:#246e72}
@@ -34,7 +35,7 @@
     a:focus-visible{outline:3px solid #1b8e9b;outline-offset:4px;border-radius:5px}
     .container{width:min(1080px,calc(100% - 40px));margin:auto}
     .skip{position:absolute;left:-1000px;top:10px;padding:8px 12px;background:white;z-index:20}
-    .skip:focus{left:12px}
+    .skip:focus,.skip:focus-visible{left:12px}
     header{border-bottom:1px solid var(--border);background:rgba(255,255,255,.94)}
     header .bar{display:flex;justify-content:space-between;align-items:center;min-height:76px;gap:18px}
     .brand{font-size:1.45rem;font-weight:850;letter-spacing:-.05em}
@@ -69,6 +70,10 @@
     footer small{color:#b6c9d0}
     @media(max-width:660px){header .bar{min-height:66px}.topnav{gap:13px;font-size:.8rem}.hero{padding:73px 0 65px}.services{padding:55px 0}.cards{grid-template-columns:1fr}.card{padding:25px}h1{font-size:2.6rem}.hero .intro{font-size:1rem}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+    .topnav a,.link,footer a{display:inline-flex;align-items:center;min-height:40px}
+    .card:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px #b7dbdc}
+    .card .link:focus-visible{outline:3px solid #146c76;outline-offset:5px}
+    @media(max-width:500px){.container{width:calc(100% - 28px)}.topnav{gap:8px 16px}.topnav a{min-height:44px}.hero-actions .button{flex:1 1 100%;text-align:center}.skip{min-height:44px}}
 
     /* LABDAM official site: editorial sections */
     .expanded-section{padding:78px 0;scroll-margin-top:40px}
@@ -107,7 +112,7 @@
       <div class="container">
         <p class="eyebrow">LABDAM · PERSONAL HEALTH ATLAS · INTEGRATED PORTAL</p>
         <h1 id="main-title">데이터를 이해하고,<br>더 나은 일상으로.</h1>
-        <p class="intro">LABDAM(랩담)은 <strong>Personal Health Atlas 통합 포털</strong>입니다. 건강검진 결과를 이해하는 LabInsight와 카페인 유전자 정보를 살펴보는 Caffeine Atlas, 두 서비스를 이곳에서 연결합니다. 별도의 네 번째 통합 사이트는 운영하지 않습니다.</p>
+        <p class="intro">LABDAM(랩담)은 <strong>Personal Health Atlas 통합 포털</strong>입니다. 건강검진 수치를 정리하고 해석의 근거를 살펴보는 LabInsight와 카페인 관련 유전자 정보를 다루는 Caffeine Atlas를 연결합니다. 두 서비스는 연구·교육 및 정보 제공 목적으로 운영됩니다.</p>
         <div class="hero-actions">
           <a class="button" href="#services">서비스 살펴보기 →</a>
           <a class="button outline" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 바로가기 ↗</a>
@@ -117,12 +122,12 @@
     <section id="services" class="services container" aria-labelledby="services-title">
       <p class="eyebrow">Our Services</p>
       <h2 id="services-title">LABDAM의 두 가지 서비스</h2>
-      <p class="section-lead">이 페이지가 유일한 LABDAM 통합 포털입니다. 아래 두 서비스를 선택하여 이용해 보세요.</p>
+      <p class="section-lead">하나의 LABDAM에서 두 서비스를 연결합니다. 필요한 정보의 유형에 따라 선택하세요.</p>
       <div class="cards">
         <article class="card">
           <span class="tag">Health Checkup</span>
           <h3>LabInsight</h3>
-          <p class="subtitle">랩인사이트 · 건강검진 결과 조회</p>
+          <p class="subtitle">랩인사이트 · 건강검진 수치 입력·해석</p>
           <p>건강검진 수치를 입력하고 참고 범위와 결과 해석 리포트를 살펴보는 서비스입니다. 검진 패키지와 병원 비교 기능도 제공합니다.</p>
           <a class="link" href="https://haru-today.github.io/labinsight/">LabInsight 이용하기 ↗</a>
         </article>
