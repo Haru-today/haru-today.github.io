@@ -6,8 +6,8 @@
   <meta name="theme-color" content="#101e29">
   <meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209" />
   <meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ" />
-  <title>랩담 LABDAM | 건강검진 결과 조회와 카페인 유전자 분석</title>
-  <meta name="description" content="LABDAM(랩담)은 건강검진 결과 조회·해석 서비스 LabInsight와 카페인 관련 유전자형 기반 리포트 Caffeine Atlas를 연결하는 디지털 헬스케어 브랜드입니다.">
+  <title>LABDAM 랩담 | 건강검진·유전자 데이터 서비스</title>
+  <meta name="description" content="LABDAM(랩담)은 건강검진 결과 조회 LabInsight와 카페인 유전자 리포트 Caffeine Atlas를 연결하는 디지털 헬스케어 브랜드입니다.">
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://haru-today.github.io/">
   <meta property="og:type" content="website">
@@ -64,6 +64,24 @@
     footer small{color:#b6c9d0}
     @media(max-width:660px){header .bar{min-height:66px}.topnav{gap:13px;font-size:.8rem}.hero{padding:73px 0 65px}.services{padding:55px 0}.cards{grid-template-columns:1fr}.card{padding:25px}h1{font-size:2.6rem}.hero .intro{font-size:1rem}}
     @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+
+    /* LABDAM official site: editorial sections */
+    .expanded-section{padding:78px 0;scroll-margin-top:40px}
+    .section-tinted{background:#edf3f4;border-block:1px solid var(--border)}
+    .story-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px}
+    .section-copy{font-size:1.05rem;line-height:1.85;color:#344d5b;margin:0 0 17px;word-break:keep-all}
+    .muted-copy{color:#5b6e79;font-size:.91rem;line-height:1.8;word-break:keep-all}
+    .principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;margin-top:30px}
+    .principle{border:1px solid var(--border);border-radius:15px;padding:26px;background:#fff}
+    .principle-num{font-size:.79rem;letter-spacing:.14em;font-weight:800;color:var(--teal)}
+    .principle h3{margin:13px 0 10px;font-size:1.18rem;letter-spacing:-.02em}
+    .principle p{margin:0;color:#586c76;font-size:.91rem;line-height:1.8;word-break:keep-all}
+    .contact-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:50px;align-items:center}
+    .contact-action{border:1px solid var(--border);background:white;border-radius:15px;padding:28px}
+    .contact-action p{font-size:.88rem;color:var(--muted);margin:9px 0 19px}
+    .contact-action .button{width:100%}
+    @media(max-width:780px){.story-grid,.contact-grid{grid-template-columns:1fr;gap:22px}.principles{grid-template-columns:1fr}.expanded-section{padding:54px 0}}
+    @media(max-width:660px){header .bar{flex-wrap:wrap;padding-block:12px;gap:6px}.topnav{flex-wrap:wrap;gap:12px;font-size:.78rem}.brand{font-size:1.3rem}}
   </style>
 </head>
 <body>
@@ -72,8 +90,10 @@
     <div class="container bar">
       <a class="brand" href="/" aria-label="LABDAM 홈페이지">LAB<span>DAM</span>.</a>
       <nav class="topnav" aria-label="주요 메뉴">
-        <a href="#services">서비스 소개</a>
-        <a href="https://haru-today.github.io/caffeine-atlas/">통합 포털</a>
+        <a href="#about">소개</a>
+        <a href="#services">서비스</a>
+        <a href="#technology">기술과 원칙</a>
+        <a href="#contact">문의</a>
       </nav>
     </div>
   </header>
@@ -108,6 +128,57 @@
           <p>CYP1A2와 AHR 관련 유전자형을 바탕으로 카페인 반응 정보를 살펴볼 수 있는 연구·교육용 리포트 서비스입니다.</p>
           <a class="link" href="https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html">Caffeine Atlas 이용하기 ↗</a>
         </article>
+      </div>
+    </section>
+    <section id="about" class="expanded-section section-tinted" aria-labelledby="about-title">
+      <div class="container story-grid">
+        <div>
+          <p class="eyebrow">About LABDAM</p>
+          <h2 id="about-title">건강 데이터를<br>이해할 수 있는 정보로.</h2>
+        </div>
+        <div>
+          <p class="section-copy">LABDAM은 임상검사 데이터와 분자생물학 정보를 일상에서 이해하기 쉽게 전달하는 디지털 프로젝트 브랜드입니다. 복잡한 수치를 읽고, 관련된 근거를 살펴보고, 필요한 질문을 준비하는 경험을 지향합니다.</p>
+          <p class="muted-copy">현재 LabInsight와 Caffeine Atlas를 공개하고 있으며, 각 서비스는 별도의 웹페이지에서 제공됩니다. LABDAM은 의료기관이나 임상검사 결과를 공식 발급하는 기관을 의미하지 않습니다.</p>
+        </div>
+      </div>
+    </section>
+    <section id="technology" class="expanded-section" aria-labelledby="technology-title">
+      <div class="container">
+        <p class="eyebrow">Research &amp; Technology</p>
+        <h2 id="technology-title">기술보다 중요한 것은 해석의 맥락입니다.</h2>
+        <p class="section-lead">두 서비스의 데이터 해석 방식과 이용 시 주의할 점을 투명하게 소개합니다.</p>
+        <div class="principles">
+          <article class="principle">
+            <span class="principle-num">01</span>
+            <h3>Clinical data</h3>
+            <p>LabInsight는 입력한 건강검진 검사값을 참고 범위와 함께 정리합니다. 검사기관의 원본 참고치와 의료진 판단이 우선합니다.</p>
+          </article>
+          <article class="principle">
+            <span class="principle-num">02</span>
+            <h3>Genetic context</h3>
+            <p>Caffeine Atlas는 CYP1A2·AHR 관련 유전자형에 대한 연구·교육용 정보를 제공합니다. 유전자형만으로 개인의 질환이나 실제 카페인 반응을 확정할 수 없습니다.</p>
+          </article>
+          <article class="principle">
+            <span class="principle-num">03</span>
+            <h3>Transparent limits</h3>
+            <p>서비스 결과는 참고용이며 의료진의 진단·처방을 대신하지 않습니다. 기능과 한계, 개인정보 취급 여부를 지속적으로 점검하겠습니다.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+    <section id="contact" class="expanded-section section-tinted" aria-labelledby="contact-title">
+      <div class="container contact-grid">
+        <div>
+          <p class="eyebrow">Contact &amp; Feedback</p>
+          <h2 id="contact-title">서비스 개선 의견을 들려주세요.</h2>
+          <p class="section-copy">오류 제보, 접근성 개선 제안, 서비스 관련 일반 문의를 GitHub 이슈를 통해 전달할 수 있습니다.</p>
+          <p class="muted-copy">공개 게시판에는 이름, 주민등록번호, 연락처, 건강검진 결과지, 유전자 검사 결과 등 민감한 정보를 남기지 마세요.</p>
+        </div>
+        <div class="contact-action">
+          <strong>LABDAM 공식 개발 저장소</strong>
+          <p>서비스 업데이트와 일반적인 기술 관련 의견을 확인합니다.</p>
+          <a class="button" href="https://github.com/Haru-today/haru-today.github.io/issues/new" target="_blank" rel="noopener noreferrer">개선 의견 남기기 ↗</a>
+        </div>
       </div>
     </section>
     <section class="note" aria-label="이용 안내">
