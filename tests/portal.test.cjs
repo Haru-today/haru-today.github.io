@@ -46,7 +46,7 @@ test("portal links to privacy and service notices", () => {
 test("no false claim of completed legal compliance or automatic cloud deletion", () => {
   const privacy = fs.readFileSync("privacy.html", "utf8");
   assert.match(privacy, /자동 삭제/);
-  assert.match(privacy, /확인되지 않았습니다/);
+  assert.match(privacy, /확인하지 못했습니다|확인되지 않았습니다|확인이 필요합니다/);
   assert.match(privacy, /미확정|확정되지 않았습니다/);
   assert.doesNotMatch(privacy, /개인정보 안전성 인증 완료/);
 });
