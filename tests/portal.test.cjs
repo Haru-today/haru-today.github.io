@@ -27,3 +27,26 @@ test("canonical and both prior search ownership tags remain valid", () => {
   assert.match(fs.readFileSync("robots.txt", "utf8"), /sitemap/i);
   assert.match(fs.readFileSync("sitemap.xml", "utf8"), /haru-today\.github\.io/);
 });
+
+
+test("portal links to privacy and service notices", () => {
+  assert.match(html, /href="\/privacy\.html"/);
+  assert.match(html, /href="\/terms\.html"/);
+  const privacy = fs.readFileSync("privacy.html", "utf8");
+  const terms = fs.readFileSync("terms.html", "utf8");
+  assert.match(privacy, /Google Apps Script/);
+  assert.match(privacy, /Google Sheets/);
+  assert.match(privacy, /sessionStorage/);
+  assert.match(privacy, /보유기간/);
+  assert.match(privacy, /책임자/);
+  assert.match(terms, /의료.*한계|의료.*진단|의료.*유전자/);
+  assert.match(terms, /개인정보 처리 안내/);
+});
+
+test("no false claim of completed legal compliance or automatic cloud deletion", () => {
+  const privacy = fs.readFileSync("privacy.html", "utf8");
+  assert.match(privacy, /자동 삭제/);
+  assert.match(privacy, /확인되지 않았습니다/);
+  assert.match(privacy, /미확정|확정되지 않았습니다/);
+  assert.doesNotMatch(privacy, /개인정보 안전성 인증 완료/);
+});
