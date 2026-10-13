@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const AxeBuilder = require('@axe-core/playwright').default;
 
 test('portal loads redesigned sections, stylesheet and exactly two services', async ({ page }) => {
   await page.goto('/');
@@ -62,4 +63,33 @@ test('keyboard users can skip header to main content', async ({ page }, testInfo
   await expect(page.locator('a.skip')).toBeFocused();
   await page.keyboard.press('Enter');
   await expect(page).toHaveURL(/#main$/);
+});
+
+test('fixed header does not conceal section headings after navigation', async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: 'reduce' });
+  await page.goto('/');
+  for (const section of ['services', 'about', 'technology', 'contact']) {
+    await page.locator('nav a[href="#' + section + '"]').click();
+    await expect(page).toHaveURL(new RegExp('#' + section + '$'));
+    const location = await page.evaluate((id) => {
+      const header = document.querySelector('header').getBoundingClientRect();
+      const heading = document.querySelector('#' + id + ' h2').getBoundingClientRect();
+      return { headerBottom: header.bottom, headingTop: heading.top };
+    }, section);
+    expect(location.headingTop, section + ': ' + JSON.stringify(location))
+      .toBeGreaterThanOrEqual(location.headerBottom - 2);
+  }
+});
+
+test('no serious or critical automated WCAG failures', async ({ page }) => {
+  await page.goto('/');
+  const results = await new AxeBuilder({ page })
+    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+    .analyze();
+  const violations = results.violations.filter(v => ['critical', 'serious'].includes(v.impact));
+  expect(violations.map(v => ({
+    id: v.id,
+    impact: v.impact,
+    nodes: v.nodes.slice(0, 5).map(n => ({ target: n.target, summary: n.failureSummary }))
+  }))).toEqual([]);
 });
