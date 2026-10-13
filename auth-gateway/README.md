@@ -112,3 +112,15 @@ After supplying paths to public source checkouts and building:
     node --test auth-gateway/verify-bundle.test.cjs
 
 This workflow does not inspect, store or transmit actual health/genetic records.
+
+## 2026-10-14: Caffeine Atlas 저장 API 인증 프록시 개발
+
+- 보호된 같은 출처에 /api/caffeine-atlas 엔드포인트를 추가했습니다. Cloudflare Access 서명을 검증하지 못하면 GET/POST 모두 차단합니다.
+- GET capabilities/saveStatus와 POST 단건·일괄 저장만 허용합니다. 타 출처 POST·원격 setupTemplate·미동의 단건 저장·비정상 일괄 입력은 Google로 전송하지 않습니다.
+- Cloudflare Worker의 CAFFEINE_APPS_SCRIPT_URL과 CAFFEINE_ATLAS_WRITE_HMAC_KEY는 **서버 비밀 설정**입니다. 브라우저, 공개 GitHub 저장소, HTML 파일에 넣지 마세요.
+- 서버는 요청마다 timestamp와 nonce를 만들고 HMAC-SHA256으로 Apps Script 요청에 서명합니다. 앱은 사이트 내부의 보호 API를 호출하며 기존 공개 script.google.com 직접 전송·JSONP를 보호 번들에서만 제거합니다.
+- 대응되는 **Apps Script 변경은 Caffeine Atlas PR #4**에 있습니다: https://github.com/Haru-today/caffeine-atlas/pull/4. Script Properties의 CAFFEINE_ATLAS_WRITE_HMAC_KEY는 Worker와 **동일 값**, CAFFEINE_ATLAS_SHEET_ID는 실제 시트 ID로 설정해야 합니다.
+- 두 PR은 모두 **미병합**이고 실제 운영 Cloudflare/Google 배포는 **미실행**입니다. 현재 공개 GitHub Pages 사이트 또는 구형 Apps Script 웹앱은 우회 경로일 수 있습니다.
+- 새 프록시 단독 배포로 개인정보 보호가 완성되는 것이 아닙니다. 기존 웹앱의 공개 접근 차단, 운영자만의 시트 권한, 정보주체별 접근, 동의·삭제·보유기간, 실제 브라우저 통합 검증이 필요합니다.
+
+검증: 보안 API/JWT 단위 테스트 21개 및 보호 웹 번들 검증 8개를 GitHub CI에서 실행합니다. 결괏값에 대한 임상적 유효성 판단, 실제 유전자형 저장 데이터 접근, Cloudflare 로그인 계정 생성은 포함하지 않았습니다.
