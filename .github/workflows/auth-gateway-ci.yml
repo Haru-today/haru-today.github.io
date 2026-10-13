@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: ec6ed515df0d55ae35c9bc60143a14cea48dcd48
+          ref: fb1e615c51a826ea75bb849f22095f47da798f8e
           path: sources/labinsight
           persist-credentials: false
       - name: Checkout reviewed Caffeine Atlas public source
