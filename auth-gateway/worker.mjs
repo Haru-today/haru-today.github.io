@@ -158,9 +158,111 @@ async function verifyAccessJwt(request, env, options = {}) {
   return Object.freeze({ subject: payload.sub });
 }
 
+
+const SAVE_API_PATH = "/api/caffeine-atlas";
+const MAX_SHEET_REQUEST_BYTES = 2 * 1024 * 1024;
+
+function jsonResponse(status, obj) {
+  return securityHeaders(new Response(JSON.stringify(obj), {
+    status, headers: { "Content-Type": "application/json; charset=utf-8" }
+  }));
+}
+
+function sheetsConfig(env) {
+  const endpoint = env?.CAFFEINE_APPS_SCRIPT_URL;
+  const secret = env?.CAFFEINE_ATLAS_WRITE_HMAC_KEY;
+  if (typeof endpoint !== "string" ||
+      !/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,200}\/exec$/.test(endpoint) ||
+      typeof secret !== "string" || secret.length < 32) return null;
+  return { endpoint, secret };
+}
+
+async function sheetSignature(secret, payload, timestamp, nonce) {
+  const data = String(timestamp) + "." + nonce + "." + JSON.stringify(payload);
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const signed = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));
+  return [...signed].map(byte => byte.toString(16).padStart(2, "0")).join("");
+}
+
+async function callSheetBackend(request, env, options = {}) {
+  const config = sheetsConfig(env);
+  if (!config) return jsonResponse(503, { ok: false, code: "STORAGE_NOT_CONFIGURED" });
+  const url = new URL(request.url);
+  const timestamp = Math.floor(Date.now() / 1000);
+  const nonce = crypto.randomUUID().replace(/-/g, "").toLowerCase();
+  const backendFetch = options.apiFetch || fetch;
+  let body;
+  let backendUrl = config.endpoint;
+  let method = request.method;
+
+  if (method === "GET") {
+    const action = url.searchParams.get("action") || "capabilities";
+    const requestId = url.searchParams.get("requestId") || "";
+    if (!["capabilities", "saveStatus"].includes(action) ||
+        (action === "saveStatus" && !/^[a-f0-9]{32}$/.test(requestId))) {
+      return jsonResponse(400, { ok: false, code: "INVALID_ACTION" });
+    }
+    const payload = "GET:" + action + ":" + requestId;
+    const signature = await sheetSignature(config.secret, payload, timestamp, nonce);
+    const qs = new URLSearchParams({ action, timestamp: String(timestamp), nonce, signature });
+    if (action === "saveStatus") qs.set("requestId", requestId);
+    backendUrl = config.endpoint + "?" + qs.toString();
+  } else if (method === "POST") {
+    const origin = request.headers.get("Origin");
+    if (origin !== url.origin) return jsonResponse(403, { ok: false, code: "ORIGIN_REQUIRED" });
+    if (!(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
+      return jsonResponse(415, { ok: false, code: "JSON_REQUIRED" });
+    }
+    const raw = await request.text();
+    if (new TextEncoder().encode(raw).length > MAX_SHEET_REQUEST_BYTES) {
+      return jsonResponse(413, { ok: false, code: "PAYLOAD_TOO_LARGE" });
+    }
+    let payload;
+    try { payload = JSON.parse(raw); } catch (_) { return jsonResponse(400, { ok: false, code: "INVALID_JSON" }); }
+    if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
+        (payload.action && payload.action !== "batchSave") ||
+        !/^[a-f0-9]{32}$/.test(payload.requestId) ||
+        (payload.action === "batchSave" && (!Array.isArray(payload.rows) ||
+          payload.rows.length < 1 || payload.rows.length > 200)) ||
+        (payload.action !== "batchSave" && payload.consent !== true)) {
+      return jsonResponse(400, { ok: false, code: "INVALID_PAYLOAD" });
+    }
+    const signature = await sheetSignature(config.secret, payload, timestamp, nonce);
+    body = JSON.stringify({ payload, auth: { timestamp, nonce, signature } });
+  } else return jsonResponse(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+
+  try {
+    const response = await backendFetch(backendUrl, {
+      method,
+      redirect: "follow",
+      headers: method === "POST" ? { "Content-Type": "text/plain; charset=utf-8" } : undefined,
+      body
+    });
+    if (!response.ok) return jsonResponse(502, { ok: false, code: "STORAGE_UNAVAILABLE" });
+    const text = await response.text();
+    if (text.length > 16384) return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" });
+    let result;
+    try { result = JSON.parse(text); }
+    catch (_) { return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" }); }
+    if (!result || typeof result !== "object" || Array.isArray(result)) {
+      return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" });
+    }
+    // Whitelist response fields. Never mirror Google Spreadsheet IDs or secrets.
+    const safe = {};
+    for (const k of ["ok", "code", "state", "savedCount", "action", "batchId", "version", "capabilities"]) {
+      if (Object.prototype.hasOwnProperty.call(result, k)) safe[k] = result[k];
+    }
+    return jsonResponse(200, safe);
+  } catch (_) {
+    return jsonResponse(502, { ok: false, code: "STORAGE_UNAVAILABLE" });
+  }
+}
+
 async function handleRequest(request, env, options = {}) {
   const url = new URL(request.url);
-  if (!["GET", "HEAD"].includes(request.method)) {
+  const isSaveApi = url.pathname === SAVE_API_PATH;
+  if (!["GET", "HEAD"].includes(request.method) && !(isSaveApi && request.method === "POST")) {
     return statusResponse(405, "허용되지 않는 요청입니다.");
   }
   if (url.pathname === "/") {
@@ -171,7 +273,7 @@ async function handleRequest(request, env, options = {}) {
     if (!team) return statusResponse(503, "로그인 서비스가 아직 설정되지 않았습니다.");
     return securityHeaders(Response.redirect(team + "/cdn-cgi/access/logout", 302));
   }
-  if (!PREFIXES.some(p => url.pathname.startsWith(p)) &&
+  if (!isSaveApi && !PREFIXES.some(p => url.pathname.startsWith(p)) &&
       !["/labinsight", "/caffeine-atlas"].includes(url.pathname)) {
     return statusResponse(404, "요청한 페이지가 없습니다.");
   }
@@ -181,6 +283,11 @@ async function handleRequest(request, env, options = {}) {
   } catch (err) {
     return statusResponse(err instanceof AuthError ? err.status : 503,
       err instanceof AuthError ? err.message : "인증 확인 중 오류가 발생했습니다.");
+  }
+
+  if (isSaveApi) {
+    if (request.method === "HEAD") return statusResponse(405, "허용되지 않는 요청입니다.");
+    return callSheetBackend(request, env, options);
   }
 
   if (url.pathname === "/labinsight" || url.pathname === "/caffeine-atlas") {
