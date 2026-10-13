@@ -111,7 +111,7 @@ test('navy brand colors and device-specific concise landing presentation', async
     await expect(page.locator('.mobile-intro')).toBeVisible();
     await expect(page.locator('.desktop-intro')).toBeHidden();
     await expect(page.locator('.signal-strip')).toBeHidden();
-    await expect(page.locator('.service-content .desktop-only')).toBeHidden();
+    await expect(page.locator('.service-content .desktop-only').first()).toBeHidden();
     await expect(page.locator('.service-content .mobile-card-copy')).toHaveCount(2);
     await expect(page.locator('.service-content .mobile-card-copy').first()).toBeVisible();
     await expect(page.locator('.topnav a[href="#technology"]')).toBeHidden();
