@@ -1,0 +1,9 @@
+# Never commit protected deployment bundles, local auth config or credentials.
+dist/
+.wrangler/
+.dev.vars
+.dev.vars.*
+.env
+.env.*
+*.pem
+*.key
