@@ -1,0 +1,57 @@
+name: LABDAM auth gateway pre-deploy security checks
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'auth-gateway/**'
+      - 'tests/auth-gateway.test.cjs'
+      - '.github/workflows/auth-gateway-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-authentication:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Run JWT and fail-closed security tests
+        run: node --test tests/auth-gateway.test.cjs
+      - name: Validate Worker JavaScript
+        run: node --check auth-gateway/worker.mjs
+
+  build-private-static-artifacts:
+    needs: verify-authentication
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkout reviewed LabInsight public source
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/labinsight
+          ref: ec6ed515df0d55ae35c9bc60143a14cea48dcd48
+          path: sources/labinsight
+          persist-credentials: false
+      - name: Checkout reviewed Caffeine Atlas public source
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/caffeine-atlas
+          ref: 2f9960b0bc4944ba6eba71d7910087aec0b03d4a
+          path: sources/caffeine-atlas
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build reviewed public shells only (no deployment)
+        env:
+          LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+          CAFFEINE_SOURCE: ${{ github.workspace }}/sources/caffeine-atlas
+        run: node auth-gateway/build.mjs
+      - name: Check protected bundle for unwanted files
+        run: node --test auth-gateway/verify-bundle.test.cjs
