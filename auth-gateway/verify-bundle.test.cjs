@@ -57,6 +57,18 @@ test("both applications link to protected service paths rather than legacy publi
   assert.match(caffeine, /https:\/\/haru-today\.github\.io\//);
 });
 
+
+test("protected Caffeine Atlas web bundle calls authenticated same-origin Sheets API", () => {
+  const app = read("caffeine-atlas/caffeine-sensitivity-app/app.js");
+  assert.match(app, /var GOOGLE_SHEETS_ENDPOINT = "\/api\/caffeine-atlas"/);
+  assert.doesNotMatch(app, /https:\/\/script\.google\.com\/macros\//);
+  assert.doesNotMatch(app, /mode: "no-cors"/);
+  assert.doesNotMatch(app, /caffeineBatchCapability_/);
+  assert.match(app, /credentials: "same-origin"/);
+  assert.match(app, /"Content-Type": "application\/json;charset=utf-8"/);
+  assert.match(app, /response\.json\(\)/);
+});
+
 test("protected LabInsight browser shell does not cache unauthenticated HTML", () => {
   const sw = read("labinsight/service-worker.js");
   assert.doesNotMatch(sw, /caches\.open|CacheStorage|cache\.put|fetch\(/);
