@@ -54,6 +54,42 @@ function protectedLinkRewrite(text) {
     .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/");
 }
 
+function protectCaffeineBrowserApp(source) {
+  // This transformation exists only in the protected deployment bundle.
+  // Never ship a signed credential or the direct Google Apps Script URL.
+  let output = protectedLinkRewrite(source);
+  const endpoint = /var GOOGLE_SHEETS_ENDPOINT = "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec";/;
+  if (!endpoint.test(output)) throw new Error("Cannot identify legacy Caffeine Atlas endpoint.");
+  output = output.replace(endpoint, 'var GOOGLE_SHEETS_ENDPOINT = "/api/caffeine-atlas";');
+  const start = output.indexOf("function requestEndpointStatus(parameters) {");
+  const end = output.indexOf("function verifyBatchEndpointSupport()", start);
+  if (start < 0 || end < 0) throw new Error("Cannot identify JSONP receipt transport.");
+  const secureStatus = [
+    "function requestEndpointStatus(parameters) {",
+    '    return fetch(GOOGLE_SHEETS_ENDPOINT + "?" + parameters, {',
+    '      method: "GET", credentials: "same-origin", cache: "no-store"',
+    '    }).then(function (response) {',
+    '      if (!response.ok) throw new Error("인증된 저장 서버에 연결할 수 없습니다.");',
+    '      return response.json();',
+    '    });',
+    "  }",
+    "",
+    "  "
+  ].join("\n");
+  output = output.slice(0, start) + secureStatus + output.slice(end);
+  const oldMode = 'mode: "no-cors",';
+  const oldType = '"Content-Type": "text/plain;charset=utf-8"';
+  if (!output.includes(oldMode) || !output.includes(oldType)) {
+    throw new Error("Cannot identify insecure POST transport.");
+  }
+  output = output.replace(oldMode, 'credentials: "same-origin",');
+  output = output.replace(oldType, '"Content-Type": "application/json;charset=utf-8"');
+  if (output.includes("https://script.google.com/macros/")) {
+    throw new Error("Public Apps Script URL still present in the protected bundle.");
+  }
+  return output;
+}
+
 async function copyCuratedAssets(from, to, allowed) {
   if (!existsSync(from)) throw new Error("Required public assets directory absent: " + from);
   await mkdir(to, { recursive: true });
@@ -104,7 +140,8 @@ async function run() {
     if (!existsSync(source)) throw new Error("Missing public source file: " + file);
     await publicTextCopy(source, dest,
       text => file.endsWith(".html") ?
-        preventIndexing(protectedLinkRewrite(text)) : protectedLinkRewrite(text));
+        preventIndexing(protectedLinkRewrite(text)) :
+        file === "app.js" ? protectCaffeineBrowserApp(text) : protectedLinkRewrite(text));
   }
   await copyCuratedAssets(join(caffeine, "caffeine-sensitivity-app/assets"),
     join(cafAppOut, "assets"), new Set([
