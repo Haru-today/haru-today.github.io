@@ -1,11 +1,15 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 
-test('portal loads redesigned sections, stylesheet and exactly two services', async ({ page }) => {
+test('portal loads redesigned sections, stylesheet and exactly two services', async ({ page }, testInfo) => {
   await page.goto('/');
   await expect(page).toHaveTitle(/LABDAM/);
   await expect(page.locator('#main-title')).toBeVisible();
-  await expect(page.locator('.atlas-board')).toBeVisible();
+  if (['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name)) {
+    await expect(page.locator('.atlas-board')).toBeHidden();
+  } else {
+    await expect(page.locator('.atlas-board')).toBeVisible();
+  }
   await expect(page.locator('.service-card')).toHaveCount(2);
   await expect(page.locator('#about')).toHaveCount(1);
   await expect(page.locator('#technology')).toHaveCount(1);
@@ -65,10 +69,13 @@ test('keyboard users can skip header to main content', async ({ page }, testInfo
   await expect(page).toHaveURL(/#main$/);
 });
 
-test('fixed header does not conceal section headings after navigation', async ({ page }) => {
+test('fixed header does not conceal section headings after navigation', async ({ page }, testInfo) => {
   await page.emulateMedia({ reducedMotion: 'reduce' });
   await page.goto('/');
-  for (const section of ['services', 'about', 'technology', 'contact']) {
+  const sections = ['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name)
+    ? ['services', 'contact']
+    : ['services', 'about', 'technology', 'contact'];
+  for (const section of sections) {
     await page.locator('nav a[href="#' + section + '"]').click();
     await expect(page).toHaveURL(new RegExp('#' + section + '$'));
     const location = await page.evaluate((id) => {
@@ -92,4 +99,31 @@ test('no serious or critical automated WCAG failures', async ({ page }) => {
     impact: v.impact,
     nodes: v.nodes.slice(0, 5).map(n => ({ target: n.target, summary: n.failureSummary }))
   }))).toEqual([]);
+});
+
+test('navy brand colors and device-specific concise landing presentation', async ({ page }, testInfo) => {
+  await page.goto('/');
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#102B50');
+  const board = await page.locator('.atlas-board').evaluate(el => getComputedStyle(el).backgroundColor);
+  expect(board).toBe('rgb(16, 43, 80)');
+  const mobile = ['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name);
+  if (mobile) {
+    await expect(page.locator('.mobile-intro')).toBeVisible();
+    await expect(page.locator('.desktop-intro')).toBeHidden();
+    await expect(page.locator('.signal-strip')).toBeHidden();
+    await expect(page.locator('.service-content .desktop-only')).toBeHidden();
+    await expect(page.locator('.service-content .mobile-card-copy')).toHaveCount(2);
+    await expect(page.locator('.service-content .mobile-card-copy').first()).toBeVisible();
+    await expect(page.locator('.topnav a[href="#technology"]')).toBeHidden();
+    await expect(page.locator('.service-content .service-meta').first()).toBeHidden();
+    await expect(page.locator('.mobile-rules details')).toHaveCount(3);
+    await page.locator('.mobile-rules summary').first().click();
+    await expect(page.locator('.mobile-rules details').first()).toHaveAttribute('open', '');
+    const visibleNav = await page.locator('.topnav a:visible').count();
+    expect(visibleNav).toBe(2);
+  } else {
+    await expect(page.locator('.mobile-intro')).toBeHidden();
+    await expect(page.locator('.desktop-intro')).toBeVisible();
+    await expect(page.locator('.mobile-rules')).toBeHidden();
+  }
 });
