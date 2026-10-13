@@ -49,10 +49,9 @@ function preventIndexing(text) {
 
 function protectedLinkRewrite(text) {
   // Never rewrite public LABDAM portal links.
-  return text.replaceAll(
-    "https://haru-today.github.io/caffeine-atlas/",
-    "/caffeine-atlas/"
-  );
+  return text
+    .replaceAll("https://haru-today.github.io/caffeine-atlas/", "/caffeine-atlas/")
+    .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/");
 }
 
 async function copyCuratedAssets(from, to, allowed) {
@@ -82,8 +81,10 @@ async function run() {
     assertInside(lab, source);
     if (!existsSync(source)) throw new Error("Missing public source file: " + file);
     await (file.endsWith(".html") ?
-      publicTextCopy(source, dest, preventIndexing) :
-      copyFile(source, dest));
+      publicTextCopy(source, dest, text => preventIndexing(protectedLinkRewrite(text))) :
+      file.endsWith(".js") ?
+        publicTextCopy(source, dest, protectedLinkRewrite) :
+        copyFile(source, dest));
   }
   await copyCuratedAssets(join(lab, "icons"), join(labOut, "icons"),
     new Set(["icon.svg", "icon-192.png", "icon-512.png"]));
