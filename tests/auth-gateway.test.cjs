@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { generateKeyPairSync, sign } = require("node:crypto");
+const { generateKeyPairSync, sign, createHmac } = require("node:crypto");
 const { handleRequest } = require("../auth-gateway/worker.mjs");
 
 const TEAM = "https://labdam-example.cloudflareaccess.com";
@@ -202,4 +202,140 @@ test("public LABDAM portal stays separate from protected services", async () => 
   assert.equal(r.status, 302);
   assert.equal(r.headers.get("location"), "https://haru-today.github.io/");
   assert.equal(x.metrics.assets, 0);
+});
+
+
+const STORAGE_KEY = "TEST-ONLY-HMAC-GATEWAY-KEY-AT-LEAST-32-CHARS";
+const STORAGE_ENDPOINT = "https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyzABCDEF1234/exec";
+
+function gatewayApi({ response = { ok: true, state: "saved", savedCount: 1 }, backendFail = false } = {}) {
+  const x = mocks();
+  const metrics = { calls: 0, verified: false, outbound: null };
+  x.env.CAFFEINE_APPS_SCRIPT_URL = STORAGE_ENDPOINT;
+  x.env.CAFFEINE_ATLAS_WRITE_HMAC_KEY = STORAGE_KEY;
+  x.options.apiFetch = async (url, init) => {
+    metrics.calls++;
+    metrics.outbound = { url, init };
+    const query = new URL(url).searchParams;
+    let textToSign, stamp, nonce, signature;
+    if (init.method === "POST") {
+      const envelope = JSON.parse(init.body);
+      stamp = envelope.auth.timestamp;
+      nonce = envelope.auth.nonce;
+      signature = envelope.auth.signature;
+      textToSign = JSON.stringify(envelope.payload);
+    } else {
+      stamp = Number(query.get("timestamp"));
+      nonce = query.get("nonce");
+      signature = query.get("signature");
+      textToSign = JSON.stringify("GET:" + query.get("action") + ":" + (query.get("requestId") || ""));
+    }
+    const expected = createHmac("sha256", STORAGE_KEY)
+      .update(String(stamp) + "." + nonce + "." + textToSign).digest("hex");
+    assert.equal(signature, expected, "Only server-side Cloudflare secret may sign the request.");
+    assert.match(nonce, /^[0-9a-f]{32}$/);
+    assert.ok(Math.abs(stamp - Math.floor(Date.now() / 1000)) < 60);
+    metrics.verified = true;
+    return new Response(JSON.stringify(response), { status: backendFail ? 503 : 200 });
+  };
+  return { ...x, metrics };
+}
+
+function apiRequest(path, token, method, body, origin = "https://services.labdam.example") {
+  const headers = {};
+  if (token) headers["Cf-Access-Jwt-Assertion"] = token;
+  if (method === "POST") {
+    headers["Content-Type"] = "application/json";
+    if (origin) headers.Origin = origin;
+  }
+  return new Request("https://services.labdam.example" + path, {
+    method, headers, body: method === "POST" ? JSON.stringify(body) : undefined
+  });
+}
+
+test("Sheets API requires signed-in Access account for GET, status and POST", async () => {
+  const x = gatewayApi();
+  const paths = ["/api/caffeine-atlas", "/api/caffeine-atlas?action=saveStatus&requestId=" + "a".repeat(32)];
+  for (const path of paths) {
+    assert.equal((await handleRequest(apiRequest(path, null, "GET"), x.env, x.options)).status, 401);
+  }
+  assert.equal((await handleRequest(apiRequest(paths[0], null, "POST", { requestId: "a".repeat(32), consent: true }),
+    x.env, x.options)).status, 401);
+  assert.equal(x.metrics.calls, 0);
+});
+
+test("valid account can read signed capabilities without exposing sheet IDs", async () => {
+  const x = gatewayApi({ response: { ok: true, version: "v-test", capabilities: { batchSave: true }, spreadsheetId: "DO-NOT-EXPOSE" } });
+  const res = await handleRequest(apiRequest("/api/caffeine-atlas?action=capabilities", signedToken(), "GET"), x.env, x.options);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).capabilities.batchSave, true);
+  assert.ok(x.metrics.verified);
+  assert.equal(x.metrics.outbound.init.method, "GET");
+  assert.equal(x.metrics.outbound.url.startsWith(STORAGE_ENDPOINT + "?"), true);
+});
+
+test("valid login signs and submits only consented JSON from same origin", async () => {
+  const x = gatewayApi();
+  const payload = { requestId: "b".repeat(32), consent: true, sampleId: "SAMPLE-NONIDENTIFIABLE",
+    rs6968865: "AT", score: 50 };
+  const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST", payload), x.env, x.options);
+  assert.equal(res.status, 200);
+  assert.equal((await res.json()).savedCount, 1);
+  assert.equal(x.metrics.outbound.init.method, "POST");
+  assert.ok(x.metrics.verified);
+  const requestBody = JSON.parse(x.metrics.outbound.init.body);
+  assert.deepEqual(requestBody.payload, payload);
+  assert.equal(requestBody.auth.signature.length, 64);
+  assert.ok(!x.metrics.outbound.init.body.includes("STORAGE_KEY"));
+});
+
+test("browser CSRF attempt with wrong or missing origin is rejected", async () => {
+  const x = gatewayApi();
+  const p = { requestId: "c".repeat(32), consent: true };
+  const wrong = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST",
+    p, "https://attacker.example"), x.env, x.options);
+  const absent = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST",
+    p, null), x.env, x.options);
+  assert.equal(wrong.status, 403);
+  assert.equal(absent.status, 403);
+  assert.equal(x.metrics.calls, 0);
+});
+
+test("forged admin command and unsigned consent are blocked before contacting Sheets", async () => {
+  const x = gatewayApi();
+  for (const payload of [
+    { action: "setupTemplate", requestId: "d".repeat(32), consent: true },
+    { action: "batchSave", requestId: "d".repeat(32), rows: [] },
+    { requestId: "d".repeat(32), consent: false }
+  ]) {
+    const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST", payload),
+      x.env, x.options);
+    assert.equal(res.status, 400);
+  }
+  assert.equal(x.metrics.calls, 0);
+});
+
+test("missing or malicious Sheets settings are fail closed", async () => {
+  const x = gatewayApi();
+  for (const settings of [
+    { CAFFEINE_APPS_SCRIPT_URL: "" },
+    { CAFFEINE_APPS_SCRIPT_URL: "https://attacker.invalid/api" },
+    { CAFFEINE_ATLAS_WRITE_HMAC_KEY: "" }
+  ]) {
+    const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "GET"),
+      { ...x.env, ...settings }, x.options);
+    assert.equal(res.status, 503);
+  }
+  assert.equal(x.metrics.calls, 0);
+});
+
+test("invalid receipt action and storage failures do not leak internal errors", async () => {
+  const x = gatewayApi({ backendFail: true });
+  const bad = await handleRequest(apiRequest("/api/caffeine-atlas?action=saveStatus&requestId=bad", signedToken(), "GET"),
+    x.env, x.options);
+  assert.equal(bad.status, 400);
+  assert.equal(x.metrics.calls, 0);
+  const outage = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "GET"), x.env, x.options);
+  assert.equal(outage.status, 502);
+  assert.deepEqual(await outage.json(), { ok: false, code: "STORAGE_UNAVAILABLE" });
 });
