@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
-  <meta name="theme-color" content="#101e29">
+  <meta name="theme-color" content="#102B50">
   <link rel="icon" type="image/svg+xml" href="/favicon.svg">
   <meta name="application-name" content="LABDAM">
   <meta name="color-scheme" content="light">
@@ -93,114 +93,171 @@
     @media(max-width:780px){.story-grid,.contact-grid{grid-template-columns:1fr;gap:22px}.principles{grid-template-columns:1fr}.expanded-section{padding:54px 0}}
     @media(max-width:660px){header .bar{flex-wrap:wrap;padding-block:12px;gap:6px}.topnav{flex-wrap:wrap;gap:12px;font-size:.78rem}.brand{font-size:1.3rem}}
   </style>
+  <link rel="stylesheet" href="/assets/portal-redesign.css">
 </head>
 <body>
   <a class="skip" href="#main">본문으로 바로가기</a>
   <header>
     <div class="container bar">
-      <a class="brand" href="/" aria-label="LABDAM 홈페이지">LAB<span>DAM</span>.</a>
+      <a class="brand" href="/" aria-label="LABDAM 홈페이지">LAB<span>DAM</span></a>
       <nav class="topnav" aria-label="주요 메뉴">
         <a href="#about">소개</a>
         <a href="#services">서비스</a>
-        <a href="#technology">기술과 원칙</a>
-        <a href="#contact">문의</a>
+        <a href="#technology">연구·원칙</a>
+        <a class="nav-cta" href="#contact">문의 ↗</a>
       </nav>
     </div>
   </header>
   <main id="main">
     <section class="hero" aria-labelledby="main-title">
-      <div class="container">
-        <p class="eyebrow">LABDAM · PERSONAL HEALTH ATLAS · INTEGRATED PORTAL</p>
-        <h1 id="main-title">데이터를 이해하고,<br>더 나은 일상으로.</h1>
-        <p class="intro">LABDAM(랩담)은 <strong>Personal Health Atlas 통합 포털</strong>입니다. 건강검진 수치를 정리하고 해석의 근거를 살펴보는 LabInsight와 카페인 관련 유전자 정보를 다루는 Caffeine Atlas를 연결합니다. 두 서비스는 연구·교육 및 정보 제공 목적으로 운영됩니다.</p>
-        <div class="hero-actions">
-          <a class="button" href="#services">서비스 살펴보기 →</a>
-          <a class="button outline" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 바로가기 ↗</a>
+      <div class="container hero-grid">
+        <div class="hero-text">
+          <span class="kicker"><span class="dot" aria-hidden="true"></span> LABDAM · Personal Health Atlas</span>
+          <h1 id="main-title">내 건강의 정보,<br><em>이해의 시작</em>으로.</h1>
+          <p class="intro"><span class="desktop-intro">LABDAM(랩담)은 <strong>Personal Health Atlas 통합 포털</strong>입니다. 건강검진 수치를 이해하기 쉽게 정리하는 LabInsight와 카페인 관련 유전자형을 탐색하는 Caffeine Atlas를 하나의 브랜드 경험으로 연결합니다.</span><span class="mobile-intro">건강검진과 유전정보를 이해하는 두 가지 서비스.</span></p>
+          <div class="hero-actions">
+            <a class="button primary" href="#services">두 서비스 알아보기 <span aria-hidden="true">↗</span></a>
+            <a class="button outline" href="#about">LABDAM의 이야기 <span aria-hidden="true">↓</span></a>
+          </div>
+          <p class="hero-footnote">연구·교육 및 참고 정보 제공 · 의료 진단을 대체하지 않습니다.</p>
+        </div>
+        <div class="atlas-board" role="img" aria-label="LABDAM을 중심으로 LabInsight와 Caffeine Atlas를 연결하는 추상적인 개념도. 실제 검사 결과나 분석 데이터가 아닙니다.">
+          <div class="board-top"><span>PERSONAL HEALTH ATLAS</span><span class="board-status">LABDAM PORTAL</span></div>
+          <div class="orbit" aria-hidden="true">
+            <span class="orbit-core">LAB<br>DAM</span>
+            <span class="orbit-node one">01</span>
+            <span class="orbit-node two">02</span>
+            <span class="orbit-node three"></span>
+          </div>
+          <div class="board-bottom" aria-hidden="true">
+            <div class="board-tile"><small>01 / HEALTH CHECKUP</small><strong>LabInsight</strong></div>
+            <div class="board-tile"><small>02 / GENETIC CONTEXT</small><strong>Caffeine Atlas</strong></div>
+          </div>
+          <p class="board-caption">서비스 연결 구조를 나타낸 개념적 시각화</p>
         </div>
       </div>
     </section>
-    <section id="services" class="services container" aria-labelledby="services-title">
-      <p class="eyebrow">Our Services</p>
-      <h2 id="services-title">LABDAM의 두 가지 서비스</h2>
-      <p class="section-lead">하나의 LABDAM에서 두 서비스를 연결합니다. 필요한 정보의 유형에 따라 선택하세요.</p>
-      <div class="cards">
-        <article class="card">
-          <span class="tag">Health Checkup</span>
-          <h3>LabInsight</h3>
-          <p class="subtitle">랩인사이트 · 건강검진 수치 입력·해석</p>
-          <p>건강검진 수치를 입력하고 참고 범위와 결과 해석 리포트를 살펴보는 서비스입니다. 검진 패키지와 병원 비교 기능도 제공합니다.</p>
-          <a class="link" href="https://haru-today.github.io/labinsight/">LabInsight 이용하기 ↗</a>
+
+    <div class="signal-strip" aria-label="LABDAM의 핵심 지향점">
+      <div class="container signal-grid">
+        <div class="signal"><b>01</b><span>검사 데이터를<br>읽기 쉬운 정보로</span></div>
+        <div class="signal"><b>02</b><span>유전자형을<br>연구 맥락에서 이해하기</span></div>
+        <div class="signal"><b>03</b><span>근거와 한계를<br>투명하게 안내하기</span></div>
+      </div>
+    </div>
+
+    <section id="services" class="services container section-anchor" aria-labelledby="services-title">
+      <p class="eyebrow">01 / Products &amp; Services</p>
+      <div class="section-header">
+        <h2 id="services-title">LABDAM의 두 가지 서비스<br class="desktop-only"><span class="desktop-only">각각의 목적에 맞게.</span></h2>
+        <p class="section-lead">건강검진 결과를 살펴보는 일부터 카페인과 유전자형의 연관성을 탐색하는 일까지. 두 서비스는 각기 다른 문제를 다룹니다.</p>
+      </div>
+      <div class="service-grid">
+        <article class="service-card">
+          <div class="service-visual health" aria-hidden="true">
+            <span class="visual-label">HEALTH DATA / 01</span>
+            <div class="ui-mini">
+              <div class="mini-top"><span>HEALTH CHECKUP OVERVIEW</span><span class="mini-dot-group"><i></i><i></i><i></i></span></div>
+              <div class="mini-heading">검사 항목 정보 정리</div>
+              <div class="mini-bar"></div><div class="mini-bar b"></div><div class="mini-bar c"></div>
+            </div>
+          </div>
+          <div class="service-content">
+            <span class="service-index">01 / Clinical laboratory information</span>
+            <h3>LabInsight</h3>
+            <p class="subtitle">랩인사이트 · 건강검진 수치 입력·해석</p>
+            <p class="desktop-only">건강검진 수치를 입력해 항목별 참고 범위와 설명을 살펴보고, 결과를 이해하는 데 필요한 질문을 정리하도록 돕습니다. 참고 범위는 검사기관 및 개인 상황에 따라 달라질 수 있습니다.</p><p class="mobile-only mobile-card-copy">검진 수치와 참고 정보를 살펴보세요.</p>
+            <div class="service-meta"><span>검사 항목 정리</span><span>참고 정보</span><span>결과 리포트</span></div>
+            <a class="link" href="https://haru-today.github.io/labinsight/">LabInsight 이용하기 <span aria-hidden="true">↗</span></a>
+          </div>
         </article>
-        <article class="card">
-          <span class="tag">Genetics · Caffeine</span>
-          <h3>Caffeine Atlas</h3>
-          <p class="subtitle">카페인 아틀라스 · 카페인 유전자 리포트</p>
-          <p>CYP1A2와 AHR 관련 유전자형을 바탕으로 카페인 반응 정보를 살펴볼 수 있는 연구·교육용 리포트 서비스입니다.</p>
-          <a class="link" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 이용하기 ↗</a>
+        <article class="service-card">
+          <div class="service-visual genetics" aria-hidden="true">
+            <span class="visual-label">GENETIC CONTEXT / 02</span>
+            <div class="gene-wave"><span class="gene-chip">AHR</span><span class="gene-chip">CYP1A2</span></div>
+          </div>
+          <div class="service-content">
+            <span class="service-index">02 / Molecular biology education</span>
+            <h3>Caffeine Atlas</h3>
+            <p class="subtitle">카페인 아틀라스 · 유전자형 기반 연구·교육 리포트</p>
+            <p class="desktop-only">카페인 관련 유전자형 정보를 연구·교육 맥락에서 살펴보는 서비스입니다. 모델 기반 지표는 실제 카페인 반응, 질환 위험 또는 개인별 안전 섭취량을 확정하지 않습니다.</p><p class="mobile-only mobile-card-copy">카페인 유전자형을 교육용 리포트로 살펴보세요.</p>
+            <div class="service-meta"><span>유전자형 정보</span><span>모델 기반 지표</span><span>교육용 리포트</span></div>
+            <a class="link" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 이용하기 <span aria-hidden="true">↗</span></a>
+          </div>
         </article>
       </div>
     </section>
-    <section id="about" class="expanded-section section-tinted" aria-labelledby="about-title">
+
+    <section id="about" class="story section-anchor" aria-labelledby="about-title">
       <div class="container story-grid">
         <div>
-          <p class="eyebrow">About LABDAM</p>
-          <h2 id="about-title">건강 데이터를<br>이해할 수 있는 정보로.</h2>
+          <p class="eyebrow">02 / About LABDAM</p>
+          <h2 id="about-title">복잡한 데이터와<br>일상 사이의 연결.</h2>
         </div>
         <div>
-          <p class="section-copy">LABDAM은 임상검사 데이터와 분자생물학 정보를 일상에서 이해하기 쉽게 전달하는 디지털 프로젝트 브랜드입니다. 복잡한 수치를 읽고, 관련된 근거를 살펴보고, 필요한 질문을 준비하는 경험을 지향합니다.</p>
-          <p class="muted-copy">현재 LabInsight와 Caffeine Atlas를 공개하고 있으며, 각 서비스는 별도의 웹페이지에서 제공됩니다. LABDAM은 의료기관이나 임상검사 결과를 공식 발급하는 기관을 의미하지 않습니다.</p>
+          <p class="story-lede"><span class="desktop-only">건강검진 결과표의 숫자와 유전정보의 의미를 이해하기 위해, 무엇을 알고 무엇을 아직 모르는지부터 분명하게 살펴봅니다.</span><span class="mobile-only">건강 데이터를 더 쉽게 이해하도록 돕습니다.</span></p>
+          <p class="story-body desktop-only">LABDAM은 임상검사 및 분자생물학 정보를 보다 쉽게 전달하려는 디지털 프로젝트 브랜드입니다. Personal Health Atlas는 별도 서비스가 아닌 LABDAM 통합 포털의 방향을 나타냅니다. 현재 공개된 서비스는 LabInsight와 Caffeine Atlas 두 가지이며, 각 서비스의 실제 기능과 정보 이용 조건은 해당 페이지에서 확인할 수 있습니다.</p><details class="mobile-only mobile-more"><summary>LABDAM 더 알아보기</summary><p>LABDAM은 Personal Health Atlas와 동일한 통합 포털입니다. 임상검사와 분자생물학 정보를 전달하며, LabInsight와 Caffeine Atlas 두 서비스를 연결합니다.</p></details>
+          <div class="story-highlights" aria-label="주요 분야">
+            <span>Clinical Laboratory Science</span><span>Molecular Diagnostics</span><span>Bioinformatics</span>
+          </div>
         </div>
       </div>
     </section>
-    <section id="technology" class="expanded-section" aria-labelledby="technology-title">
+
+    <section id="technology" class="approach section-anchor" aria-labelledby="technology-title">
       <div class="container">
-        <p class="eyebrow">Research &amp; Technology</p>
-        <h2 id="technology-title">기술보다 중요한 것은 해석의 맥락입니다.</h2>
-        <p class="section-lead">두 서비스의 데이터 해석 방식과 이용 시 주의할 점을 투명하게 소개합니다.</p>
+        <p class="eyebrow">03 / Our Approach</p>
+        <h2 id="technology-title">기술보다 중요한 것은<br>정보를 해석하는 맥락입니다.</h2>
         <div class="principles">
           <article class="principle">
             <span class="principle-num">01</span>
-            <h3>Clinical data</h3>
-            <p>LabInsight는 입력한 건강검진 검사값을 참고 범위와 함께 정리합니다. 검사기관의 원본 참고치와 의료진 판단이 우선합니다.</p>
+            <h3>Clinical context</h3>
+            <p>검사 수치는 측정법, 검사기관의 참고 범위, 개인별 조건을 함께 고려해야 합니다. LabInsight는 원본 결과지와 의료진의 판단을 대신하지 않습니다.</p>
           </article>
           <article class="principle">
             <span class="principle-num">02</span>
             <h3>Genetic context</h3>
-            <p>Caffeine Atlas는 CYP1A2·AHR 관련 유전자형에 대한 연구·교육용 정보를 제공합니다. 유전자형만으로 개인의 질환이나 실제 카페인 반응을 확정할 수 없습니다.</p>
+            <p>Caffeine Atlas의 유전자형 관련 내용은 연구·교육을 위한 참고 정보입니다. 단일 유전자형이나 모델 지표만으로 개인의 실제 반응을 확정할 수 없습니다.</p>
           </article>
           <article class="principle">
             <span class="principle-num">03</span>
-            <h3>Transparent limits</h3>
-            <p>서비스 결과는 참고용이며 의료진의 진단·처방을 대신하지 않습니다. 기능과 한계, 개인정보 취급 여부를 지속적으로 점검하겠습니다.</p>
+            <h3>Transparent limitations</h3>
+            <p>모든 정보에는 적용 범위와 한계가 있습니다. 각 서비스의 기능, 데이터 처리 방식과 주의사항을 분리해 설명하며 임상 진단 또는 법적 인증을 주장하지 않습니다.</p>
           </article>
         </div>
+        <div class="mobile-rules mobile-only" aria-label="정보 해석 원칙 자세히 보기">
+          <details><summary>검사 수치에는 참고 범위가 필요합니다.</summary><p>측정 방법과 검사기관, 개인별 조건을 고려해야 하며 LabInsight는 의료진의 판단을 대신하지 않습니다.</p></details>
+          <details><summary>유전자형만으로 반응을 확정할 수 없습니다.</summary><p>Caffeine Atlas는 연구·교육용 참고 정보를 제공하며 실제 카페인 반응이나 개인별 안전 섭취량을 판정하지 않습니다.</p></details>
+          <details><summary>서비스의 한계를 투명하게 안내합니다.</summary><p>이용 범위와 데이터 처리는 서비스별로 다르며 의료 진단 또는 법적 인증 완료를 주장하지 않습니다.</p></details>
+        </div>
+        <p class="approach-note">※ LABDAM은 의료기관, 공인 임상검사기관 또는 의학적 진단 시스템을 의미하지 않습니다.</p>
       </div>
     </section>
-    <section id="contact" class="expanded-section section-tinted" aria-labelledby="contact-title">
+
+    <section id="contact" class="contact section-anchor" aria-labelledby="contact-title">
       <div class="container contact-grid">
         <div>
-          <p class="eyebrow">Contact &amp; Feedback</p>
-          <h2 id="contact-title">서비스 개선 의견을 들려주세요.</h2>
-          <p class="section-copy">오류 제보, 접근성 개선 제안, 서비스 관련 일반 문의를 GitHub 이슈를 통해 전달할 수 있습니다.</p>
-          <p class="muted-copy">공개 게시판에는 이름, 주민등록번호, 연락처, 건강검진 결과지, 유전자 검사 결과 등 민감한 정보를 남기지 마세요.</p>
+          <p class="eyebrow">04 / Contact &amp; Feedback</p>
+          <h2 id="contact-title">더 나은 경험을 위한<br>의견을 들려주세요.</h2>
+          <p class="section-copy desktop-only">오류 제보와 접근성 개선 제안, 일반적인 기능 문의는 개발 저장소의 GitHub 이슈를 이용해 주세요.</p>
+          <p class="muted-copy">공개 게시판에 건강검진 결과, 유전자 검사 결과, 성명·연락처 등 개인·민감정보를 게시하지 마세요.</p>
         </div>
         <div class="contact-action">
-          <strong>LABDAM 공식 개발 저장소</strong>
-          <p>서비스 업데이트와 일반적인 기술 관련 의견을 확인합니다.</p>
-          <a class="button" href="https://github.com/Haru-today/haru-today.github.io/issues/new" target="_blank" rel="noopener noreferrer">개선 의견 남기기 ↗</a>
+          <strong>LABDAM 개발 저장소</strong>
+          <p class="desktop-only">일반적인 사이트 이용 및 기능 개선 의견을 받습니다. 의료상담이나 민감정보 접수 창구는 아닙니다.</p>
+          <a class="button" href="https://github.com/Haru-today/haru-today.github.io/issues/new" target="_blank" rel="noopener noreferrer">의견 남기기 <span aria-hidden="true">↗</span></a>
         </div>
       </div>
     </section>
-    <section class="note" aria-label="이용 안내">
-      <div class="container">
-        <p>안내: 서비스 내 건강 및 유전자 정보는 참고용이며 의료 전문가의 진단이나 치료를 대신하지 않습니다. 개인별 건강검진·유전정보는 공개 웹페이지에 게시하지 마세요.</p>
-      </div>
-    </section>
+    <section class="note" aria-label="이용 안내"><div class="container"><p>본 포털 및 연결 서비스는 연구·교육과 참고 정보 제공을 목적으로 하며 의료적 진단·치료 또는 개인별 안전 섭취량 결정을 대신하지 않습니다.</p></div></section>
   </main>
   <footer>
     <div class="container bottom">
-      <span class="wordmark">LABDAM · 랩담</span>
-      <div><a href="/privacy.html">개인정보 처리 안내</a> · <a href="/terms.html">서비스 이용 안내</a><small>© 2026 LABDAM. Digital Healthcare &amp; Bioinformatics.</small></div>
+      <div><div class="footer-wordmark">LABDAM.</div><div class="footer-sub">PERSONAL HEALTH ATLAS</div></div>
+      <div>
+        <div class="footer-links"><a href="/privacy.html">개인정보 처리 안내</a><a href="/terms.html">서비스 이용 안내</a><a href="#main">맨 위로 ↑</a></div>
+        <small>© 2026 LABDAM · Digital Healthcare &amp; Bioinformatics.</small>
+      </div>
     </div>
   </footer>
 </body>
