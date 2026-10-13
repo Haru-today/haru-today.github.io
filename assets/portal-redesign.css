@@ -18,3 +18,9 @@ main{overflow:hidden}.section-anchor{scroll-margin-top:96px}.eyebrow{margin:0 0 
 
 /* Allow anchored sections to clear the two-row mobile sticky navigation. */
 @media(max-width:660px){html{scroll-padding-top:136px}.section-anchor{scroll-margin-top:136px}}
+
+/* WCAG AA: readable secondary labels on paper, sage and gradient backgrounds. */
+.eyebrow{color:#246958}
+.approach-note{color:#526963}
+.hero-footnote{color:#536967}
+.visual-label{color:#305b50}
