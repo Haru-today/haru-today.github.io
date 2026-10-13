@@ -47,6 +47,16 @@ test("Caffeine Atlas first-party service URLs point to protected routes", () => 
   assert.match(html, /https:\/\/haru-today.github.io\//);
 });
 
+test("both applications link to protected service paths rather than legacy public apps", () => {
+  const lab = read("labinsight/index.html");
+  const caffeine = read("caffeine-atlas/caffeine-sensitivity-app/index.html");
+  for (const html of [lab, caffeine]) {
+    assert.doesNotMatch(html, /https:\/\/haru-today\.github\.io\/(?:labinsight|caffeine-atlas)\//);
+  }
+  assert.match(lab, /\/caffeine-atlas\/caffeine-sensitivity-app\/analyzer\.html/);
+  assert.match(caffeine, /https:\/\/haru-today\.github\.io\//);
+});
+
 test("protected LabInsight browser shell does not cache unauthenticated HTML", () => {
   const sw = read("labinsight/service-worker.js");
   assert.doesNotMatch(sw, /caches\.open|CacheStorage|cache\.put|fetch\(/);
