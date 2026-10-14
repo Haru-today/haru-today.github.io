@@ -382,6 +382,9 @@ async function handleRequest(request, env, opts = {}) {
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
       return await assetFor(request, env, "/login.html");
     }
+    if (path === "/membership-privacy.html" && ["GET", "HEAD"].includes(method)) {
+      return await assetFor(request, env, "/membership-privacy.html");
+    }
     if (path === "/pending.html" && ["GET", "HEAD"].includes(method)) {
       return await assetFor(request, env, "/pending.html");
     }
