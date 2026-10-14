@@ -18,6 +18,7 @@ function signedToken(claims = {}, options = {}) {
   const header = { alg: "RS256", kid: publicJwk.kid, ...(options.header || {}) };
   const payload = {
     aud: [AUD], iss: TEAM, type: "app", sub: "account-user-id",
+    email: "reviewer@labdam.example",
     iat: NOW - 60, exp: NOW + 3600,
     ...claims
   };
@@ -211,6 +212,7 @@ const STORAGE_ENDPOINT = "https://script.google.com/macros/s/abcdefghijklmnopqrs
 function gatewayApi({ response = { ok: true, state: "saved", savedCount: 1 }, backendFail = false } = {}) {
   const x = mocks();
   const metrics = { calls: 0, verified: false, outbound: null };
+  x.env.STORAGE_WRITER_EMAILS = "reviewer@labdam.example, owner@labdam.example";
   x.env.CAFFEINE_APPS_SCRIPT_URL = STORAGE_ENDPOINT;
   x.env.CAFFEINE_ATLAS_WRITE_HMAC_KEY = STORAGE_KEY;
   x.options.apiFetch = async (url, init) => {
@@ -338,4 +340,58 @@ test("invalid receipt action and storage failures do not leak internal errors", 
   const outage = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "GET"), x.env, x.options);
   assert.equal(outage.status, 502);
   assert.deepEqual(await outage.json(), { ok: false, code: "STORAGE_UNAVAILABLE" });
+});
+
+
+test("verified Access account without write permission cannot query or save Sheets", async () => {
+  const x = gatewayApi();
+  const token = signedToken({ email: "visitor@example.net" });
+  for (const route of ["/api/caffeine-atlas", "/api/caffeine-atlas?action=saveStatus&requestId=" + "f".repeat(32)]) {
+    const response = await handleRequest(apiRequest(route, token, "GET"), x.env, x.options);
+    assert.equal(response.status, 403, route);
+    assert.deepEqual(await response.json(), { ok: false, code: "STORAGE_NOT_AUTHORIZED" });
+  }
+  const p = { requestId: "a".repeat(32), consent: true };
+  const response = await handleRequest(apiRequest("/api/caffeine-atlas", token, "POST", p), x.env, x.options);
+  assert.equal(response.status, 403);
+  assert.equal(x.metrics.calls, 0, "No denied request may reach Google Sheets");
+});
+
+test("missing, untrusted or malformed storage allowlist fails closed", async () => {
+  const x = gatewayApi();
+  for (const list of [undefined, "", "*", "everyone", "@example.com", "valid@example.com, *"]) {
+    const env = { ...x.env };
+    if (list === undefined) delete env.STORAGE_WRITER_EMAILS;
+    else env.STORAGE_WRITER_EMAILS = list;
+    const response = await handleRequest(
+      apiRequest("/api/caffeine-atlas", signedToken(), "GET"),
+      env, x.options
+    );
+    assert.equal(response.status, 503, JSON.stringify(list));
+  }
+  assert.equal(x.metrics.calls, 0);
+});
+
+test("missing JWT email cannot access Sheets but can use both public app shells after login", async () => {
+  const x = gatewayApi();
+  const token = signedToken({ email: undefined });
+  const api = await handleRequest(apiRequest("/api/caffeine-atlas", token, "GET"), x.env, x.options);
+  assert.equal(api.status, 403);
+  assert.equal(x.metrics.calls, 0);
+  const staticResponse = await handleRequest(request("/labinsight/app.js", token), x.env, x.options);
+  assert.equal(staticResponse.status, 200);
+});
+
+test("storage email comparison is case-insensitive and never trusts unsigned identity headers", async () => {
+  const x = gatewayApi();
+  const token = signedToken({ email: "REVIEWER@LABDAM.EXAMPLE" });
+  const allowed = await handleRequest(apiRequest("/api/caffeine-atlas", token, "GET"), x.env, x.options);
+  assert.equal(allowed.status, 200);
+  assert.equal(x.metrics.calls, 1);
+  const forged = new Request("https://services.labdam.example/api/caffeine-atlas", {
+    headers: { "Cf-Access-Authenticated-User-Email": "reviewer@labdam.example" }
+  });
+  const blocked = await handleRequest(forged, x.env, x.options);
+  assert.equal(blocked.status, 401);
+  assert.equal(x.metrics.calls, 1);
 });
