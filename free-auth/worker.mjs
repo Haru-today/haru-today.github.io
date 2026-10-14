@@ -360,18 +360,18 @@ async function handleRequest(request, env, opts = {}) {
     }
     if (path === "/login" && method === "GET") return redirect("/login.html", origin);
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
-      return assetFor(request, env, "/login.html");
+      return await assetFor(request, env, "/login.html");
     }
     if (path === "/pending.html" && ["GET", "HEAD"].includes(method)) {
-      return assetFor(request, env, "/pending.html");
+      return await assetFor(request, env, "/pending.html");
     }
     if (path === "/auth/start" && method === "GET") {
       configured(env);
-      return oauthStart(request, env, origin, opts);
+      return await oauthStart(request, env, origin, opts);
     }
     if (path === "/auth/callback" && method === "GET") {
       configured(env);
-      return oauthCallback(request, env, origin, opts);
+      return await oauthCallback(request, env, origin, opts);
     }
     if (!privatePath(path)) return simple(404, "요청한 페이지가 없습니다.");
     if (!["GET", "HEAD", "POST"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
@@ -399,7 +399,7 @@ async function handleRequest(request, env, opts = {}) {
     }
     if (path === "/api/application" && method === "POST") {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
-      return applicationUpdate(request, env, member, nowSecs(opts));
+      return await applicationUpdate(request, env, member, nowSecs(opts));
     }
     if (member.status !== "approved") {
       if (method === "GET" && isHtmlRoute(path)) return redirect("/pending.html", origin);
@@ -408,18 +408,18 @@ async function handleRequest(request, env, opts = {}) {
     if (path === "/api/admin/applications" || path === "/api/admin/review" ||
         path === "/admin" || path === "/admin.html") {
       if (member.role !== "admin") return json(403, { ok: false, code: "ADMIN_ONLY" });
-      if (path === "/api/admin/applications" && method === "GET") return adminList(env);
+      if (path === "/api/admin/applications" && method === "GET") return await adminList(env);
       if (path === "/api/admin/review" && method === "POST") {
         if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
-        return adminReview(request, env, member, nowSecs(opts));
+        return await adminReview(request, env, member, nowSecs(opts));
       }
       if (path === "/admin" && method === "GET") return redirect("/admin.html", origin);
-      if (path === "/admin.html" && ["GET", "HEAD"].includes(method)) return assetFor(request, env, path);
+      if (path === "/admin.html" && ["GET", "HEAD"].includes(method)) return await assetFor(request, env, path);
       return json(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
     }
     if (method !== "GET" && method !== "HEAD") return simple(405, "허용되지 않는 요청입니다.");
     if (path === "/labinsight") return redirect("/labinsight/", origin);
-    return assetFor(request, env, path);
+    return await assetFor(request, env, path);
   } catch (error) {
     if (error instanceof LoginError) {
       return simple(error.status, error.message);
