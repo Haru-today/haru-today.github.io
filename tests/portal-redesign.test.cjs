@@ -39,3 +39,17 @@ test("redesign retains SEO, privacy and feedback routes", () => {
   assert.match(html, /href="\/terms.html"/);
   assert.match(html, /github.com\/Haru-today\/haru-today.github.io\/issues\/new/);
 });
+
+test("home offers two clear service starts while keeping symposium demo public", () => {
+  assert.match(html, /aria-label="두 서비스 바로 시작"/);
+  const start = html.slice(html.indexOf('<nav class="hero-quick-entry"'), html.indexOf('</nav>', html.indexOf('<nav class="hero-quick-entry"')));
+  assert.match(start, /href="https:\/\/haru-today\.github\.io\/labinsight\/"/);
+  assert.match(start, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/"/);
+  assert.match(start, /건강검진 결과 입력/);
+  assert.match(start, /로그인 없이 공개 체험/);
+  assert.equal((start.match(/<a /g) || []).length, 2);
+  assert.match(html, /회원가입 없이 4개 SNP/);
+  assert.match(html, /실제 결과지를 보며 수치를 입력/);
+  assert.match(css, /\.hero-quick-entry/);
+  assert.match(css, /@media\(max-width:350px\)/);
+});
