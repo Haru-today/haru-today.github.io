@@ -155,3 +155,20 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 ## 승인 대기 화면 네트워크·중복 요청 처리
 
 `/pending.html`에서 계정 승인 상태를 `/api/me`로 확인하는 동안에는 가입 목적 저장, 탈퇴, 로그아웃과 재확인 버튼을 일시적으로 비활성화합니다. API가 실패해 세션·CSRF를 확인할 수 없으면 변경 요청을 막고 **승인 상태 다시 확인**으로 복구합니다. 저장·탈퇴·로그아웃 중에도 중복 클릭과 동시 요청을 제한합니다. 거절 상태 계정은 가입 목적을 변경하지 못하지만 로그아웃과 계정 삭제는 가능합니다. 이 프런트엔드 방어는 별개로 Worker에서 현재 승인 상태, CSRF와 Origin을 계속 검증합니다.
+
+
+## 8. 별도 Workers Free 체험 origin의 익명 접근 검증 (운영 배포 금지)
+
+실제 Google Cloud와 Cloudflare 계정은 사용자가 해당 제공자의 관리 화면에서 직접 설정해야 합니다. 이 저장소에는 실제 OAuth client secret·관리자 이메일·API 토큰을 커밋하지 않습니다. 개발 브랜치 CI는 **시험 Worker를 자동으로 배포하지 않습니다.**
+
+1. Cloudflare 대시보드에서 카드 등록/Workers Paid 전환 없이 기존 Free 플랜으로 계속할 수 있는지 확인하세요. 실제 D1 Free 데이터베이스 `labdam-membership`의 ID는 `wrangler.jsonc`에만 연결하고, 비밀값은 Cloudflare의 Secret 화면에서 직접 입력하세요.
+2. 실사용 Worker의 정확한 HTTPS origin을 결정합니다. Google Web OAuth Client의 승인된 리디렉션 URI는 **정확하게** `https://<해당 시험 Worker 호스트>/auth/callback`이어야 합니다. 요청 범위는 `openid email profile`만입니다.
+3. 별도로 승인된 시험 환경이 준비된 후, 회원이나 검사 정보 없이 아래 읽기 전용 명령으로 익명 보호 경계부터 검사할 수 있습니다.
+
+    node free-auth/scripts/probe-trial-worker.mjs --origin https://YOUR-TRIAL.workers.dev
+
+점검 대상은 시험 Worker의 공개 로그인/개인정보 안내와, 비로그인 LABDAM·LabInsight HTML 리디렉션, JS/CSS/API 거부, 캐시 방지 헤더, Worker 내 Caffeine Atlas 혼입 여부 및 기존 Caffeine Atlas 공개 URL 4개입니다. `--json`을 추가하면 결과를 JSON으로 출력합니다. **Google 로그인 시작 URL은 요청하지 않으며, D1/회원 데이터를 수정하거나 원격에 배포하지 않습니다.** 실제 Worker가 없다면 실행하지 않아도 됩니다.
+
+**이 검사가 성공해도 배포 준비 완료를 뜻하지 않습니다.** `/healthz`는 상태 코드 검증일 뿐 Google OAuth, D1, 관리자 승인의 준비 상태를 확인하지 않습니다. 이후 실제 Google 계정으로 pending → approved → 접근 허용 → 철회/재승인 → 접근 차단을 별도 수동 검증해야 합니다. 기존 공개 Pages 18개 경로 정리 및 포스터 QR 실기기 검수는 별도입니다.
+
+무료 한도 관련 공식 문서(2026-10-15 확인): D1 Free는 행 읽기 500만/일, 행 쓰기 10만/일, 전체 저장 5 GB이며 개별 DB 최대 500 MB입니다. 2026-09-01부터 무료 일일 한도 초과 D1 쿼리는 리셋 전까지 오류가 발생합니다. 이 프로젝트는 자동 유료 업그레이드를 수행하지 않습니다.

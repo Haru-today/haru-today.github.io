@@ -37,6 +37,8 @@ jobs:
         run: node free-auth/scripts/audit-public-pages.mjs
       - name: Test static deployment preflight with synthetic fixtures
         run: node --test free-auth/tests/preflight-static.test.mjs
+      - name: Test isolated trial Worker anonymous gate (synthetic HTTP responses, no deploy)
+        run: node --test free-auth/tests/probe-trial-worker.test.mjs
       - name: Validate real SQLite schema, unique members and cascading logout
         run: python3 -m unittest discover -s free-auth/tests -p 'test_schema.py' -v
 
