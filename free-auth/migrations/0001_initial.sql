@@ -1,6 +1,6 @@
 -- Initial LABDAM + LabInsight approval-only login schema.
 -- OAuth access/refresh tokens, passwords and health results are NEVER stored.
--- Apply using wrangler d1 migrations apply labdam-auth --remote (after creating D1).
+-- Apply using wrangler d1 migrations apply labdam-membership --remote (after creating D1).
 
 CREATE TABLE IF NOT EXISTS members (
   google_sub TEXT PRIMARY KEY NOT NULL,

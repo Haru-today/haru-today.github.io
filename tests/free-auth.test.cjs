@@ -50,6 +50,14 @@ function fakeDb() {
             const [purpose, updated_at, google_sub] = args;
             const m = members.get(google_sub);
             if (m && m.status === "pending") Object.assign(m, { purpose, updated_at });
+          } else if (sql.startsWith("DELETE FROM sessions WHERE google_sub=? AND EXISTS")) {
+            const [sub, memberSub, nextStatus] = args, m = members.get(memberSub);
+            if (sub === memberSub && m?.role === "member" &&
+                (m.status === "rejected" || nextStatus !== "approved")) {
+              for (const [key, session] of sessions) {
+                if (session.google_sub === sub) sessions.delete(key);
+              }
+            }
           } else if (sql.startsWith("DELETE FROM sessions WHERE token_hash")) {
             sessions.delete(args[0]);
           } else if (sql.startsWith("DELETE FROM oauth_states WHERE expires_at")) {
@@ -258,8 +266,38 @@ test("only admin can review and revocation is effective on the very next request
   const revoke = await handleRequest(req(path, { cookie: admin.cookie, method: "POST",
     origin: ORIGIN, csrf: admin.csrf, body: { google_sub: body.google_sub, status: "rejected" } }), f.env, f.opts);
   assert.equal(revoke.status, 200);
-  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: candidate.cookie }), f.env, f.opts)).status, 403);
+  assert.equal(f.DB.sessions.has(hash(candidate.token)), false);
+  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: candidate.cookie }), f.env, f.opts)).status, 401);
   assert.equal((await handleRequest(req("/labinsight/", { cookie: candidate.cookie }), f.env, f.opts)).status, 303);
+  const reapprove = await handleRequest(req(path, { cookie: admin.cookie, method: "POST",
+    origin: ORIGIN, csrf: admin.csrf, body: { google_sub: body.google_sub, status: "approved" } }), f.env, f.opts);
+  assert.equal(reapprove.status, 200);
+  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: candidate.cookie }), f.env, f.opts)).status, 401);
+});
+test("rejected re-approval clears freshly issued rejected sessions; pending review revokes all sessions", async () => {
+  const f = fixture(), admin = seedMember(f, { sub: "1111111111111111111", role: "admin" });
+  const sub = "2222222222222222222";
+  const rejected = seedMember(f, { sub, status: "rejected" });
+  const secondToken = "f".repeat(64);
+  f.DB.sessions.set(hash(secondToken), { token_hash: hash(secondToken),
+    google_sub: sub, csrf_token: "e".repeat(64), expires_at: NOW + 3600, created_at: NOW });
+  const path = "/api/admin/review";
+  async function review(status) {
+    return handleRequest(req(path, { method: "POST", cookie: admin.cookie,
+      origin: ORIGIN, csrf: admin.csrf, body: { google_sub: sub, status } }), f.env, f.opts);
+  }
+  assert.equal((await handleRequest(req("/api/me", { cookie: rejected.cookie }), f.env, f.opts)).status, 200);
+  assert.equal((await review("approved")).status, 200);
+  assert.equal(f.DB.sessions.has(hash(rejected.token)), false);
+  assert.equal(f.DB.sessions.has(hash(secondToken)), false);
+  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: rejected.cookie }), f.env, f.opts)).status, 401);
+  const approved = seedMember(f, { sub, status: "approved" });
+  assert.equal((await review("pending")).status, 200);
+  assert.equal(f.DB.sessions.has(hash(approved.token)), false);
+  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: approved.cookie }), f.env, f.opts)).status, 401);
+  const pending = seedMember(f, { sub, status: "pending" });
+  assert.equal((await review("approved")).status, 200);
+  assert.equal((await handleRequest(req("/labinsight/", { cookie: pending.cookie }), f.env, f.opts)).status, 200);
 });
 test("admin lists applications; cannot elevate or remove an existing admin through review API", async () => {
   const f = fixture(), admin = seedMember(f, { sub: "1111111111111111111", email: "owner@example.com", role: "admin" });

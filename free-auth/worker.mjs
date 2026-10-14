@@ -359,14 +359,22 @@ async function adminReview(request, env, admin, now) {
       !["approved", "rejected", "pending"].includes(data.status)) {
     return json(400, { ok: false, code: "INVALID_REVIEW" });
   }
+  // Purge server sessions BEFORE a downgrade or re-approval from rejected.
+  // Initial pending -> approved keeps its session (no second Google sign-in).
+  // A failed D1 deletion must not change membership status.
+  await env.DB.prepare(
+    "DELETE FROM sessions WHERE google_sub=? AND EXISTS (" +
+    "SELECT 1 FROM members WHERE google_sub=? AND role='member' " +
+    "AND (status='rejected' OR ?!='approved'))"
+  ).bind(data.google_sub, data.google_sub, data.status).run();
   // Admins are deliberately immutable through the member approval endpoint.
   const changed = await env.DB.prepare(
     "UPDATE members SET status=?,updated_at=?,reviewed_at=?,reviewed_by=? " +
     "WHERE google_sub=? AND role='member' RETURNING google_sub"
   ).bind(data.status, now, now, admin.google_sub, data.google_sub).first();
   if (!changed) return json(404, { ok: false, code: "NOT_MEMBER" });
-  // Every protected request checks the current member status, so rejection or
-  // revocation takes effect even if a previous session cookie still exists.
+  // Revoked sessions cannot be revived by a later approval. Previously opened
+  // pages and downloaded reports cannot be remotely removed.
   return json(200, { ok: true, google_sub: data.google_sub, status: data.status });
 }
 

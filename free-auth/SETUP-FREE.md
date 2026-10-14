@@ -99,6 +99,7 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 - 필요하면 최대 240자 가입 목적 작성
 - **관리자 승인 전에는 LABDAM 홈페이지, LabInsight HTML/JS/CSS/보고서에 접근할 수 없음**
 - 관리자는 /admin.html에서 가입 신청자의 이메일, 이름, 이용 목적, 상태 확인 후 승인/거절/대기로 전환
+- **기존 승인 철회(거절/대기 전환) 시 해당 회원의 서버 세션을 모두 삭제**합니다. 거절 상태에서 새로 인증한 세션도 재승인 직전에 삭제하므로, 거절 후 재승인된 회원은 Google 로그인이 다시 필요합니다. **첫 pending → approved 전환에서는 기존 pending 세션을 유지**해 재로그인이 필요 없습니다. 탈퇴·로그아웃은 다운로드/열린 화면을 원격 회수하지 않습니다.
 - 거절·승인 회수는 D1에서 실시간 검증하므로 **기존 브라우저 세션도 즉시 페이지 차단**
 - 같은 세션으로 LABDAM과 LabInsight 이용
 
@@ -120,7 +121,7 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 - [ ] 승인 대기 상태에서 LABDAM /, LabInsight /labinsight/ 직접 접근 거부
 - [ ] 관리자 승인 → 두 사이트 재로그인 없이 접근
 - [ ] 관리자 권한이 없는 사용자 /admin.html 접근 거부
-- [ ] 관리자 승인 회수 후 **기존 세션에서 즉시** LabInsight JS/API 차단
+- [ ] 관리자 승인 회수 후 **기존 세션에서 즉시** LabInsight JS/API 차단; 재승인하더라도 철회 전 세션 재사용 불가 확인
 - [ ] CSRF 없이 승인/거절/로그아웃·계정 삭제 불가능
 - [ ] 가입 신청 전 `/membership-privacy.html` 개인정보 고지 누구나 열람
 - [ ] D1 무료 임시 상태 정리는 하루 한 번 03:15 UTC Cron 실행 확인

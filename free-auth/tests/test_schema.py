@@ -78,6 +78,46 @@ class MembershipSchemaTest(unittest.TestCase):
         self.assertEqual(result, ("1234567890",))
         self.assertEqual(self.db.execute("SELECT count(*) FROM sessions").fetchone()[0], 0)
 
+    def test_approval_session_revocation_sql_preserves_initial_pending_signin(self):
+        member_sub = "1234567890"
+        admin_sub = "2345678901"
+        self.insert_member(member_sub, "member@test.invalid", "pending")
+        self.insert_member(admin_sub, "admin@test.invalid", "approved", "admin")
+        delete_query = (
+            "DELETE FROM sessions WHERE google_sub=? AND EXISTS ("
+            "SELECT 1 FROM members WHERE google_sub=? AND role='member' "
+            "AND (status='rejected' OR ?!='approved'))"
+        )
+
+        def session(sub, token):
+            self.db.execute(
+                "INSERT INTO sessions(token_hash,google_sub,csrf_token,expires_at,created_at)"
+                " VALUES(?,?,?,?,?)", (token, sub, "csrf", self.now + 100, self.now)
+            )
+
+        def exists(token):
+            return self.db.execute(
+                "SELECT COUNT(*) FROM sessions WHERE token_hash=?", (token,)
+            ).fetchone()[0]
+
+        session(member_sub, "pending-token")
+        session(admin_sub, "admin-token")
+        # The first pending -> approved transition keeps the applicant logged in.
+        self.db.execute(delete_query, (member_sub, member_sub, "approved"))
+        self.assertEqual(exists("pending-token"), 1)
+        self.db.execute("UPDATE members SET status='approved' WHERE google_sub=?", (member_sub,))
+        # A downgrade revokes existing sessions, never touching the administrator.
+        self.db.execute(delete_query, (member_sub, member_sub, "rejected"))
+        self.assertEqual(exists("pending-token"), 0)
+        self.assertEqual(exists("admin-token"), 1)
+        self.db.execute("UPDATE members SET status='rejected' WHERE google_sub=?", (member_sub,))
+        session(member_sub, "rejected-token")
+        # A rejected account cannot replay its new cookie after re-approval.
+        self.db.execute(delete_query, (member_sub, member_sub, "approved"))
+        self.assertEqual(exists("rejected-token"), 0)
+        self.db.execute(delete_query, (admin_sub, admin_sub, "rejected"))
+        self.assertEqual(exists("admin-token"), 1)
+
     def test_cleanup_removes_expired_records_only(self):
         self.insert_member("1234567890", "example@test.invalid")
         for key, ttl in [("expired", -5), ("future", 120)]:
