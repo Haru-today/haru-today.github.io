@@ -48,10 +48,13 @@ function preventIndexing(text) {
 }
 
 function protectedLinkRewrite(text) {
-  // Never rewrite public LABDAM portal links.
+  // The public LABDAM portal remains accessible; the two service links do not.
   return text
     .replaceAll("https://haru-today.github.io/caffeine-atlas/", "/caffeine-atlas/")
-    .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/");
+    .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")
+    .replaceAll('hidden data-disabled-feature="account"', "")
+    .replaceAll("회원 안내", "내 계정")
+    .replaceAll("구축 방식 보기", "내 계정 확인");
 }
 
 function protectCaffeineBrowserApp(source) {
@@ -143,6 +146,10 @@ async function run() {
         preventIndexing(protectedLinkRewrite(text)) :
         file === "app.js" ? protectCaffeineBrowserApp(text) : protectedLinkRewrite(text));
   }
+  // The source repository's account.html contains a NONFUNCTIONAL email/
+  // password sign-in mockup. It MUST NEVER ship as a login page. Instead
+  // include the verified session-status page backed by /api/session.
+  await copyFile(join(here, "account.html"), join(cafAppOut, "account.html"));
   await copyCuratedAssets(join(caffeine, "caffeine-sensitivity-app/assets"),
     join(cafAppOut, "assets"), new Set([
       "caffeine-atlas-logo-simple.svg", "caffeine-atlas-logo-wordmark.png",
@@ -156,7 +163,8 @@ async function run() {
   await writeFile(join(dist, "robots.txt"), "User-agent: *\nDisallow: /\n");
   const expected = [
     "labinsight/index.html", "labinsight/checkup.html",
-    "caffeine-atlas/index.html", "caffeine-atlas/caffeine-sensitivity-app/analyzer.html"
+    "caffeine-atlas/index.html", "caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
+    "caffeine-atlas/caffeine-sensitivity-app/account.html"
   ];
   for (const file of expected) {
     if (!(await stat(join(dist, file))).isFile()) throw new Error("Missing required asset " + file);
