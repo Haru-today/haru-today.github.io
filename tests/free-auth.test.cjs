@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createHash, generateKeyPairSync, sign } = require("node:crypto");
-const { handleRequest, safeNext } = require("../free-auth/worker.mjs");
+const { handleRequest, safeNext, purgeExpiredRecords } = require("../free-auth/worker.mjs");
 
 const ORIGIN = "https://labdam-test.workers.dev";
 const CLIENT = "1234567890-verified-web-client.apps.googleusercontent.com";
@@ -50,8 +50,14 @@ function fakeDb() {
             const [purpose, updated_at, google_sub] = args;
             const m = members.get(google_sub);
             if (m && m.status === "pending") Object.assign(m, { purpose, updated_at });
-          } else if (sql.startsWith("DELETE FROM sessions")) {
+          } else if (sql.startsWith("DELETE FROM sessions WHERE token_hash")) {
             sessions.delete(args[0]);
+          } else if (sql.startsWith("DELETE FROM oauth_states WHERE expires_at")) {
+            for (const [key, value] of states) if (value.expires_at <= args[0]) states.delete(key);
+          } else if (sql.startsWith("DELETE FROM sessions WHERE expires_at")) {
+            for (const [key, value] of sessions) if (value.expires_at <= args[0]) sessions.delete(key);
+          } else if (sql.startsWith("DELETE FROM login_throttle WHERE window_start")) {
+            for (const [key, value] of throttles) if (value.window_start < args[0]) throttles.delete(key);
           } else throw Error("Unhandled D1 run statement: " + sql);
           return { success: true, meta: { changes: 1 } };
         },
@@ -73,6 +79,15 @@ function fakeDb() {
             if (!s || s.expires_at <= now) return null;
             const m = members.get(s.google_sub);
             return m ? { ...m, csrf_token: s.csrf_token, expires_at: s.expires_at } : null;
+          }
+          if (sql.startsWith("DELETE FROM members WHERE google_sub")) {
+            const record = members.get(args[0]);
+            if (!record || record.role !== "member") return null;
+            members.delete(args[0]);
+            for (const [key, session] of sessions) {
+              if (session.google_sub === args[0]) sessions.delete(key);
+            }
+            return { google_sub: args[0] };
           }
           if (sql.startsWith("UPDATE members SET status")) {
             const [status, updated_at, reviewed_at, reviewed_by, sub] = args;
@@ -321,4 +336,47 @@ test("fixed-duration sessions expire, no CSRF bypass and private admin-only stat
   f.opts.now = NOW + 4000;
   assert.equal((await handleRequest(req("/labinsight/", { cookie: member.cookie }), f.env, f.opts)).status, 303);
   assert.equal((await handleRequest(req("/api/me", { cookie: member.cookie }), f.env, f.opts)).status, 401);
+});
+
+
+test("member may withdraw with CSRF, deleting profile and every active session", async () => {
+  const f = fixture(), applicant = seedMember(f, { status: "pending" });
+  const uri = "/api/account/delete";
+  const forged = await handleRequest(req(uri, { method: "POST", cookie: applicant.cookie,
+    origin: "https://attacker.example", csrf: applicant.csrf }), f.env, f.opts);
+  assert.equal(forged.status, 403);
+  const gone = await handleRequest(req(uri, { method: "POST", cookie: applicant.cookie,
+    origin: ORIGIN, csrf: applicant.csrf }), f.env, f.opts);
+  assert.equal(gone.status, 200);
+  assert.equal((await gone.json()).code, "ACCOUNT_DELETED");
+  assert.match(gone.headers.get("Set-Cookie"), /Max-Age=0/);
+  assert.equal(f.DB.members.size, 0);
+  assert.equal(f.DB.sessions.size, 0);
+  assert.equal((await handleRequest(req("/api/me", { cookie: applicant.cookie }), f.env, f.opts)).status, 401);
+});
+
+test("bootstrap admin cannot accidentally delete the only administration account", async () => {
+  const f = fixture(), admin = seedMember(f, { sub: "1111111111111111111", role: "admin" });
+  const res = await handleRequest(req("/api/account/delete", { method: "POST",
+    cookie: admin.cookie, origin: ORIGIN, csrf: admin.csrf }), f.env, f.opts);
+  assert.equal(res.status, 403);
+  assert.equal(f.DB.members.size, 1);
+  assert.equal((await handleRequest(req("/", { cookie: admin.cookie }), f.env, f.opts)).status, 200);
+});
+
+test("daily free D1 cleanup removes only expired OAuth states, sessions and rate limit records", async () => {
+  const f = fixture(), member = seedMember(f);
+  f.DB.states.set("old", { expires_at: NOW - 10, nonce: "old" });
+  f.DB.states.set("new", { expires_at: NOW + 30, nonce: "new" });
+  f.DB.sessions.set("old", { expires_at: NOW - 100, google_sub: "old" });
+  f.DB.throttles.set("old", { window_start: NOW - 90000, attempts: 2 });
+  f.DB.throttles.set("new", { window_start: NOW - 3500, attempts: 2 });
+  await purgeExpiredRecords(f.env, NOW);
+  assert.equal(f.DB.states.has("old"), false);
+  assert.equal(f.DB.states.has("new"), true);
+  assert.equal(f.DB.sessions.has("old"), false);
+  assert.equal(f.DB.sessions.has(hash(member.token)), true);
+  assert.equal(f.DB.throttles.has("old"), false);
+  assert.equal(f.DB.throttles.has("new"), true);
+  assert.equal(f.DB.members.size, 1);
 });
