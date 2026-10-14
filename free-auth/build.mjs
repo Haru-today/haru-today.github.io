@@ -47,6 +47,26 @@ function portalHtml(src) {
   if (!text.includes(anchor)) throw new Error("Cannot safely add LABDAM account navigation");
   return text.replace(anchor, '<a href="/account.html">내 계정</a>\n        ' + anchor);
 }
+function protectedPolicyHtml(src, kind) {
+  let html = noIndex(rewritePaths(src));
+  const start = '<main class="shell">';
+  if (!html.includes(start)) throw new Error("Cannot locate LABDAM policy content");
+  const notice = kind === "privacy"
+    ? '<section class="section" aria-label="회원가입 데이터 처리"><h2>회원가입·로그인 정보 처리</h2>' +
+      '<p>LABDAM과 LabInsight는 Google 계정 인증 후 관리자 승인제로 운영합니다. 회원가입 심사를 위해 Google 계정 식별자, 이메일, 표시 이름, 선택적으로 입력한 가입 목적, 승인 상태 및 세션 해시값을 Cloudflare D1에 처리합니다. 건강검진 입력값은 회원가입 데이터베이스에 저장하지 않습니다.</p>' +
+      '<p>승인 대기·승인 회원의 가입 철회와 세션 삭제는 계정 페이지에서 제공하며, 보유기간·운영자 연락처 등 미확정 사항은 정식 운영 전에 확정해야 합니다. 자세한 내용은 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인하세요.</p></section>'
+    : '<section class="section" aria-label="회원 승인 정책"><h2>LABDAM 회원 승인 방식</h2>' +
+      '<p>LABDAM과 LabInsight는 Google 계정으로 가입을 신청하고 관리자 승인을 받아야 이용할 수 있습니다. 이메일 인증만으로는 승인되지 않으며, 관리자는 접근 승인을 거절하거나 철회할 수 있습니다. 회원가입 및 개인정보 처리에 관해서는 <a href="/membership-privacy.html">회원가입 개인정보 안내</a>를 참고하세요.</p>' +
+      '<p>Caffeine Atlas는 이 로그인 정책과 무관하며 누구나 별도 승인 없이 이용할 수 있습니다.</p></section>';
+  html = html.replace(start, start + "\n" + notice);
+  if (kind === "privacy") {
+    const older = "포털에는 이름·검사값 입력란이 없습니다.";
+    const revised = "포털 자체에는 건강검진 수치 입력란이 없지만, 승인제 회원가입 과정에서 이메일·이름 등 계정 정보를 처리합니다.";
+    if (!html.includes(older)) throw new Error("Legacy portal privacy wording has changed; review required");
+    html = html.replace(older, revised);
+  }
+  return html;
+}
 function labHtml(src) {
   const text = noIndex(rewritePaths(src));
   const anchor = '<a class="nav-cta"';
@@ -79,7 +99,7 @@ async function build() {
   await mkdir(labOutput, { recursive: true });
   for (const file of ["index.html", "privacy.html", "terms.html"]) {
     await copy(portal, file, join(output, file),
-      file === "index.html" ? portalHtml : s => noIndex(rewritePaths(s)));
+      file === "index.html" ? portalHtml : s => protectedPolicyHtml(s, file === "privacy.html" ? "privacy" : "terms"));
   }
   await copyFile(guarded(portal, "favicon.svg"), join(output, "favicon.svg"));
   await copyFile(guarded(portal, "assets/portal-redesign.css"),
