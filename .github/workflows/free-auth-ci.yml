@@ -1,0 +1,69 @@
+name: Free Google approval-login security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'free-auth/**'
+      - 'tests/free-auth*.test.cjs'
+      - '.github/workflows/free-auth-ci.yml'
+  push:
+    branches: [main, 'feature/free-google-approval-auth-20261014']
+    paths:
+      - 'free-auth/**'
+      - 'tests/free-auth*.test.cjs'
+      - '.github/workflows/free-auth-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  auth-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax and no Cloudflare Access dependency
+        run: |
+          node --check free-auth/worker.mjs
+          node --check free-auth/build.mjs
+          ! grep -Ei 'cloudflareaccess\.com|Cf-Access-Jwt-Assertion|ACCESS_AUD|TEAM_DOMAIN' free-auth/worker.mjs
+      - name: Exercise OAuth signing, free D1 login, pending approval and revocation
+        run: node --test tests/free-auth.test.cjs
+
+  bundle-validation:
+    needs: auth-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - name: Fetch only reviewed LabInsight static website
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/labinsight
+          ref: 7a5c024df3e5bc41f256b8f935cb932f1ad2705d
+          path: sources/labinsight
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build only LABDAM + LabInsight protected assets without deployment
+        env:
+          LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+        run: node free-auth/build.mjs
+      - name: Inspect protected file allowlist and public Caffeine Atlas URL
+        run: node --test tests/free-auth-bundle.test.cjs
+      - name: Reject accidentally shipped credentials or Caffeine Atlas pages
+        run: |
+          test ! -e free-auth/dist/caffeine-atlas
+          test ! -e free-auth/dist/free-auth
+          ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
+      - name: Upload non-sensitive staging bundle for local admin review
+        uses: actions/upload-artifact@v4
+        with:
+          name: labdam-free-auth-static-preview
+          path: free-auth/dist/
+          retention-days: 3
