@@ -6,7 +6,9 @@
 <section><h2>가입 정보</h2><p class="status" id="authState" role="status">로그인 상태 확인 중</p>
 <dl><dt>이름</dt><dd id="name"></dd><dt>이메일</dt><dd id="email"></dd><dt>승인 상태</dt><dd id="status"></dd><dt>권한</dt><dd id="role"></dd></dl>
 <div class="actions"><a class="button" href="/">LABDAM 홈</a><a class="button secondary" href="/labinsight/">LabInsight 이용</a><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas</a><a id="adminLink" class="button secondary" href="/admin.html" hidden>회원 승인 관리</a><button id="logout" class="secondary" type="button">로그아웃</button></div>
-<p class="muted">로그아웃은 이미 기기에 내려받은 리포트 및 이전에 저장한 브라우저 입력 데이터를 자동으로 지우지 않습니다.</p></section></main><footer>LABDAM 회원 관리</footer>
+<p class="muted">로그아웃은 이미 기기에 내려받은 리포트 및 이전에 저장한 브라우저 입력 데이터를 자동으로 지우지 않습니다.</p>
+<p class="muted"><a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a></p>
+<div id="withdrawWrap"><h2>회원 탈퇴</h2><p class="muted">본인 가입 신청 기록과 서버 로그인 세션을 삭제합니다. 기기에 내려받은 PDF와 브라우저 검사값은 자동 삭제되지 않습니다. 관리자는 관리자 계정 유실 방지를 위해 이 화면에서 탈퇴할 수 없습니다.</p><button type="button" id="withdraw" class="secondary">회원가입 철회 및 계정 삭제</button><p id="withdrawStatus" class="status" role="status"></p></div></section></main><footer>LABDAM 회원 관리</footer>
 <script>(async function(){
  const state=document.getElementById("authState");let csrf="";
  try{const r=await fetch("/api/me",{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw new Error("not_signed_in");
@@ -15,8 +17,18 @@
  document.getElementById("status").textContent=data.status==="approved"?"승인 완료":data.status;
  document.getElementById("role").textContent=data.role==="admin"?"관리자":"일반 회원";
  document.getElementById("adminLink").hidden=data.role!=="admin";
+ document.getElementById("withdrawWrap").hidden=data.role==="admin";
  state.textContent="로그인 상태가 확인되었습니다.";
  }catch(_){state.textContent="로그인 정보를 확인할 수 없습니다.";location.replace("/login.html");}
+ document.getElementById("withdraw").addEventListener("click",async()=>{
+  if(!confirm("LABDAM·LabInsight 가입 정보와 로그인 세션을 삭제하시겠습니까? 삭제 후 서비스를 이용하려면 새로 가입 신청하고 관리자 승인을 받아야 합니다."))return;
+  const message=document.getElementById("withdrawStatus");
+  try{
+   const response=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
+   if(!response.ok){message.textContent="계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.";return;}
+   location.replace("/login.html"); 
+  }catch(_){message.textContent="연결 상태를 확인해 주세요.";}
+ });
  document.getElementById("logout").addEventListener("click",async()=>{
   try{const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf},redirect:"manual"});
   if(r.status===0||r.status===303||r.ok){location.replace("/login.html");return;}state.textContent="로그아웃에 실패했습니다.";}
