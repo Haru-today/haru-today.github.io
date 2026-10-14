@@ -76,11 +76,18 @@ PROTECTED_BASE_URL=https://<실제-worker>.workers.dev node auth-gateway/smoke-a
 
 이 단계의 결과와 로그를 확인하기 전에는 운영 전환하지 않습니다.
 
-## 5. 마지막에만 공개 경로 이전
+## 5. 학회 포스터 QR 유지 및 연구 데이터 보호
 
-- LABDAM 메인 두 서비스 버튼을 실제 Worker 보호 호스트로 바꾸고 검증합니다.
-- 구형 `https://haru-today.github.io/labinsight/`와 `https://haru-today.github.io/caffeine-atlas/`의 GitHub Pages 공개 서비스를 각각 중단하거나 모든 파일이 접근 불가능한 상태로 전환합니다. **index.html 한 장의 리다이렉트만 바꾸면 하위 URL이 계속 노출됩니다.**
-- 오래된 GitHub Pages 캐시, PWA 설치본, 네이티브 앱과 브라우저 다운로드 기록은 웹 전환만으로 폐기되지 않습니다.
-- Google Sheets 공유권한 및 Apps Script **과거 배포 URL**을 재점검하고 민감한 실제 자료 저장 전 데이터 정책을 확정합니다.
+**2026년 11월 14일 성모병원 학생포럼 포스터 QR은 이미 제출되었으므로 Caffeine Atlas 공개 주소를 변경하거나 폐쇄하지 않습니다.**
+
+- 공개된 `https://haru-today.github.io/caffeine-atlas/`와 분석·PDF 다운로드 딥링크는 계속 유지합니다. 방문자는 로그인 없이 4 SNP 해석과 리포트 다운로드를 체험합니다.
+- 기존 LABDAM의 Caffeine Atlas 연결 버튼 역시 **공개 QR 호환 주소**로 유지합니다. Cloudflare Worker 인증 보호 URL로 바꾸지 않습니다.
+- 공개 Caffeine Atlas 빌드에서는 Google Apps Script 저장·일괄 저장 UI가 숨겨지고 서버 전송 함수는 실패하도록 구성합니다. 공개 앱 소스에 구형 Apps Script URL을 남기지 않습니다.
+- **LabInsight만** 신규 Worker 보호 호스트가 완전히 검증되면 LABDAM의 LabInsight 버튼을 변경하고 구형 `https://haru-today.github.io/labinsight/` 공개 GitHub Pages 발행을 중단합니다. **index.html 리다이렉트만으로는 보안이 보장되지 않습니다.**
+- 승인된 연구자만 보호된 **별도 Cloudflare Caffeine Atlas 연구자용 사본**에서 Google Sheets 저장을 사용할 수 있습니다. `STORAGE_WRITER_EMAILS`에 없는 계정은 서버에서 403으로 거부합니다.
+- Google Apps Script의 **과거 공개 /exec 배포 URL**은 사이트에서 숨겨도 열려 있을 수 있습니다. 기존 배포 폐쇄와 Script Properties 보안키·보유기간·삭제 절차는 운영자가 확인해야 합니다.
+- 오프라인 설치본, 앱, 브라우저 다운로드 기록은 웹 전환으로 자동 제거되지 않습니다.
+
+학회 전 기존 QR을 실제 휴대전화로 스캔하여 네이버 단축 URL의 최종 이동 위치를 검증해야 합니다.
 
 **남은 관리자 승인 및 직접 설정:** Cloudflare 계정이 이 개발 도구에 연결되어 있지 않아 팀/정책/비밀값/Worker를 대신 생성하거나 활성화할 수 없습니다. 코드가 CI를 통과해도 이는 실제 운영 접속이 인증으로 보호되는 것과 다릅니다.
