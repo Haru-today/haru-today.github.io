@@ -1,130 +1,51 @@
-# LABDAM shared login gateway — implementation staging
+# LABDAM · LabInsight 공동 로그인 (배포 전 검토)
 
-**Status (2026-10-13): CODE REVIEW ONLY; NOT DEPLOYED. No login requirement is active on existing GitHub Pages service URLs.**
+**현재 상태: GitHub PR 개발본이며 Cloudflare 운영 설정과 실제 배포가 완료된 상태가 아닙니다.**
 
-LABDAM = Personal Health Atlas, the ONE public integrated portal. LabInsight
-and Caffeine Atlas remain the only two services. This folder provides
-authentication infrastructure and is **not a fourth website**.
+## 인증 범위
 
-## Intended experience
+| 서비스 | 방문 정책 | 주소 |
+| --- | --- | --- |
+| LABDAM 브랜드 홈페이지 | Cloudflare Access 로그인 필수 | 새 보호 Worker의 루트 / |
+| LabInsight 건강검진 결과 조회 | LABDAM과 동일한 로그인 | 같은 Worker의 /labinsight/ |
+| Caffeine Atlas | **로그인 없음 · 공개 서비스 유지** | https://haru-today.github.io/caffeine-atlas/ |
 
-1. Anyone can view the public LABDAM brand homepage.
-2. Choosing either service opens ONE protected host with two paths:
-   - https://PROTECTED-HOST-TO-CONFIGURE/labinsight/
-   - https://PROTECTED-HOST-TO-CONFIGURE/caffeine-atlas/
-3. Cloudflare Access authenticates the visitor. Recommended first launch:
-   approved email addresses and an email one-time passcode; a Google identity
-   provider may be configured separately.
-4. A single Cloudflare Access application protects the whole hostname, so
-   one login covers both services.
-5. Cloudflare Access forwards a Cf-Access-Jwt-Assertion. The Worker checks
-   its **RS256 signature, issuer, audience, expiry and human subject** before
-   responding with even a single HTML, JS, CSS or image asset.
-6. /logout uses the Cloudflare Access logout endpoint. Logging out does not
-   automatically erase downloaded reports, browser sessionStorage or
-   externally saved records. Preserve the apps' existing deletion controls.
+기존 포스터의 QR과 공개 Caffeine Atlas 주소는 유지합니다. **Caffeine Atlas의 로그인 화면, 보호된 별도 복사본, Google Sheets 저장 프록시는 이 Worker에 포함되지 않습니다.** Caffeine Atlas 저장 API의 별도 보안 과제는 학회 QR 공개 여부와 별개입니다.
 
-Official references:
-- https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/self-hosted-public-app/
-- https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/
-- https://developers.cloudflare.com/workers/static-assets/binding/
+## 구현된 기능
 
-## PUBLIC STUDENT FORUM QR EXCEPTION: Caffeine Atlas must stay open
+- Cloudflare Access가 로그인한 사용자에게 발급한 JWT의 RS256 전자서명, 발급자(issuer), 대상(audience), 타입(type), 주체(subject), 만료시각을 **매 요청마다** 검증합니다. 쿠키 이름이나 이메일 헤더만으로 로그인했다고 판단하지 않습니다.
+- LABDAM 루트 홈페이지부터 개인정보/약관/계정, CSS, favicon, LabInsight의 HTML/JS/CSS/아이콘까지 Worker 내부에서 인증을 우선 검사합니다.
+- /api/session으로 현재 로그인한 본인의 이메일만 조회합니다. 비밀번호는 수집하거나 저장하지 않습니다.
+- /account.html 및 /labinsight/account.html의 공동 계정 화면과 /logout Cloudflare Access 로그아웃 URL을 제공합니다.
+- 인증된 HTML과 정적 파일에 캐시 금지, 보안 헤더, 검색엔진 색인 제외 정책을 부여합니다.
+- 서버 파일, Caffeine Atlas 코드, 실사용자 건강정보와 유전자 데이터는 빌드에 포함하지 않습니다.
+- Caffeine Atlas로 이동할 때는 보호 Worker 내부 URL이 아닌 기존 **외부 공개 URL**로 연결합니다.
 
-The finalized poster for the **2026-11-14 student forum at Seoul St. Mary's Hospital** already contains a QR that links visitors to the Caffeine Atlas public demo. Preserve the original QR and existing public routes:
+## 운영상 중요한 한계
 
-- https://haru-today.github.io/caffeine-atlas/
-- https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html
-- https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/analyzer.html
+**별도의 Cloudflare 로그인 사이트를 개설하는 것만으로 기존 공개 GitHub Pages URL이 보호되지는 않습니다.**
 
-**Never require a login for this public demo.** Visitors may choose four SNP genotypes, view model-based educational results, and download a local PDF/report. The public bundle has RESEARCH_STORAGE_MODE=false and no Google Apps Script endpoint. Batch uploads and server storage are hidden and rejected in JavaScript.
+현재 기존 주소:
+- https://haru-today.github.io/ — GitHub Pages LABDAM 공개 사이트
+- https://haru-today.github.io/labinsight/ — GitHub Pages LabInsight 공개 사이트
 
-The **separate Cloudflare Access protected copy** supports research storage only for verified users approved in STORAGE_WRITER_EMAILS. Do not substitute the protected Worker URL for the poster QR destination.
+새 Worker가 준비되면 위의 **기존 공개 경로 자체**를 없애거나 접근 차단해야 엄밀히 로그인 필수 서비스가 됩니다. 다만 LABDAM 루트 GitHub Pages를 비활성화하면 공개 Caffeine Atlas에서 사용하는 privacy.html과 terms.html 링크가 영향을 받을 수 있으므로, **Caffeine Atlas에 독립된 공개 정책 페이지를 먼저 확보**해야 합니다. 구형 링크를 리다이렉트하는 것만으로는 HTML/JS/API의 공개 경로를 완전히 막을 수 없습니다.
 
-**LabInsight is different:** its legacy public https://haru-today.github.io/labinsight/ page must be retired when the authenticated LabInsight deployment is live and verified. Existing installed offline/native applications remain separate.
+또한 기존 네이티브 LabInsight 앱·설치된 PWA·브라우저 저장 데이터는 새로운 웹 로그인만으로 통제/삭제되지 않습니다. 이 범위는 별도 운영 정책 검토가 필요합니다.
 
-IMPORTANT: Public page JavaScript no longer makes Sheets writes, but an already deployed **older Google Apps Script /exec endpoint may still be accessible directly** until the Google owner explicitly disables or restricts the legacy deployment. Caffeine Atlas PR #4 and authorized backend configuration remain mandatory.
+## 로컬/CI 검증
 
-**This PR is code review only and does not deploy Cloudflare / Google credentials or remove the existing public Caffeine Atlas site.**
+- node --test tests/auth-gateway.test.cjs — 인증, 위조/만료 JWT, 공개 경로 분리, 민감한 정적 파일 차단
+- LABINSIGHT_SOURCE=/path/to/labinsight node auth-gateway/build.mjs — LABDAM 메인 + LabInsight 보호용 번들만 생성
+- node --test auth-gateway/verify-bundle.test.cjs — 실제 파일 구성, QR 외부 링크, 개인정보 페이지/계정 화면 검수
+- node --check auth-gateway/worker.mjs — Worker 구문 검증
+- PROTECTED_BASE_URL=https://your-worker.workers.dev node auth-gateway/smoke-anonymous.mjs — **실제 배포 이후에만** 사용하는 비로그인 접근 차단 검사
 
-## Operator launch checklist — do not post credentials in GitHub
+GitHub Actions는 테스트와 보호용 파일 빌드까지만 진행하고 **배포하지 않습니다**.
 
-- [ ] Verify ownership of a real domain. PROTECTED-HOST-TO-CONFIGURE is a
-  placeholder, not an owned or live LABDAM host.
-- [ ] Create one Cloudflare Zero Trust Access self-hosted application that
-  covers the entire protected hostname, with email OTP or Google IdP,
-  an explicit allow policy, and no Everyone or Bypass policy.
-- [ ] Note your Access team domain and unique application AUD. Configure
-  Worker TEAM_DOMAIN (example https://team.cloudflareaccess.com) and
-  ACCESS_AUD via environment secret settings; do not commit personal keys.
-- [ ] With reviewed local source checkouts, build static web shells:
-      LABINSIGHT_SOURCE=/path/to/labinsight
-      CAFFEINE_SOURCE=/path/to/caffeine-atlas
-      node auth-gateway/build.mjs
-  No patient, research or operational data must be supplied.
-- [ ] Verify CI and negative JWT tests before deployment. The Wrangler
-  worker asset configuration has run_worker_first=true: every static asset
-  requires signed and authorized identity.
-- [ ] Deploy manually after Access policy review with Wrangler, for example:
-      npx wrangler deploy --config auth-gateway/wrangler.jsonc
-  There is NO automatic production deployment.
-- [ ] Test anonymous and disallowed users are rejected for BOTH homepages,
-  direct subpages, HTML, JS, CSS, image and report routes. Verify one
-  approved account may use both after a single login.
-- [ ] Caffeine Atlas Google Apps Script / Sheets endpoints also require
-  separately authenticated, authorized backend controls. Protecting the
-  website does NOT secure a publicly writable API. Do not accept real
-  identifiable research/health data until backend auth, lawful consent,
-  retention and deletion have been verified.
-- [ ] Native LabInsight desktop/Capacitor apps are independent of this
-  web-only gateway; old standalone installations cannot be remotely
-  disabled by switching web hosting.
-- [ ] Once protected routing is verified, change the LABDAM **LabInsight**
-  button to the real authenticated host and disable only the old LabInsight
-  public GitHub Pages publication. Keep the LABDAM Caffeine Atlas button and
-  its QR-compatible **public demo** URL unchanged. Recheck deep links.
-- [ ] Implement account lifecycle, verified support/contact, logout
-  behavior, data ownership, privacy disclosures and deletion procedures.
-  Authentication alone does not certify clinical or legal compliance.
+## 바로 다음 관리자 작업
 
-## Files and tests
+[SETUP-CLOUDFLARE.md](./SETUP-CLOUDFLARE.md)의 단계에 따라 Cloudflare Zero Trust에서 인증 팀, 허용 계정, Worker-level Access, Audience(AUD)를 설정합니다. Cloudflare Access 팀/호스트 이름과 운영 도메인은 확인된 실제 값으로만 설정하세요. 비밀번호·API 토큰·JWT·HMAC 키를 GitHub Issue나 채팅에 제공할 필요가 없습니다.
 
-- worker.mjs: deny-by-default signing-key and token validation.
-- wrangler.jsonc: static assets binding, always Worker first.
-- build.mjs: whitelisted web shells; no server-side data files.
-- verify-bundle.test.cjs: disallow sensitive files and indexable pages.
-- tests/auth-gateway.test.cjs: JWT spoofing, expiry, issuer, audience,
-  algorithm confusion, missing identity, logout and outage tests.
-- .github/workflows/auth-gateway-ci.yml: non-deploy tests and build checks.
-
-The protected LabInsight staging bundle includes a cache-free service worker
-to prevent offline loading of protected web pages. The existing production
-service worker, OCR, booking demo, reporting, session deletion and native
-apps are untouched.
-
-Local review commands (Node 22):
-
-    node --test tests/auth-gateway.test.cjs
-    node --check auth-gateway/worker.mjs
-
-After supplying paths to public source checkouts and building:
-
-    node --test auth-gateway/verify-bundle.test.cjs
-
-This workflow does not inspect, store or transmit actual health/genetic records.
-
-## 2026-10-14: Caffeine Atlas 저장 API 인증 프록시 개발
-
-- 보호된 같은 출처에 /api/caffeine-atlas 엔드포인트를 추가했습니다. Cloudflare Access 서명을 검증하지 못하면 GET/POST 모두 차단합니다.
-- GET capabilities/saveStatus와 POST 단건·일괄 저장만 허용합니다. 타 출처 POST·원격 setupTemplate·미동의 단건 저장·비정상 일괄 입력은 Google로 전송하지 않습니다.
-- Cloudflare Worker의 CAFFEINE_APPS_SCRIPT_URL과 CAFFEINE_ATLAS_WRITE_HMAC_KEY는 **서버 비밀 설정**입니다. 브라우저, 공개 GitHub 저장소, HTML 파일에 넣지 마세요.
-- 서버는 요청마다 timestamp와 nonce를 만들고 HMAC-SHA256으로 Apps Script 요청에 서명합니다. 앱은 사이트 내부의 보호 API를 호출하며 기존 공개 script.google.com 직접 전송·JSONP를 보호 번들에서만 제거합니다.
-- 대응되는 **Apps Script 변경은 Caffeine Atlas PR #4**에 있습니다: https://github.com/Haru-today/caffeine-atlas/pull/4. Script Properties의 CAFFEINE_ATLAS_WRITE_HMAC_KEY는 Worker와 **동일 값**, CAFFEINE_ATLAS_SHEET_ID는 실제 시트 ID로 설정해야 합니다.
-- 두 PR은 모두 **미병합**이고 실제 운영 Cloudflare/Google 배포는 **미실행**입니다. 현재 공개 GitHub Pages 사이트 또는 구형 Apps Script 웹앱은 우회 경로일 수 있습니다.
-- 새 프록시 단독 배포로 개인정보 보호가 완성되는 것이 아닙니다. 기존 웹앱의 공개 접근 차단, 운영자만의 시트 권한, 정보주체별 접근, 동의·삭제·보유기간, 실제 브라우저 통합 검증이 필요합니다.
-
-검증: 보안 API/JWT 단위 테스트 21개 및 보호 웹 번들 검증 8개를 GitHub CI에서 실행합니다. 결괏값에 대한 임상적 유효성 판단, 실제 유전자형 저장 데이터 접근, Cloudflare 로그인 계정 생성은 포함하지 않았습니다.
-
-## 2026-11-14 poster launch rule
-
-Caffeine Atlas must offer no-login public educational analysis and PDF downloads while only approved researchers have authenticated Sheets storage. Related public release PR: https://github.com/Haru-today/caffeine-atlas/pull/5. NEVER disable the existing public Caffeine Atlas GitHub Pages route when cutting over the protected research copy. The QR shortener destination must be verified with a phone before the event; the GitHub connector cannot change or conclusively validate the existing Naver short-link redirect.
+**진행 상태:** 구현과 자동 검증 → 관리자 Cloudflare 설정 → 비공개 시연 URL에서 로그인·로그아웃·LabInsight 리포트 E2E → 기존 공개 경로/법적 링크 전환 → 정식 출시.
