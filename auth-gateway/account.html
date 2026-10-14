@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="theme-color" content="#102B50">
+  <title>내 계정 | LABDAM · Caffeine Atlas</title>
+  <style>
+    :root{font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#142842;background:#f4f7fc}
+    *{box-sizing:border-box}body{margin:0;min-height:100vh}
+    a{color:inherit}a:focus-visible{outline:3px solid #245baa;outline-offset:3px}
+    header{background:#102b50;color:white;padding:17px max(22px,calc((100% - 1020px)/2))}
+    header a{text-decoration:none;font-weight:800;letter-spacing:.1em}
+    main{max-width:760px;margin:0 auto;padding:clamp(30px,8vw,82px) 22px 70px}
+    .eyebrow{font-size:.72rem;letter-spacing:.12em;font-weight:bold;color:#245baa}
+    h1{font-size:clamp(1.9rem,6vw,3rem);letter-spacing:-.05em;margin:12px 0 15px}
+    .lede{max-width:560px;color:#52647a;line-height:1.8;margin-bottom:28px}
+    .card{background:#fff;border:1px solid #d8e3f0;border-radius:18px;padding:clamp(22px,5vw,36px);box-shadow:0 12px 40px rgba(16,43,80,.06)}
+    dl{margin:0}dt{font-size:.77rem;color:#52647a;margin:17px 0 6px}
+    dd{font-size:1rem;font-weight:650;margin:0;overflow-wrap:anywhere}
+    .state{display:flex;align-items:center;gap:10px;color:#1f5a91;font-weight:650}
+    .state:before{content:"";display:inline-block;width:10px;height:10px;background:#4286d1;border-radius:50%}
+    .button{display:inline-flex;align-items:center;justify-content:center;text-decoration:none;padding:13px 17px;border-radius:10px;min-height:47px;font-weight:700}
+    .button.primary{background:#102b50;color:#fff}.button.outline{border:1px solid #c2d1e5;color:#19436c;background:#fff}
+    .actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:28px}
+    .note{font-size:.83rem;line-height:1.75;color:#52647a;margin:24px 0 0}
+    #session-error{color:#a33242}
+    footer{font-size:.79rem;color:#60718a;border-top:1px solid #d8e3f0;padding:20px max(22px,calc((100% - 1020px)/2))}
+  </style>
+</head>
+<body>
+<header><a href="https://haru-today.github.io/">LABDAM.</a></header>
+<main>
+  <p class="eyebrow">PERSONAL HEALTH ATLAS / SECURE ACCESS</p>
+  <h1>내 계정</h1>
+  <p class="lede">LABDAM 공통 로그인으로 LabInsight와 Caffeine Atlas를 이용합니다. 비밀번호는 LABDAM 서비스에서 직접 수집하지 않습니다.</p>
+  <section class="card" aria-labelledby="account-title">
+    <h2 id="account-title">인증 상태</h2>
+    <p id="auth-state" class="state" role="status" aria-live="polite">로그인 상태 확인 중</p>
+    <p id="session-error" hidden role="alert">로그인 정보를 확인하지 못했습니다. 보호된 서비스에서 다시 접속해 주세요.</p>
+    <dl>
+      <dt>로그인 이메일</dt><dd id="user-email">확인 중</dd>
+      <dt>연구 데이터 저장 권한</dt><dd id="storage-permission">확인 중</dd>
+    </dl>
+    <div class="actions">
+      <a class="button primary" href="/labinsight/">LabInsight 이용</a>
+      <a class="button outline" href="/caffeine-atlas/caffeine-sensitivity-app/analyzer.html">Caffeine Atlas 이용</a>
+      <a class="button outline" href="/logout">로그아웃</a>
+    </div>
+    <p class="note">로그아웃은 이미 내려받은 PDF·엑셀 파일이나 이 기기의 기존 브라우저 데이터, Google Sheets에 저장된 리포트를 자동 삭제하지 않습니다. 각 서비스의 삭제 안내를 별도로 확인해 주세요.</p>
+  </section>
+</main>
+<footer>LABDAM · Personal Health Atlas · 연구 및 교육 목적의 참고 정보</footer>
+<script>
+(async function(){
+  const status=document.getElementById("auth-state"),email=document.getElementById("user-email");
+  const permission=document.getElementById("storage-permission");
+  const error=document.getElementById("session-error");
+  try {
+    const response=await fetch("/api/session",{credentials:"same-origin",cache:"no-store"});
+    if(!response.ok)throw new Error("session unavailable");
+    const data=await response.json();
+    if(!data.authenticated)throw new Error("session invalid");
+    status.textContent="로그인됨";
+    email.textContent=data.email||"이메일 확인 불가";
+    permission.textContent=data.storageAllowed?"승인됨":"권한 없음 · 분석 및 다운로드는 이용 가능";
+  }catch(_){
+    status.textContent="확인 실패";
+    email.textContent="확인할 수 없음";
+    permission.textContent="확인할 수 없음";
+    error.hidden=false;
+  }
+}());
+</script>
+</body>
+</html>
