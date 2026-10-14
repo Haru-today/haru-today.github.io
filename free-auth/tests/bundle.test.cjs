@@ -9,7 +9,7 @@ const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
 test("free Workers bundle contains only LABDAM and LabInsight protected assets", () => {
   assert.deepEqual(fs.readdirSync(root).sort(), [
     "account.html", "admin.html", "assets", "favicon.svg", "index.html",
-    "labinsight", "login.html", "pending.html", "privacy.html",
+    "labinsight", "login.html", "membership-privacy.html", "pending.html", "privacy.html",
     "robots.txt", "terms.html"
   ]);
   for (const disallowed of ["caffeine-atlas", "free-auth", "auth-gateway",
@@ -36,6 +36,7 @@ test("public login and approval-waiting pages are present as real self-service U
   assert.match(pending, /\/api\/application/);
   assert.match(pending, /id="purpose"/);
   assert.match(pending, /\/auth\/logout/);
+  assert.match(read("membership-privacy.html"), /회원가입 개인정보 처리 안내/);
   assert.doesNotMatch(login + pending, /type="password"/);
 });
 
