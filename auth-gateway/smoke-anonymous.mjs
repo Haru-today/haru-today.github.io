@@ -3,7 +3,7 @@
  * Read-only, unauthenticated deployment smoke test.
  * Never sends credentials, real health data, or genetic data.
  * Requires a verified target host, e.g. PROTECTED_BASE_URL=https://...workers.dev
- * Does not verify authorized navigation; that still requires manual browser QA.
+ * Does not verify authorized navigation; that still requires manual browser QA.\n * Caffeine Atlas is intentionally NOT a protected-host probe.
  */
 const target = process.env.PROTECTED_BASE_URL || "";
 let origin;
@@ -22,17 +22,20 @@ try {
 }
 
 const probes = [
+  "/",
+  "/index.html",
+  "/account.html",
+  "/privacy.html",
+  "/terms.html",
+  "/favicon.svg",
+  "/assets/portal-redesign.css",
   "/labinsight/",
   "/labinsight/checkup.html",
   "/labinsight/report.html",
   "/labinsight/app.js",
-  "/caffeine-atlas/",
-  "/caffeine-atlas/caffeine-sensitivity-app/index.html",
-  "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
-  "/caffeine-atlas/caffeine-sensitivity-app/app.js",
-  "/caffeine-atlas/caffeine-sensitivity-app/account.html",
-  "/api/session",
-  "/api/caffeine-atlas?action=capabilities"
+  "/labinsight/styles.css",
+  "/labinsight/account.html",
+  "/api/session"
 ];
 const acceptable = new Set([301, 302, 303, 307, 308, 401, 403, 503]);
 
