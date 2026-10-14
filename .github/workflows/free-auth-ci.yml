@@ -63,6 +63,22 @@ jobs:
           test ! -e free-auth/dist/caffeine-atlas
           test ! -e free-auth/dist/free-auth
           ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
+      - name: Install pinned UI browser test dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium for login and membership UI checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify login, pending, admin and account screens at desktop and mobile widths
+        run: npx playwright test --config free-auth/playwright.config.cjs
+      - name: Upload preview UI screenshots and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: labdam-free-auth-browser-debug
+          path: |
+            free-auth-browser-results/
+            free-auth-browser-report/
+          retention-days: 3
+          if-no-files-found: ignore
       - name: Upload non-sensitive staging bundle for local admin review
         uses: actions/upload-artifact@v4
         with:
