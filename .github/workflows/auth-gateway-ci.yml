@@ -1,4 +1,4 @@
-name: LABDAM auth gateway pre-deploy security checks
+name: LABDAM + LabInsight login gateway pre-deploy checks
 
 on:
   pull_request:
@@ -40,20 +40,12 @@ jobs:
           ref: 7a5c024df3e5bc41f256b8f935cb932f1ad2705d
           path: sources/labinsight
           persist-credentials: false
-      - name: Checkout reviewed Caffeine Atlas public source
-        uses: actions/checkout@v4
-        with:
-          repository: Haru-today/caffeine-atlas
-          ref: a3caf1a5b7f9bd3e323c3d4a2559013e3cf75d32
-          path: sources/caffeine-atlas
-          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build reviewed public shells only (no deployment)
+      - name: Build private LABDAM homepage and LabInsight shell (no deployment)
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
-          CAFFEINE_SOURCE: ${{ github.workspace }}/sources/caffeine-atlas
         run: node auth-gateway/build.mjs
-      - name: Check protected bundle for unwanted files
+      - name: Check LABDAM and LabInsight protected bundle
         run: node --test auth-gateway/verify-bundle.test.cjs
