@@ -282,6 +282,7 @@ async function callSheetBackend(request, env, options = {}, identity) {
 async function handleRequest(request, env, options = {}) {
   const url = new URL(request.url);
   const isSaveApi = url.pathname === SAVE_API_PATH;
+  const isSessionApi = url.pathname === "/api/session";
   if (!["GET", "HEAD"].includes(request.method) && !(isSaveApi && request.method === "POST")) {
     return statusResponse(405, "허용되지 않는 요청입니다.");
   }
@@ -293,7 +294,7 @@ async function handleRequest(request, env, options = {}) {
     if (!team) return statusResponse(503, "로그인 서비스가 아직 설정되지 않았습니다.");
     return securityHeaders(Response.redirect(team + "/cdn-cgi/access/logout", 302));
   }
-  if (!isSaveApi && !PREFIXES.some(p => url.pathname.startsWith(p)) &&
+  if (!isSaveApi && !isSessionApi && !PREFIXES.some(p => url.pathname.startsWith(p)) &&
       !["/labinsight", "/caffeine-atlas"].includes(url.pathname)) {
     return statusResponse(404, "요청한 페이지가 없습니다.");
   }
@@ -306,6 +307,17 @@ async function handleRequest(request, env, options = {}) {
       err instanceof AuthError ? err.message : "인증 확인 중 오류가 발생했습니다.");
   }
 
+  if (isSessionApi) {
+    if (request.method !== "GET") return jsonResponse(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    // An authenticated visitor can read only their own identity and
+    // whether the operator has explicitly approved cloud storage.
+    const writer = permittedStorageReader(identity, env);
+    return jsonResponse(200, {
+      authenticated: true,
+      email: identity.email,
+      storageAllowed: writer.valid && writer.allowed
+    });
+  }
   if (isSaveApi) {
     if (request.method === "HEAD") return statusResponse(405, "허용되지 않는 요청입니다.");
     return callSheetBackend(request, env, options, identity);
