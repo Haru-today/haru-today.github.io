@@ -21,6 +21,7 @@ function securityHeaders(response) {
   headers.set("Cache-Control", "private, no-store, max-age=0");
   headers.set("Referrer-Policy", "no-referrer");
   headers.set("X-Content-Type-Options", "nosniff");
+  headers.set("X-Robots-Tag", "noindex, nofollow, noarchive");
   headers.set("X-Frame-Options", "DENY");
   headers.set("Cross-Origin-Resource-Policy", "same-origin");
   headers.set("Vary", "Cookie");
