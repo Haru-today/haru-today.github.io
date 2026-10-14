@@ -75,7 +75,7 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
     node --check free-auth/worker.mjs
     node --test tests/free-auth.test.cjs
     LABINSIGHT_SOURCE=/path/to/labinsight node free-auth/build.mjs
-    node --test tests/free-auth-bundle.test.cjs
+    node --test free-auth/tests/bundle.test.cjs
 
 위 검증을 먼저 통과합니다. 그 다음 Wrangler를 통한 시험 Worker 배포를 수행합니다.
 
