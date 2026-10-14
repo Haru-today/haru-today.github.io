@@ -150,3 +150,8 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
     node free-auth/scripts/audit-public-pages.mjs --require-cutover
 
 엄격 모드는 보호 대상이 모두 `CLOSED`이고 Caffeine Atlas 4개가 모두 `PUBLIC`일 때만 종료 코드 0을 반환합니다. 이는 물리 QR·기기 캐시·다운로드된 복사본 검증을 대체하지 않습니다. 본 PR에서는 레거시 게시물 삭제·Pages 설정 변경·운영 배포를 하지 않습니다.
+
+
+## 승인 대기 화면 네트워크·중복 요청 처리
+
+`/pending.html`에서 계정 승인 상태를 `/api/me`로 확인하는 동안에는 가입 목적 저장, 탈퇴, 로그아웃과 재확인 버튼을 일시적으로 비활성화합니다. API가 실패해 세션·CSRF를 확인할 수 없으면 변경 요청을 막고 **승인 상태 다시 확인**으로 복구합니다. 저장·탈퇴·로그아웃 중에도 중복 클릭과 동시 요청을 제한합니다. 거절 상태 계정은 가입 목적을 변경하지 못하지만 로그아웃과 계정 삭제는 가능합니다. 이 프런트엔드 방어는 별개로 Worker에서 현재 승인 상태, CSRF와 Origin을 계속 검증합니다.

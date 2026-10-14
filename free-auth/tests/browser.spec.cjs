@@ -151,3 +151,65 @@ test("admin review disables all competing decisions and refresh until the server
   await expect(page.getByRole("button",{name:"승인",exact:true})).toBeEnabled();
   expect(started).toBe(1);
 });
+
+test("pending page blocks duplicate mutations while saving, then permits a retry", async ({ page }) => {
+  let started=0,release;
+  await page.route("**/api/me",route=>route.fulfill({json:{
+    authenticated:true,email:"applicant@example.invalid",name:"Test",
+    status:"pending",role:"member",purpose:"",csrf:"a".repeat(64)
+  }}));
+  await page.route("**/api/application",async route=>{
+    started++;
+    if(started===1){
+      await new Promise(resolve=>{release=resolve;});
+      await route.fulfill({status:503,json:{ok:false}});
+    }else{
+      await route.fulfill({json:{ok:true,status:"pending"}});
+    }
+  });
+  await page.goto("/pending.html");
+  await page.locator("#purpose").fill("학습 목적");
+  await page.locator("#savePurpose").click();
+  await expect.poll(()=>started).toBe(1);
+  for(const id of ["#refreshStatus","#savePurpose","#withdraw","#logout"]){
+    await expect(page.locator(id)).toBeDisabled();
+  }
+  release();
+  await expect(page.locator("#formMessage")).toHaveText(/저장하지 못했습니다/);
+  await expect(page.locator("#savePurpose")).toBeEnabled();
+  await page.locator("#savePurpose").click();
+  await expect(page.locator("#formMessage")).toHaveText("가입 목적이 저장되었습니다.");
+  expect(started).toBe(2);
+});
+
+test("pending page disables mutations if status cannot be verified and restores them on retry", async ({ page }) => {
+  let available=false;
+  await page.route("**/api/me",route=>available?
+    route.fulfill({json:{authenticated:true,email:"applicant@example.invalid",
+      status:"pending",role:"member",purpose:"",csrf:"b".repeat(64)}}):
+    route.fulfill({status:503,body:"temporarily unavailable"}));
+  await page.goto("/pending.html");
+  await expect(page.locator("#message")).toHaveText(/로그인 상태를 확인하지 못했습니다/);
+  for(const id of ["#savePurpose","#withdraw","#logout"]){
+    await expect(page.locator(id)).toBeDisabled();
+  }
+  available=true;
+  await page.locator("#refreshStatus").click();
+  await expect(page.locator("#status")).toHaveText("관리자 승인 대기");
+  for(const id of ["#savePurpose","#withdraw","#logout"]){
+    await expect(page.locator(id)).toBeEnabled();
+  }
+});
+
+test("rejected applicant may leave but cannot submit a new pending-only purpose", async ({ page }) => {
+  await page.route("**/api/me",route=>route.fulfill({json:{
+    authenticated:true,email:"rejected@example.invalid",status:"rejected",
+    role:"member",purpose:"",csrf:"c".repeat(64)
+  }}));
+  await page.goto("/pending.html");
+  await expect(page.locator("#status")).toHaveText("승인되지 않음");
+  await expect(page.locator("#purposeWrap")).toBeHidden();
+  await expect(page.locator("#savePurpose")).toBeDisabled();
+  await expect(page.locator("#logout")).toBeEnabled();
+  await expect(page.locator("#withdraw")).toBeEnabled();
+});

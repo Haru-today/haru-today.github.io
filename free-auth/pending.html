@@ -10,47 +10,68 @@
 <div class="actions"><a class="button secondary" href="/login.html">다른 계정으로 로그인</a><button type="button" class="secondary" id="logout">로그아웃</button><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 공개 체험</a></div></main>
 <footer>관리자 승인 전에는 LABDAM과 LabInsight를 이용할 수 없습니다. <a href="/membership-privacy.html">가입 개인정보 안내</a> · <button type="button" id="withdraw" class="secondary">가입 신청 철회·정보 삭제</button> <span id="withdrawMessage" role="status"></span></footer>
 <script>(async function(){
-const msg=document.getElementById("message"),detail=document.getElementById("detail"),form=document.getElementById("purposeForm");
-let csrf="";
-const refresh=document.getElementById("refreshStatus");
+const msg=document.getElementById("message"),detail=document.getElementById("detail");
+const form=document.getElementById("purposeForm"),refresh=document.getElementById("refreshStatus");
+const save=document.getElementById("savePurpose"),withdraw=document.getElementById("withdraw"),logout=document.getElementById("logout");
+let csrf="",checking=false,mutating=false,canEdit=false;
+function syncControls(){
+ refresh.disabled=checking||mutating;
+ save.disabled=checking||mutating||!csrf||!canEdit;
+ withdraw.disabled=checking||mutating||!csrf;
+ logout.disabled=checking||mutating||!csrf;
+}
 async function checkStatus(){
-csrf="";refresh.disabled=true;
-try{
- const res=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});
- if(res.status===401){location.replace("/login.html");return;}
- if(!res.ok)throw new Error("status_failed");
- const me=await res.json();csrf=me.csrf;
- if(me.status==="approved"){location.replace("/");return;}
- detail.hidden=false;document.getElementById("email").textContent=me.email;
- const pending=me.status==="pending";document.getElementById("status").textContent=pending?"관리자 승인 대기":"승인되지 않음";
- msg.textContent=pending?"가입 신청이 접수됐습니다. 관리자가 승인하면 LABDAM과 LabInsight를 이용할 수 있습니다.":"현재 계정은 승인되지 않았습니다. 관리자에게 문의해 주세요.";
- document.getElementById("purposeWrap").hidden=!pending;
- document.getElementById("purpose").value=me.purpose||"";
-}catch(_){msg.textContent="로그인 상태를 확인하지 못했습니다. 승인 상태 다시 확인을 눌러 주세요.";}
-finally{refresh.disabled=false;}
+ if(checking||mutating)return;
+ checking=true;csrf="";canEdit=false;detail.hidden=true;syncControls();
+ try{
+  const res=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});
+  if(res.status===401){location.replace("/login.html");return;}
+  if(!res.ok)throw new Error("status_failed");
+  const me=await res.json();csrf=me.csrf;
+  if(me.status==="approved"){location.replace("/");return;}
+  detail.hidden=false;document.getElementById("email").textContent=me.email;
+  const pending=me.status==="pending";canEdit=pending;
+  document.getElementById("status").textContent=pending?"관리자 승인 대기":"승인되지 않음";
+  msg.textContent=pending?"가입 신청이 접수됐습니다. 관리자가 승인하면 LABDAM과 LabInsight를 이용할 수 있습니다.":"현재 계정은 승인되지 않았습니다. 관리자에게 문의해 주세요.";
+  document.getElementById("purposeWrap").hidden=!pending;
+  document.getElementById("purpose").value=me.purpose||"";
+ }catch(_){msg.textContent="로그인 상태를 확인하지 못했습니다. 승인 상태 다시 확인을 눌러 주세요.";}
+ finally{checking=false;syncControls();}
 }
 refresh.addEventListener("click",checkStatus);
+syncControls();
 await checkStatus();
 form.addEventListener("submit",async e=>{
- e.preventDefault();const target=document.getElementById("formMessage");
+ e.preventDefault();
+ if(!csrf||!canEdit||checking||mutating)return;
+ const target=document.getElementById("formMessage");
+ mutating=true;syncControls();target.textContent="가입 목적을 저장하고 있습니다.";
  try{
   const r=await fetch("/api/application",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify({purpose:document.getElementById("purpose").value})});
   target.textContent=r.ok?"가입 목적이 저장되었습니다.":"저장하지 못했습니다. 다시 확인해 주세요.";
  }catch(_){target.textContent="네트워크 연결을 확인해 주세요.";}
+ finally{mutating=false;syncControls();}
 });
-document.getElementById("withdraw").addEventListener("click",async()=>{
+withdraw.addEventListener("click",async()=>{
+ if(!csrf||checking||mutating)return;
  if(!confirm("가입 신청과 Google 계정 연결 정보를 삭제할까요? 다시 이용하려면 새 가입 신청부터 시작해야 합니다."))return;
  const status=document.getElementById("withdrawMessage");
+ mutating=true;syncControls();status.textContent="가입 신청을 철회하고 있습니다.";
  try{
   const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(!r.ok){status.textContent="가입 철회 처리에 실패했습니다.";return;}
   location.replace("/login.html");
  }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
+ finally{mutating=false;syncControls();}
 });
-document.getElementById("logout").addEventListener("click",async()=>{
+logout.addEventListener("click",async()=>{
+ if(!csrf||checking||mutating)return;
+ mutating=true;syncControls();msg.textContent="로그아웃하고 있습니다.";
  try{
- const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
- if(r.ok||r.status===303){location.replace("/login.html");}else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
+  const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
+  if(r.ok||r.status===303){location.replace("/login.html");}
+  else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
  }catch(_){msg.textContent="네트워크 연결을 확인한 뒤 로그아웃을 다시 시도해 주세요.";}
+ finally{mutating=false;syncControls();}
 });
 })();</script></body></html>
