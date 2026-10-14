@@ -34,7 +34,7 @@ test("redesign retains SEO, privacy and feedback routes", () => {
   assert.match(html, /name="google-site-verification"/);
   assert.match(html, /name="naver-site-verification"/);
   assert.match(html, /rel="canonical"/);
-  assert.match(html, /href="\/assets\/portal-redesign.css"/);
+  assert.match(html, /href="\/assets\/portal-redesign.css\?v=service-paths-20261014"/);
   assert.match(html, /href="\/privacy.html"/);
   assert.match(html, /href="\/terms.html"/);
   assert.match(html, /github.com\/Haru-today\/haru-today.github.io\/issues\/new/);
