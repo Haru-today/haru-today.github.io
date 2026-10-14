@@ -42,7 +42,7 @@ test("public login and approval-waiting pages are present as real self-service U
 });
 
 test("admin dashboard offers approval, denial and revocation without hidden fake security", () => {
-  const admin = read("admin.html"), account = read("account.html");
+  const admin = read("admin.html"), account = read("account.html"), pending = read("pending.html");
   assert.match(admin, /\/api\/admin\/applications/);
   assert.match(admin, /\/api\/admin\/review/);
   assert.match(admin, /"approved"/);
