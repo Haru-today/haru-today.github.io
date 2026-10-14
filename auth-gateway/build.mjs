@@ -68,9 +68,15 @@ function protectCaffeineBrowserApp(source) {
   // This transformation exists only in the protected deployment bundle.
   // Never ship a signed credential or the direct Google Apps Script URL.
   let output = protectedLinkRewrite(source);
-  const endpoint = /var GOOGLE_SHEETS_ENDPOINT = "https:\/\/script\.google\.com\/macros\/s\/[^"]+\/exec";/;
-  if (!endpoint.test(output)) throw new Error("Cannot identify legacy Caffeine Atlas endpoint.");
+  // Public QR bundle has no backend URL and disallows every upload.
+  // Only the private, Access-gated bundle explicitly opts into research mode.
+  const endpoint = 'var GOOGLE_SHEETS_ENDPOINT = "";';
+  const mode = 'var RESEARCH_STORAGE_MODE = false;';
+  if (!output.includes(endpoint) || !output.includes(mode)) {
+    throw new Error("Public-only storage flags missing in reviewed Caffeine Atlas source.");
+  }
   output = output.replace(endpoint, 'var GOOGLE_SHEETS_ENDPOINT = "/api/caffeine-atlas";');
+  output = output.replace(mode, 'var RESEARCH_STORAGE_MODE = true;');
   const start = output.indexOf("function requestEndpointStatus(parameters) {");
   const end = output.indexOf("function verifyBatchEndpointSupport()", start);
   if (start < 0 || end < 0) throw new Error("Cannot identify JSONP receipt transport.");
@@ -152,7 +158,9 @@ async function run() {
     if (!existsSync(source)) throw new Error("Missing public source file: " + file);
     await publicTextCopy(source, dest,
       text => file.endsWith(".html") ?
-        preventIndexing(protectedLinkRewrite(text)) :
+        preventIndexing(protectedLinkRewrite(text).replace(
+          '<body class="public-demo">', '<body class="research-mode">'
+        )) :
         file === "app.js" ? protectCaffeineBrowserApp(text) : protectedLinkRewrite(text));
   }
   // The source repository's account.html contains a NONFUNCTIONAL email/
