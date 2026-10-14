@@ -1,0 +1,25 @@
+<!doctype html><html lang="ko"><head><title>내 계정 | LABDAM</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#102b50"><style>
+:root{font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#1b334c;background:#f3f6fb;font-size:16px}*{box-sizing:border-box}body{margin:0}header{background:#102b50;color:#fff;padding:18px max(20px,calc((100% - 980px)/2))}header a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.06em}main{max-width:770px;margin:0 auto;padding:clamp(28px,7vw,76px) 20px 80px}h1{font-size:clamp(1.75rem,5.5vw,2.55rem);letter-spacing:-.035em}h2{font-size:1.15rem}p{line-height:1.75}section{background:#fff;border:1px solid #d8e2ee;border-radius:16px;padding:clamp(18px,4vw,30px);margin:20px 0;box-shadow:0 7px 24px #102b5008}.muted{color:#52677b;font-size:.91rem}.hint{color:#365c85;font-weight:650}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border-radius:9px;padding:11px 17px;border:1px solid #1f5b97;background:#1f5b97;color:#fff;cursor:pointer;text-decoration:none;font-size:.95rem;font-weight:700}button.secondary,.button.secondary{background:#fff;color:#1f5b97}button:disabled{opacity:.55;cursor:not-allowed}a{color:#245baa}a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid #245baa;outline-offset:3px}textarea{display:block;width:100%;padding:12px;border-radius:9px;border:1px solid #9ab1cc;font:inherit;min-height:95px}label{font-weight:700}dl{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px}dt{color:#53687b}dd{margin:0;overflow-wrap:anywhere}.status{font-weight:700;color:#234c78;line-height:1.65}.error{color:#9e203c}table{width:100%;border-collapse:collapse}th,td{padding:11px 7px;border-bottom:1px solid #dae4ee;text-align:left;font-size:.85rem;overflow-wrap:anywhere}th{color:#435c73}td .actions{margin:0;gap:5px}td button{min-height:40px;padding:7px 10px;font-size:.8rem}td button.secondary{color:#214d83;background:white}footer{max-width:770px;margin:0 auto;padding:18px 20px 55px;color:#637388;font-size:.8rem}@media(max-width:630px){dl{grid-template-columns:1fr;gap:4px}dd{margin-bottom:13px}.table-wrap{overflow-x:auto}table{min-width:600px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style></head><body>
+<header><a href="/">LABDAM</a></header><main>
+<p class="hint">MEMBER ACCOUNT</p><h1>내 계정</h1><p>관리자가 승인한 계정으로 LABDAM과 LabInsight를 이용합니다. Caffeine Atlas에는 로그인할 필요가 없습니다.</p>
+<section><h2>가입 정보</h2><p class="status" id="authState" role="status">로그인 상태 확인 중</p>
+<dl><dt>이름</dt><dd id="name"></dd><dt>이메일</dt><dd id="email"></dd><dt>승인 상태</dt><dd id="status"></dd><dt>권한</dt><dd id="role"></dd></dl>
+<div class="actions"><a class="button" href="/">LABDAM 홈</a><a class="button secondary" href="/labinsight/">LabInsight 이용</a><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas</a><a id="adminLink" class="button secondary" href="/admin.html" hidden>회원 승인 관리</a><button id="logout" class="secondary" type="button">로그아웃</button></div>
+<p class="muted">로그아웃은 이미 기기에 내려받은 리포트 및 이전에 저장한 브라우저 입력 데이터를 자동으로 지우지 않습니다.</p></section></main><footer>LABDAM 회원 관리</footer>
+<script>(async function(){
+ const state=document.getElementById("authState");let csrf="";
+ try{const r=await fetch("/api/me",{cache:"no-store",credentials:"same-origin"});if(!r.ok)throw new Error("not_signed_in");
+ const data=await r.json();csrf=data.csrf;document.getElementById("name").textContent=data.name||"미제공";
+ document.getElementById("email").textContent=data.email;
+ document.getElementById("status").textContent=data.status==="approved"?"승인 완료":data.status;
+ document.getElementById("role").textContent=data.role==="admin"?"관리자":"일반 회원";
+ document.getElementById("adminLink").hidden=data.role!=="admin";
+ state.textContent="로그인 상태가 확인되었습니다.";
+ }catch(_){state.textContent="로그인 정보를 확인할 수 없습니다.";location.replace("/login.html");}
+ document.getElementById("logout").addEventListener("click",async()=>{
+  try{const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf},redirect:"manual"});
+  if(r.status===0||r.status===303||r.ok){location.replace("/login.html");return;}state.textContent="로그아웃에 실패했습니다.";}
+  catch(_){location.replace("/login.html");}
+ });
+})();</script></body></html>
