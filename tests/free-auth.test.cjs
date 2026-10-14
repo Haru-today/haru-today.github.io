@@ -128,7 +128,8 @@ function req(path, { method = "GET", cookie = "", origin = "", csrf = "", body =
   return new Request(ORIGIN + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) });
 }
 function seedMember(f, { sub = "123456789012345678901", email = "student@example.com", status = "approved", role = "member" } = {}) {
-  const token = "a".repeat(64), csrf = "c".repeat(64);
+  const token = sub === "123456789012345678901" ? "a".repeat(64) : sub.padEnd(64, "a");
+  const csrf = sub === "123456789012345678901" ? "c".repeat(64) : sub.padEnd(64, "c");
   f.DB.members.set(sub, {
     google_sub: sub, email, display_name: "Test", role, status, purpose: "",
     created_at: NOW - 500, updated_at: NOW - 500
@@ -235,13 +236,14 @@ test("only admin can review and revocation is effective on the very next request
     origin: ORIGIN, csrf: admin.csrf, body }), f.env, f.opts);
   assert.equal(result.status, 200);
   assert.equal(f.DB.members.get(body.google_sub).status, "approved");
-  // A separate login session for the applicant is created below (test helper
-  // always uses the same fixed token, so seed after the administrator action).
-  const member = seedMember(f, { sub: "2222222222222222222", email: "guest@example.com" });
-  assert.equal((await handleRequest(req("/labinsight/", { cookie: member.cookie }), f.env, f.opts)).status, 200);
-  const revoke = await handleRequest(req(path, { cookie: member.cookie, method: "POST",
-    origin: ORIGIN, csrf: member.csrf, body: { google_sub: body.google_sub, status: "rejected" } }), f.env, f.opts);
-  assert.equal(revoke.status, 403);
+  // The same pending cookie now receives access, because the member is
+  // approved in the authoritative database; no duplicate sign-in required.
+  assert.equal((await handleRequest(req("/labinsight/", { cookie: candidate.cookie }), f.env, f.opts)).status, 200);
+  const revoke = await handleRequest(req(path, { cookie: admin.cookie, method: "POST",
+    origin: ORIGIN, csrf: admin.csrf, body: { google_sub: body.google_sub, status: "rejected" } }), f.env, f.opts);
+  assert.equal(revoke.status, 200);
+  assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: candidate.cookie }), f.env, f.opts)).status, 403);
+  assert.equal((await handleRequest(req("/labinsight/", { cookie: candidate.cookie }), f.env, f.opts)).status, 303);
 });
 test("admin lists applications; cannot elevate or remove an existing admin through review API", async () => {
   const f = fixture(), admin = seedMember(f, { sub: "1111111111111111111", email: "owner@example.com", role: "admin" });
@@ -307,7 +309,7 @@ test("missing config, malicious paths and credential-bearing unsupported routes 
     assert.equal((await handleRequest(req(path), f.env, f.opts)).status, 404, path);
   }
   assert.equal((await handleRequest(req("/auth/start", { method: "POST" }), f.env, f.opts)).status, 404);
-  assert.equal((await handleRequest(req("/labinsight/", { method: "POST" }), f.env, f.opts)).status, 405);
+  assert.equal((await handleRequest(req("/labinsight/", { method: "POST" }), f.env, f.opts)).status, 401);
   assert.equal(safeNext("//evil.example"), "/");
   assert.equal(safeNext("/caffeine-atlas/"), "/");
   assert.equal(safeNext("https://evil.example"), "/");
