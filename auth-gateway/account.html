@@ -31,32 +31,31 @@
   </style>
 </head>
 <body>
-<header><a href="https://haru-today.github.io/">LABDAM.</a></header>
+<header><a href="/">LABDAM.</a></header>
 <main>
   <p class="eyebrow">PERSONAL HEALTH ATLAS / SECURE ACCESS</p>
   <h1>내 계정</h1>
-  <p class="lede">LABDAM 공통 로그인으로 LabInsight와 Caffeine Atlas를 이용합니다. 비밀번호는 LABDAM 서비스에서 직접 수집하지 않습니다.</p>
+  <p class="lede">LABDAM과 LabInsight는 하나의 로그인으로 이용합니다. Caffeine Atlas는 로그인 없이 공개 체험할 수 있습니다. LABDAM은 비밀번호를 직접 수집하지 않습니다.</p>
   <section class="card" aria-labelledby="account-title">
     <h2 id="account-title">인증 상태</h2>
     <p id="auth-state" class="state" role="status" aria-live="polite">로그인 상태 확인 중</p>
     <p id="session-error" hidden role="alert">로그인 정보를 확인하지 못했습니다. 보호된 서비스에서 다시 접속해 주세요.</p>
     <dl>
       <dt>로그인 이메일</dt><dd id="user-email">확인 중</dd>
-      <dt>연구 데이터 저장 권한</dt><dd id="storage-permission">확인 중</dd>
     </dl>
     <div class="actions">
-      <a class="button primary" href="/labinsight/">LabInsight 이용</a>
-      <a class="button outline" href="/caffeine-atlas/caffeine-sensitivity-app/analyzer.html">Caffeine Atlas 이용</a>
+      <a class="button primary" href="/">LABDAM 홈</a>
+      <a class="button outline" href="/labinsight/">LabInsight 이용</a>
+      <a class="button outline" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 이용</a>
       <a class="button outline" href="/logout">로그아웃</a>
     </div>
-    <p class="note">로그아웃은 이미 내려받은 PDF·엑셀 파일이나 이 기기의 기존 브라우저 데이터, Google Sheets에 저장된 리포트를 자동 삭제하지 않습니다. 각 서비스의 삭제 안내를 별도로 확인해 주세요.</p>
+    <p class="note">로그아웃은 브라우저에서 내려받은 파일이나 이미 작성한 건강검진 결과를 자동 삭제하지 않습니다. LabInsight의 결과는 별도의 삭제 기능으로 지울 수 있습니다. Caffeine Atlas 공개 체험에는 LABDAM 로그인이 필요하지 않습니다.</p>
   </section>
 </main>
 <footer>LABDAM · Personal Health Atlas · 연구 및 교육 목적의 참고 정보</footer>
 <script>
 (async function(){
   const status=document.getElementById("auth-state"),email=document.getElementById("user-email");
-  const permission=document.getElementById("storage-permission");
   const error=document.getElementById("session-error");
   try {
     const response=await fetch("/api/session",{credentials:"same-origin",cache:"no-store"});
@@ -65,11 +64,9 @@
     if(!data.authenticated)throw new Error("session invalid");
     status.textContent="로그인됨";
     email.textContent=data.email||"이메일 확인 불가";
-    permission.textContent=data.storageAllowed?"승인됨":"권한 없음 · 분석 및 다운로드는 이용 가능";
   }catch(_){
     status.textContent="확인 실패";
     email.textContent="확인할 수 없음";
-    permission.textContent="확인할 수 없음";
     error.hidden=false;
   }
 }());
