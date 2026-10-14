@@ -19,7 +19,7 @@ const labFiles = [
   "styles.css", "app.js", "ocr-review.js", "reference-ranges.js",
   "hospital-data.js", "runtime-config.js", "manifest.webmanifest"
 ];
-const authPages = ["login.html", "pending.html", "account.html", "admin.html"];
+const authPages = ["login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html"];
 
 function guarded(root, rel) {
   const full = resolve(root, rel);
@@ -106,7 +106,7 @@ async function build() {
     'self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));\n');
   await writeFile(join(output, "robots.txt"), "User-agent: *\nDisallow: /\n");
   const expected = [
-    "index.html", "login.html", "pending.html", "account.html", "admin.html",
+    "index.html", "login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html",
     "privacy.html", "terms.html", "favicon.svg", "robots.txt",
     "assets/portal-redesign.css", "labinsight/index.html",
     "labinsight/checkup.html", "labinsight/report.html",
