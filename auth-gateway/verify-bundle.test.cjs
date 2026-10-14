@@ -86,6 +86,18 @@ test("protected account page is real session readout, never a nonfunctional pass
   }
 });
 
+
+test("LabInsight protected pages link to shared verified account status and logout", () => {
+  const account = read("labinsight/account.html");
+  assert.match(account, /fetch\("\/api\/session"/);
+  assert.match(account, /href="\/logout"/);
+  assert.doesNotMatch(account, /type="password"/);
+  for (const page of ["index.html", "checkup.html", "report.html", "hospitals.html"]) {
+    const html = read("labinsight/" + page);
+    assert.match(html, /href="\.\/account\.html"/);
+  }
+});
+
 test("protected LabInsight browser shell does not cache unauthenticated HTML", () => {
   const sw = read("labinsight/service-worker.js");
   assert.doesNotMatch(sw, /caches\.open|CacheStorage|cache\.put|fetch\(/);
