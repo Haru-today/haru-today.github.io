@@ -23,7 +23,9 @@ jobs:
       - name: Run JWT and fail-closed security tests
         run: node --test tests/auth-gateway.test.cjs
       - name: Validate Worker JavaScript
-        run: node --check auth-gateway/worker.mjs
+        run: |
+          node --check auth-gateway/worker.mjs
+          node --check auth-gateway/smoke-anonymous.mjs
 
   build-private-static-artifacts:
     needs: verify-authentication
