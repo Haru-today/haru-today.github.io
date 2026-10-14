@@ -57,6 +57,13 @@ function protectedLinkRewrite(text) {
     .replaceAll("구축 방식 보기", "내 계정 확인");
 }
 
+function protectedLabInsightHtml(text) {
+  const output = protectedLinkRewrite(text);
+  const target = '<a class="nav-cta"';
+  if (!output.includes(target)) throw new Error("LabInsight account navigation anchor missing.");
+  return output.replace(target, '<a href="./account.html">내 계정</a>' + target);
+}
+
 function protectCaffeineBrowserApp(source) {
   // This transformation exists only in the protected deployment bundle.
   // Never ship a signed credential or the direct Google Apps Script URL.
@@ -120,11 +127,13 @@ async function run() {
     assertInside(lab, source);
     if (!existsSync(source)) throw new Error("Missing public source file: " + file);
     await (file.endsWith(".html") ?
-      publicTextCopy(source, dest, text => preventIndexing(protectedLinkRewrite(text))) :
+      publicTextCopy(source, dest, text => preventIndexing(protectedLabInsightHtml(text))) :
       file.endsWith(".js") ?
         publicTextCopy(source, dest, protectedLinkRewrite) :
         copyFile(source, dest));
   }
+  // Identical signed-in LABDAM account status works from either product.
+  await copyFile(join(here, "account.html"), join(labOut, "account.html"));
   await copyCuratedAssets(join(lab, "icons"), join(labOut, "icons"),
     new Set(["icon.svg", "icon-192.png", "icon-512.png"]));
 
@@ -162,7 +171,7 @@ async function run() {
 
   await writeFile(join(dist, "robots.txt"), "User-agent: *\nDisallow: /\n");
   const expected = [
-    "labinsight/index.html", "labinsight/checkup.html",
+    "labinsight/index.html", "labinsight/checkup.html", "labinsight/account.html",
     "caffeine-atlas/index.html", "caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
     "caffeine-atlas/caffeine-sensitivity-app/account.html"
   ];
