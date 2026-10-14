@@ -12,13 +12,14 @@ test("only the two LABDAM services are prepared for protected hosting", () => {
   assert.ok(fs.existsSync(path.join(root, "labinsight", "report.html")));
   assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "index.html")));
   assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "caffeine-sensitivity-app", "analyzer.html")));
+  assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "caffeine-sensitivity-app", "account.html")));
   assert.equal(fs.readdirSync(root).sort().join(","), "caffeine-atlas,labinsight,robots.txt");
 });
 
 test("build excludes local server, booking database, and mock sign-in pages", () => {
   for (const relative of [
     "labinsight/server.js", "labinsight/data",
-    "caffeine-atlas/google-apps-script", "caffeine-atlas/caffeine-sensitivity-app/account.html",
+    "caffeine-atlas/google-apps-script",
     "caffeine-atlas/caffeine-sensitivity-app/board-write-backend.js"
   ]) {
     assert.equal(fs.existsSync(path.join(root, relative)), false, relative);
@@ -67,6 +68,22 @@ test("protected Caffeine Atlas web bundle calls authenticated same-origin Sheets
   assert.match(app, /credentials: "same-origin"/);
   assert.match(app, /"Content-Type": "application\/json;charset=utf-8"/);
   assert.match(app, /response\.json\(\)/);
+});
+
+
+test("protected account page is real session readout, never a nonfunctional password mockup", () => {
+  const html = read("caffeine-atlas/caffeine-sensitivity-app/account.html");
+  assert.match(html, /fetch\("\/api\/session"/);
+  assert.match(html, /href="\/logout"/);
+  assert.match(html, /id="user-email"/);
+  assert.match(html, /data\.storageAllowed/);
+  assert.doesNotMatch(html, /type="password"|Prototype UI|회원 화면 예시/);
+  assert.match(html, /name="robots" content="noindex,nofollow"/);
+  for (const page of ["index.html", "board.html", "board-write.html"]) {
+    const source = read("caffeine-atlas/caffeine-sensitivity-app/" + page);
+    assert.match(source, /href="\.\/account\.html"/);
+    assert.doesNotMatch(source, /hidden data-disabled-feature="account"/);
+  }
 });
 
 test("protected LabInsight browser shell does not cache unauthenticated HTML", () => {
