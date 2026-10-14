@@ -106,3 +106,24 @@ test("no privileged service-worker cache or legacy cloud access script in static
     assert.equal(fs.existsSync(path.join(root, rel)), false);
   }
 });
+
+test("protected build preserves reviewed interpretation, OCR and PDF scripts", () => {
+  const source = process.env.LABINSIGHT_SOURCE || [
+    path.resolve(__dirname, "../../sources/labinsight"),
+    path.resolve(__dirname, "../../../labinsight")
+  ].find(p => fs.existsSync(path.join(p, "app.js")));
+  assert.ok(source, "Reviewed LabInsight checkout is required");
+  for (const file of ["ocr-review.js", "reference-ranges.js", "hospital-data.js", "runtime-config.js", "app.js"]) {
+    let expected = fs.readFileSync(path.join(source, file), "utf8")
+      .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")
+      .replace(/https:\/\/haru-today\.github\.io\/(?!caffeine-atlas\/)/g, "/")
+      .replace(/(href|src)=(["'])\/caffeine-atlas\//g,
+        '$1=$2https://haru-today.github.io/caffeine-atlas/');
+    if (file === "app.js") expected = expected
+      .replace('if (cache) cache.textContent = "오프라인 준비 완료";',
+        'if (cache) cache.textContent = "승인 확인을 위해 온라인 연결 필요";')
+      .replace('if (cache) cache.textContent = "오프라인 캐시 대기";',
+        'if (cache) cache.textContent = "온라인 연결 상태를 확인해 주세요";');
+    assert.equal(read("labinsight/" + file), expected, file);
+  }
+});

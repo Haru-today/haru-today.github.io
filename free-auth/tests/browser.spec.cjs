@@ -61,6 +61,32 @@ test("member account shows role and withdrawal without administrator access", as
   await expect(page.getByRole("link", { name: "LabInsight 이용" })).toHaveAttribute("href", "/labinsight/");
 });
 
+test("pending approval can be checked again without repeating Google sign-in", async ({ page }) => {
+  let approved = false;
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, email: "applicant@example.invalid", name: "Applicant",
+    status: approved ? "approved" : "pending", role: "member", csrf: "a".repeat(64)
+  } }));
+  await page.goto("/pending.html");
+  await expect(page.locator("#status")).toHaveText("관리자 승인 대기");
+  approved = true;
+  await page.getByRole("button", { name: "승인 상태 다시 확인" }).click();
+  await expect(page).toHaveURL(/\/$/);
+});
+
+test("failed logout stays on account screen and tells the member to retry", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, email: "member@example.invalid", status: "approved",
+    role: "member", csrf: "a".repeat(64)
+  } }));
+  await page.route("**/auth/logout", route => route.abort("failed"));
+  await page.goto("/account.html");
+  await expect(page.locator("#authState")).toHaveText("로그인 상태가 확인되었습니다.");
+  await page.getByRole("button", { name: "로그아웃", exact: true }).click();
+  await expect(page.locator("#authState")).toHaveText(/로그아웃을 완료하지 못했습니다/);
+  await expect(page).toHaveURL(/\/account\.html$/);
+});
+
 test("administrator sees the approval dashboard and cannot accidentally delete own admin record", async ({ page }) => {
   const members = [
     { google_sub: "12345678901234", email: "pending@example.invalid", display_name: "Candidate", purpose: "학술 학습",

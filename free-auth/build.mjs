@@ -73,6 +73,16 @@ function labHtml(src) {
   if (!text.includes(anchor)) throw new Error("Cannot safely add LabInsight account navigation");
   return text.replace(anchor, '<a href="./account.html">내 계정</a>' + anchor);
 }
+function protectedLabScript(src) {
+  const text = rewritePaths(src);
+  const ready = 'if (cache) cache.textContent = "오프라인 준비 완료";';
+  const waiting = 'if (cache) cache.textContent = "오프라인 캐시 대기";';
+  if (!text.includes(ready) || !text.includes(waiting)) {
+    throw new Error("LabInsight cache status changed; review protected online-only wording");
+  }
+  return text.replace(ready, 'if (cache) cache.textContent = "승인 확인을 위해 온라인 연결 필요";')
+    .replace(waiting, 'if (cache) cache.textContent = "온라인 연결 상태를 확인해 주세요";');
+}
 async function copy(sourceRoot, rel, target, transform) {
   const path = guarded(sourceRoot, rel);
   if (!existsSync(path)) throw new Error("Missing source: " + rel);
@@ -113,7 +123,7 @@ async function build() {
     if (file.endsWith(".html")) {
       await copy(lab, file, dest, labHtml);
     } else if (file.endsWith(".js")) {
-      await copy(lab, file, dest, rewritePaths);
+      await copy(lab, file, dest, file === "app.js" ? protectedLabScript : rewritePaths);
     } else {
       await copyFile(guarded(lab, file), dest);
     }

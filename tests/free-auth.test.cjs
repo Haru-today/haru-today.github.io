@@ -294,11 +294,57 @@ test("Google OAuth PKCE verifies an actual signed OIDC token and registers a pen
 });
 test("verified bootstrap administrator is approved; a different verified Google account remains pending", async () => {
   const f = fixture();
-  const boot = await googleExchange(f, { email: "owner@example.com", sub: "333333333333333333333" })();
+  const boot = await googleExchange(f, { email: "owner@example.com", hd: "example.com", sub: "333333333333333333333" })();
   assert.equal(boot.result.status, 303);
   assert.equal(boot.result.headers.get("location"), ORIGIN + "/labinsight/");
   assert.equal(f.DB.members.get("333333333333333333333").role, "admin");
   assert.equal(f.DB.members.get("333333333333333333333").status, "approved");
+});
+test("bootstrap requires Google authority, while external email applicants remain pending", async () => {
+  for (const claims of [
+    { email: "owner@example.com" },
+    { email: "owner@example.com", hd: "another.example" },
+    { email: "owner@example.com", hd: true }
+  ]) {
+    const f = fixture();
+    const { result } = await googleExchange(f, claims)();
+    assert.equal(result.status, 303);
+    const member = f.DB.members.get("123456789012345678901");
+    assert.equal(member.role, "member");
+    assert.equal(member.status, "pending");
+  }
+  const f = fixture();
+  f.env.BOOTSTRAP_ADMIN_EMAIL = "owner@gmail.com";
+  const { result } = await googleExchange(f, { email: "owner@gmail.com" })();
+  assert.equal(result.status, 303);
+  assert.equal(f.DB.members.get("123456789012345678901").role, "admin");
+});
+
+test("mutation endpoints reject JSON primitives and arrays as client errors", async () => {
+  const f = fixture(), user = seedMember(f, { status: "pending" });
+  for (const body of [null, [], "purpose", 42, true]) {
+    const response = await handleRequest(req("/api/application", {
+      method: "POST", cookie: user.cookie, origin: ORIGIN, csrf: user.csrf, body
+    }), f.env, f.opts);
+    assert.equal(response.status, 400);
+    assert.equal(f.DB.members.get("123456789012345678901").purpose, "");
+  }
+});
+
+test("JSON byte limit cancels oversized streams without Content-Length", async () => {
+  const f = fixture(), user = seedMember(f, { status: "pending" });
+  let cancelled = false;
+  const body = new ReadableStream({
+    start(controller) { controller.enqueue(new Uint8Array(4097)); },
+    cancel() { cancelled = true; }
+  });
+  const request = new Request(ORIGIN + "/api/application", {
+    method: "POST", headers: { Cookie: user.cookie, Origin: ORIGIN,
+      "X-CSRF-Token": user.csrf, "Content-Type": "application/json" }, body, duplex: "half"
+  });
+  assert.equal((await handleRequest(request, f.env, f.opts)).status, 413);
+  assert.equal(cancelled, true);
+  assert.equal(f.DB.members.get("123456789012345678901").purpose, "");
 });
 test("unverified Google claims and forged ID token fail without creating a member or session", async () => {
   for (const claims of [

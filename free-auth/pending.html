@@ -3,6 +3,7 @@
 </style></head><body>
 <header><a href="/login.html">LABDAM</a></header><main>
 <p class="hint">MEMBERSHIP REQUEST</p><h1>가입 승인 안내</h1><p id="message" class="status" role="status">계정 상태를 확인하고 있습니다.</p>
+<button type="button" id="refreshStatus">승인 상태 다시 확인</button><p class="muted">승인 후 이 버튼을 누르면 다시 로그인하지 않고 LABDAM과 LabInsight를 이용할 수 있습니다.</p>
 <section id="detail" hidden><dl><dt>로그인 계정</dt><dd id="email"></dd><dt>신청 상태</dt><dd id="status"></dd></dl>
 <div id="purposeWrap"><form id="purposeForm"><label for="purpose">가입 목적 (선택, 최대 240자)</label><p class="muted">서비스 사용 목적을 짧게 적어 주시면 관리자가 신청을 검토할 수 있습니다. 건강검진 수치나 민감정보는 입력하지 마세요.</p><textarea id="purpose" maxlength="240" autocomplete="off"></textarea><div class="actions"><button type="submit" id="savePurpose">가입 목적 저장</button></div></form></div>
 <p id="formMessage" role="status" class="status"></p></section>
@@ -11,6 +12,9 @@
 <script>(async function(){
 const msg=document.getElementById("message"),detail=document.getElementById("detail"),form=document.getElementById("purposeForm");
 let csrf="";
+const refresh=document.getElementById("refreshStatus");
+async function checkStatus(){
+csrf="";refresh.disabled=true;
 try{
  const res=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});
  if(res.status===401){location.replace("/login.html");return;}
@@ -22,7 +26,11 @@ try{
  msg.textContent=pending?"가입 신청이 접수됐습니다. 관리자가 승인하면 LABDAM과 LabInsight를 이용할 수 있습니다.":"현재 계정은 승인되지 않았습니다. 관리자에게 문의해 주세요.";
  document.getElementById("purposeWrap").hidden=!pending;
  document.getElementById("purpose").value=me.purpose||"";
-}catch(_){msg.textContent="로그인 상태를 확인하지 못했습니다. 잠시 후 다시 시도해 주세요.";}
+}catch(_){msg.textContent="로그인 상태를 확인하지 못했습니다. 승인 상태 다시 확인을 눌러 주세요.";}
+finally{refresh.disabled=false;}
+}
+refresh.addEventListener("click",checkStatus);
+await checkStatus();
 form.addEventListener("submit",async e=>{
  e.preventDefault();const target=document.getElementById("formMessage");
  try{
@@ -40,7 +48,9 @@ document.getElementById("withdraw").addEventListener("click",async()=>{
  }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
 });
 document.getElementById("logout").addEventListener("click",async()=>{
+ try{
  const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
  if(r.ok||r.status===303){location.replace("/login.html");}else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
+ }catch(_){msg.textContent="네트워크 연결을 확인한 뒤 로그아웃을 다시 시도해 주세요.";}
 });
 })();</script></body></html>

@@ -156,6 +156,11 @@ async function googleIdentity(idToken, nonce, env, opts) {
   return {
     sub: payload.sub,
     email: payload.email.trim().toLowerCase(),
+    // A verified third-party address may no longer belong to this Google
+    // account. Only Google-hosted addresses may bootstrap an administrator.
+    emailAuthoritative: payload.email.toLowerCase().endsWith("@gmail.com") ||
+      (typeof payload.hd === "string" && /^[a-z0-9.-]+$/i.test(payload.hd) &&
+       payload.email.toLowerCase().endsWith("@" + payload.hd.toLowerCase())),
     name: typeof payload.name === "string" ? payload.name.trim().slice(0, 80) : ""
   };
 }
@@ -235,7 +240,8 @@ async function oauthCallback(request, env, origin, opts) {
   } catch (_) { throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요."); }
   const identity = await googleIdentity(googleToken.id_token, stored.nonce, env, opts);
   const bootstrap = typeof env.BOOTSTRAP_ADMIN_EMAIL === "string" &&
-    env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase() === identity.email;
+    env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase() === identity.email &&
+    identity.emailAuthoritative;
   await env.DB.prepare(
     "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) " +
     "VALUES (?,?,?,?,?,?,?) ON CONFLICT(google_sub) DO UPDATE SET " +
@@ -298,9 +304,34 @@ async function jsonBody(request) {
   if (Number(request.headers.get("Content-Length") || 0) > 4096) {
     throw new LoginError(413, "요청이 너무 큽니다.");
   }
-  const body = await request.text();
-  if (body.length > 4096) throw new LoginError(413, "요청이 너무 큽니다.");
-  try { return JSON.parse(body); }
+  // Content-Length is optional/untrusted. Bound bytes while reading so a
+  // streamed oversized body cannot exhaust a free Worker's memory.
+  const reader = request.body?.getReader();
+  const chunks = [];
+  let size = 0;
+  if (reader) {
+    try {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        size += value.byteLength;
+        if (size > 4096) {
+          await reader.cancel();
+          throw new LoginError(413, "요청이 너무 큽니다.");
+        }
+        chunks.push(value);
+      }
+    } finally { reader.releaseLock(); }
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const chunk of chunks) { bytes.set(chunk, offset); offset += chunk.byteLength; }
+  const body = new TextDecoder().decode(bytes);
+  try {
+    const data = JSON.parse(body);
+    if (!data || typeof data !== "object" || Array.isArray(data)) throw new Error("invalid_object");
+    return data;
+  }
   catch (_) { throw new LoginError(400, "잘못된 요청입니다."); }
 }
 async function applicationUpdate(request, env, member, now) {

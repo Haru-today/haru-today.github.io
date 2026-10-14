@@ -1,6 +1,6 @@
 # LABDAM · LabInsight 무료 승인제 로그인 설정서
 
-상태: 2026-10-14 코드/가상 계정 자동 테스트 준비. **실제 Google OAuth/D1 계정 설정·Workers 운영 배포·기존 공개 주소 차단은 미완료.**
+상태: 2026-10-15 최신 소스 재검증 및 관리자 자동 지정·승인 상태 재확인 UX 보완. **실제 Google OAuth/D1 계정 설정·Workers 운영 배포·기존 공개 주소 차단은 미완료.** 추가 감사 결과와 공개 우회 경로: [AUDIT-20261015.md](./AUDIT-20261015.md).
 
 ## 운영 원칙
 
@@ -54,7 +54,7 @@ Worker에 사용되는 값:
 - GOOGLE_CLIENT_ID: Google 웹 OAuth 클라이언트 ID (공개 식별자)
 - GOOGLE_CLIENT_SECRET: **비밀값**
 - RATE_LIMIT_SECRET: **무작위 32자 이상 비밀값**, API 요청 제한에 사용
-- BOOTSTRAP_ADMIN_EMAIL: **최초 관리자 본인의 실제 Google 인증 이메일**. 본인 계정에서 최초 인증 성공할 때만 admin/approved로 가입됩니다.
+- BOOTSTRAP_ADMIN_EMAIL: **최초 관리자 본인의 Gmail 또는 기존 Google Workspace 인증 이메일**. 서명 검증된 Gmail 또는 이메일 도메인과 일치하는 `hd`가 있는 Workspace 계정만 최초 admin/approved로 가입됩니다. 외부 이메일로 만든 Google 계정은 이 값과 일치해도 일반 pending 회원입니다. 관리자 지정 때문에 유료 Workspace를 새로 가입하지 마세요. 처음부터 기존 Gmail 계정을 사용하는 것이 가능합니다.
 - DB: free-auth/wrangler.jsonc로 연결된 실제 D1 binding
 - ASSETS: free-auth/dist 정적 파일 binding. **run_worker_first=true 유지 필수**
 
@@ -90,10 +90,12 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 - BOOTSTRAP_ADMIN_EMAIL에 등록한 **본인 Google 계정**으로 /login.html에서 인증
 - D1에 자동으로 admin/approved 회원 기록 생성
 - /account.html에서 '회원 승인 관리'로 이동 → /admin.html
+- 실제 관리자 로그인과 승인 기능을 확인한 뒤 Worker 설정에서 **BOOTSTRAP_ADMIN_EMAIL을 제거**합니다. 기존 관리자 권한은 D1의 Google 고유 식별자에 연결되어 유지되며, 자동 지정 통로를 계속 열어 두지 않습니다. 이미 일반 회원으로 등록한 계정은 환경 변수 변경만으로 승격되지 않습니다. 관리자 복구·추가 지정은 별도 검토가 필요한 수동 DB 관리 작업입니다.
 
 일반 신청자:
 - /login.html → 'Google 계정으로 계속하기'
 - 이메일 인증 성공 후 자동으로 pending 등록 → /pending.html
+- 승인 대기 화면의 '승인 상태 다시 확인'으로 현재 승인을 조회합니다. 승인 후에는 Google 재로그인 없이 서비스로 이동합니다.
 - 필요하면 최대 240자 가입 목적 작성
 - **관리자 승인 전에는 LABDAM 홈페이지, LabInsight HTML/JS/CSS/보고서에 접근할 수 없음**
 - 관리자는 /admin.html에서 가입 신청자의 이메일, 이름, 이용 목적, 상태 확인 후 승인/거절/대기로 전환
@@ -124,5 +126,6 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 - [ ] D1 무료 임시 상태 정리는 하루 한 번 03:15 UTC Cron 실행 확인
 - [ ] Caffeine Atlas QR 및 4-SNP/PDF 공개 흐름 변함 없음
 - [ ] 서비스 종료·로그아웃과 기기 local/sessionStorage, 다운로드된 파일 삭제는 서로 다른 문제임을 고지
+- [ ] `/healthz`의 200은 Google/D1 준비 완료를 뜻하지 않음. 실제 OAuth callback·D1 저장·승인·철회로 준비 상태 확인
 
 **이 문서는 실제 클라우드 배포의 성공을 의미하지 않습니다.** 관리자 계정의 검증된 Cloudflare/Google 정보를 입력하고 현장 테스트가 끝나기 전까지 코드 상태만 유지합니다.
