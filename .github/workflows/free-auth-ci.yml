@@ -33,6 +33,8 @@ jobs:
           ! grep -Ei 'cloudflareaccess\.com|Cf-Access-Jwt-Assertion|ACCESS_AUD|TEAM_DOMAIN' free-auth/worker.mjs
       - name: Exercise OAuth signing, free D1 login, pending approval and revocation
         run: node --test tests/free-auth.test.cjs
+      - name: Validate real SQLite schema, unique members and cascading logout
+        run: python3 -m unittest discover -s free-auth/tests -p 'schema.test.py' -v
 
   bundle-validation:
     needs: auth-security
