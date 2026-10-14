@@ -7,33 +7,50 @@ const path = require("node:path");
 const root = path.join(__dirname, "dist");
 const read = file => fs.readFileSync(path.join(root, file), "utf8");
 
-test("only the two LABDAM services are prepared for protected hosting", () => {
+test("protected bundle is only LABDAM root and LabInsight, never Caffeine Atlas", () => {
+  assert.deepEqual(fs.readdirSync(root).sort(), [
+    "account.html", "assets", "favicon.svg", "index.html",
+    "labinsight", "privacy.html", "robots.txt", "terms.html"
+  ]);
   assert.ok(fs.existsSync(path.join(root, "labinsight", "index.html")));
+  assert.ok(fs.existsSync(path.join(root, "labinsight", "checkup.html")));
   assert.ok(fs.existsSync(path.join(root, "labinsight", "report.html")));
-  assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "index.html")));
-  assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "caffeine-sensitivity-app", "analyzer.html")));
-  assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "caffeine-sensitivity-app", "account.html")));
-  assert.equal(fs.readdirSync(root).sort().join(","), "caffeine-atlas,labinsight,robots.txt");
+  assert.ok(fs.existsSync(path.join(root, "labinsight", "account.html")));
+  assert.equal(fs.existsSync(path.join(root, "caffeine-atlas")), false);
+  assert.equal(fs.existsSync(path.join(root, "api")), false);
 });
 
-test("build excludes local server, booking database, and mock sign-in pages", () => {
-  for (const relative of [
-    "labinsight/server.js", "labinsight/data",
-    "caffeine-atlas/google-apps-script",
-    "caffeine-atlas/caffeine-sensitivity-app/board-write-backend.js"
-  ]) {
-    assert.equal(fs.existsSync(path.join(root, relative)), false, relative);
+test("LABDAM home remains an independently accessible HTML page behind authentication", () => {
+  const html = read("index.html");
+  assert.match(html, /<title>LABDAM/);
+  assert.match(html, /aria-label="두 서비스 바로 시작"/);
+  assert.match(html, /href="\/labinsight\/"/);
+  assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/"/);
+  assert.match(html, /href="\/account.html">내 계정/);
+  assert.match(html, /name="robots" content="noindex,nofollow"/);
+  assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
+  assert.ok(fs.existsSync(path.join(root, "assets", "portal-redesign.css")));
+  assert.ok(fs.existsSync(path.join(root, "favicon.svg")));
+});
+
+test("protected LABDAM policy pages preserve external public Caffeine Atlas links", () => {
+  for (const file of ["privacy.html", "terms.html"]) {
+    const html = read(file);
+    assert.match(html, /name="robots" content="noindex,nofollow"/, file);
+    assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/"/, file);
+    assert.match(html, /href="\/labinsight\/"/, file);
+    assert.doesNotMatch(html, /href="\/caffeine-atlas\/"/, file);
   }
 });
 
-test("protected service pages are excluded from indexing", () => {
-  for (const file of [
+test("all protected HTML prevents indexing and robot policy blocks indexing", () => {
+  const pages = [
+    "index.html", "account.html", "privacy.html", "terms.html",
     "labinsight/index.html", "labinsight/checkup.html",
     "labinsight/report.html", "labinsight/hospitals.html",
-    "caffeine-atlas/index.html",
-    "caffeine-atlas/caffeine-sensitivity-app/index.html",
-    "caffeine-atlas/caffeine-sensitivity-app/analyzer.html"
-  ]) {
+    "labinsight/account.html"
+  ];
+  for (const file of pages) {
     const html = read(file);
     assert.match(html, /name="robots" content="noindex,nofollow"/, file);
     assert.equal((html.match(/name="robots"/g) || []).length, 1, file);
@@ -41,93 +58,69 @@ test("protected service pages are excluded from indexing", () => {
   assert.match(read("robots.txt"), /Disallow: \//);
 });
 
-test("Caffeine Atlas first-party service URLs point to protected routes", () => {
-  const html = read("caffeine-atlas/caffeine-sensitivity-app/index.html");
-  assert.ok(!html.includes("https://haru-today.github.io/caffeine-atlas/"));
-  assert.match(html, /\/caffeine-atlas\/caffeine-sensitivity-app/);
-  assert.match(html, /https:\/\/haru-today.github.io\//);
-});
-
-test("both applications link to protected service paths rather than legacy public apps", () => {
+test("LABDAM and LabInsight navigation share the private root and account", () => {
+  const portal = read("index.html");
   const lab = read("labinsight/index.html");
-  const caffeine = read("caffeine-atlas/caffeine-sensitivity-app/index.html");
-  for (const html of [lab, caffeine]) {
-    assert.doesNotMatch(html, /https:\/\/haru-today\.github\.io\/(?:labinsight|caffeine-atlas)\//);
-  }
-  assert.match(lab, /\/caffeine-atlas\/caffeine-sensitivity-app\/analyzer\.html/);
-  assert.match(caffeine, /https:\/\/haru-today\.github\.io\//);
-});
-
-
-test("protected Caffeine Atlas web bundle calls authenticated same-origin Sheets API", () => {
-  const app = read("caffeine-atlas/caffeine-sensitivity-app/app.js");
-  assert.match(app, /var GOOGLE_SHEETS_ENDPOINT = "\/api\/caffeine-atlas"/);
-  assert.match(app, /var RESEARCH_STORAGE_MODE = true;/);
-  assert.doesNotMatch(app, /https:\/\/script\.google\.com\/macros\//);
-  assert.doesNotMatch(app, /mode: "no-cors"/);
-  assert.doesNotMatch(app, /caffeineBatchCapability_/);
-  assert.match(app, /credentials: "same-origin"/);
-  assert.match(app, /"Content-Type": "application\/json;charset=utf-8"/);
-  assert.match(app, /response\.json\(\)/);
-});
-
-
-
-test("protected research analyzer enables only approved private cloud controls", () => {
-  const html = read("caffeine-atlas/caffeine-sensitivity-app/analyzer.html");
-  const app = read("caffeine-atlas/caffeine-sensitivity-app/app.js");
-  const css = read("caffeine-atlas/caffeine-sensitivity-app/styles.css");
-  assert.match(html, /<body class="research-mode">/);
-  assert.doesNotMatch(html, /<body class="public-demo">/);
-  assert.match(html, /id="sheetConsent"/);
-  assert.match(html, /id="sheetSaveBtn"/);
-  assert.match(html, /id="batchAnalyzeSaveBtn"/);
-  assert.match(css, /body\.research-mode \.public-only\s*\{\s*display:\s*none\s*!important/);
-  assert.match(app, /var RESEARCH_STORAGE_MODE = true;/);
-  assert.match(app, /var GOOGLE_SHEETS_ENDPOINT = "\/api\/caffeine-atlas";/);
-  assert.doesNotMatch(app, /https:\/\/script\.google\.com\/macros\//);
-});
-
-test("protected account page is real session readout, never a nonfunctional password mockup", () => {
-  const html = read("caffeine-atlas/caffeine-sensitivity-app/account.html");
-  assert.match(html, /fetch\("\/api\/session"/);
-  assert.match(html, /href="\/logout"/);
-  assert.match(html, /id="user-email"/);
-  assert.match(html, /data\.storageAllowed/);
-  assert.doesNotMatch(html, /type="password"|Prototype UI|회원 화면 예시/);
-  assert.match(html, /name="robots" content="noindex,nofollow"/);
-  for (const page of ["index.html", "board.html", "board-write.html"]) {
-    const source = read("caffeine-atlas/caffeine-sensitivity-app/" + page);
-    assert.match(source, /href="\.\/account\.html"/);
-    assert.doesNotMatch(source, /hidden data-disabled-feature="account"/);
+  assert.match(portal, /href="\/labinsight\/"/);
+  assert.match(portal, /href="\/account.html"/);
+  assert.doesNotMatch(lab, /https:\/\/haru-today\.github\.io\/labinsight\//);
+  assert.match(lab, /href="\.\/account.html"/);
+  for (const page of ["index.html", "checkup.html", "report.html", "hospitals.html"]) {
+    assert.match(read("labinsight/" + page), /href="\.\/account.html"/);
   }
 });
 
-
-test("LabInsight protected pages link to shared verified account status and logout", () => {
-  const account = read("labinsight/account.html");
+test("the account page shows only authenticated identity, not Caffeine or Sheets access", () => {
+  const account = read("account.html");
   assert.match(account, /fetch\("\/api\/session"/);
   assert.match(account, /href="\/logout"/);
-  assert.doesNotMatch(account, /type="password"/);
-  for (const page of ["index.html", "checkup.html", "report.html", "hospitals.html"]) {
-    const html = read("labinsight/" + page);
-    assert.match(html, /href="\.\/account\.html"/);
+  assert.match(account, /href="\/labinsight\/"/);
+  assert.match(account, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/"/);
+  assert.match(account, /href="\/">LABDAM\./);
+  assert.doesNotMatch(account, /type="password"|Prototype UI|회원 화면 예시/);
+  assert.doesNotMatch(account, /storageAllowed|storage-permission|Google Sheets|연구 데이터 저장 권한/);
+  assert.equal(read("labinsight/account.html"), account);
+});
+
+test("Caffeine Atlas QR destination is never replaced with a protected URL", () => {
+  for (const file of ["index.html", "account.html", "labinsight/index.html",
+                      "privacy.html", "terms.html"]) {
+    const html = read(file);
+    assert.doesNotMatch(html, /href="\/caffeine-atlas\//, file);
+    assert.doesNotMatch(html, /href="https:\/\/services\.labdam\.example\/caffeine-atlas\//, file);
+  }
+  const portal = read("index.html");
+  assert.match(portal, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
+});
+
+test("only approved static asset files are shipped, no server or research records", () => {
+  for (const rel of [
+    "README.md", "sitemap.xml", "package.json", ".github",
+    "auth-gateway", "sources",
+    "labinsight/server.js", "labinsight/data",
+    "caffeine-atlas", "api/caffeine-atlas", "google-apps-script"
+  ]) {
+    assert.equal(fs.existsSync(path.join(root, rel)), false, rel);
   }
 });
 
-test("protected LabInsight browser shell does not cache unauthenticated HTML", () => {
+test("LabInsight medical reference logic, OCR consent and mobile report retain entry points", () => {
+  const lab = read("labinsight/index.html");
+  const checkup = read("labinsight/checkup.html");
+  const report = read("labinsight/report.html");
+  assert.match(lab, /건강검진/);
+  assert.match(lab, /의료진/);
+  assert.match(checkup, /openReferenceSettingsBtn/);
+  assert.match(checkup, /openOcrSectionBtn/);
+  assert.match(checkup, /entryProgress/);
+  assert.match(report, /검사결과/);
+  assert.ok(fs.existsSync(path.join(root, "labinsight", "reference-ranges.js")));
+  assert.ok(fs.existsSync(path.join(root, "labinsight", "ocr-review.js")));
+  assert.ok(fs.existsSync(path.join(root, "labinsight", "app.js")));
+});
+
+test("protected LabInsight has a non-caching service worker so logout cannot reveal cached pages", () => {
   const sw = read("labinsight/service-worker.js");
   assert.doesNotMatch(sw, /caches\.open|CacheStorage|cache\.put|fetch\(/);
   assert.match(sw, /skipWaiting/);
-});
-
-test("medical warnings and existing user workflows remain in protected bundles", () => {
-  const lab = read("labinsight/index.html");
-  const caffeine = read("caffeine-atlas/caffeine-sensitivity-app/index.html");
-  assert.match(lab, /건강검진/);
-  assert.match(lab, /의료진/);
-  assert.match(caffeine, /유전자형/);
-  assert.match(caffeine, /리포트/);
-  assert.ok(fs.existsSync(path.join(root, "labinsight", "ocr-review.js")));
-  assert.ok(fs.existsSync(path.join(root, "caffeine-atlas", "caffeine-sensitivity-app", "app.js")));
 });
