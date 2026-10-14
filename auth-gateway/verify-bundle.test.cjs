@@ -62,6 +62,7 @@ test("both applications link to protected service paths rather than legacy publi
 test("protected Caffeine Atlas web bundle calls authenticated same-origin Sheets API", () => {
   const app = read("caffeine-atlas/caffeine-sensitivity-app/app.js");
   assert.match(app, /var GOOGLE_SHEETS_ENDPOINT = "\/api\/caffeine-atlas"/);
+  assert.match(app, /var RESEARCH_STORAGE_MODE = true;/);
   assert.doesNotMatch(app, /https:\/\/script\.google\.com\/macros\//);
   assert.doesNotMatch(app, /mode: "no-cors"/);
   assert.doesNotMatch(app, /caffeineBatchCapability_/);
@@ -70,6 +71,22 @@ test("protected Caffeine Atlas web bundle calls authenticated same-origin Sheets
   assert.match(app, /response\.json\(\)/);
 });
 
+
+
+test("protected research analyzer enables only approved private cloud controls", () => {
+  const html = read("caffeine-atlas/caffeine-sensitivity-app/analyzer.html");
+  const app = read("caffeine-atlas/caffeine-sensitivity-app/app.js");
+  const css = read("caffeine-atlas/caffeine-sensitivity-app/styles.css");
+  assert.match(html, /<body class="research-mode">/);
+  assert.doesNotMatch(html, /<body class="public-demo">/);
+  assert.match(html, /id="sheetConsent"/);
+  assert.match(html, /id="sheetSaveBtn"/);
+  assert.match(html, /id="batchAnalyzeSaveBtn"/);
+  assert.match(css, /body\.research-mode \.public-only\s*\{\s*display:\s*none\s*!important/);
+  assert.match(app, /var RESEARCH_STORAGE_MODE = true;/);
+  assert.match(app, /var GOOGLE_SHEETS_ENDPOINT = "\/api\/caffeine-atlas";/);
+  assert.doesNotMatch(app, /https:\/\/script\.google\.com\/macros\//);
+});
 
 test("protected account page is real session readout, never a nonfunctional password mockup", () => {
   const html = read("caffeine-atlas/caffeine-sensitivity-app/account.html");
