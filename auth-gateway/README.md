@@ -29,24 +29,23 @@ Official references:
 - https://developers.cloudflare.com/cloudflare-one/access-controls/applications/http-apps/authorization-cookie/validating-json/
 - https://developers.cloudflare.com/workers/static-assets/binding/
 
-## CRITICAL: old public URLs bypass the new login
+## PUBLIC STUDENT FORUM QR EXCEPTION: Caffeine Atlas must stay open
 
-Currently these are publicly accessible GitHub Pages applications:
+The finalized poster for the **2026-11-14 student forum at Seoul St. Mary's Hospital** already contains a QR that links visitors to the Caffeine Atlas public demo. Preserve the original QR and existing public routes:
 
-- https://haru-today.github.io/labinsight/
 - https://haru-today.github.io/caffeine-atlas/
+- https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html
 - https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/analyzer.html
 
-A JavaScript-only login screen or a gateway at another domain cannot
-restrict these old URLs. Changing only the index redirect is insufficient
-because the subpages and assets would remain directly accessible. After
-the protected host is verified, disable publishing of the two old GitHub
-Pages projects (or otherwise make ALL old app files inaccessible).
-Keep the LABDAM portal public.
+**Never require a login for this public demo.** Visitors may choose four SNP genotypes, view model-based educational results, and download a local PDF/report. The public bundle has RESEARCH_STORAGE_MODE=false and no Google Apps Script endpoint. Batch uploads and server storage are hidden and rejected in JavaScript.
 
-**This PR DOES NOT deploy or claim to enforce login on production.** It
-does not configure identity-provider accounts, DNS, secrets, cloud resources,
-a user database, or any existing users' passwords.
+The **separate Cloudflare Access protected copy** supports research storage only for verified users approved in STORAGE_WRITER_EMAILS. Do not substitute the protected Worker URL for the poster QR destination.
+
+**LabInsight is different:** its legacy public https://haru-today.github.io/labinsight/ page must be retired when the authenticated LabInsight deployment is live and verified. Existing installed offline/native applications remain separate.
+
+IMPORTANT: Public page JavaScript no longer makes Sheets writes, but an already deployed **older Google Apps Script /exec endpoint may still be accessible directly** until the Google owner explicitly disables or restricts the legacy deployment. Caffeine Atlas PR #4 and authorized backend configuration remain mandatory.
+
+**This PR is code review only and does not deploy Cloudflare / Google credentials or remove the existing public Caffeine Atlas site.**
 
 ## Operator launch checklist — do not post credentials in GitHub
 
@@ -80,9 +79,10 @@ a user database, or any existing users' passwords.
 - [ ] Native LabInsight desktop/Capacitor apps are independent of this
   web-only gateway; old standalone installations cannot be remotely
   disabled by switching web hosting.
-- [ ] Once protected routing is verified, change the public LABDAM two
-  service buttons to the real host, then disable BOTH old public GitHub
-  Pages project publications. Recheck deep links (not only index pages).
+- [ ] Once protected routing is verified, change the LABDAM **LabInsight**
+  button to the real authenticated host and disable only the old LabInsight
+  public GitHub Pages publication. Keep the LABDAM Caffeine Atlas button and
+  its QR-compatible **public demo** URL unchanged. Recheck deep links.
 - [ ] Implement account lifecycle, verified support/contact, logout
   behavior, data ownership, privacy disclosures and deletion procedures.
   Authentication alone does not certify clinical or legal compliance.
@@ -124,3 +124,7 @@ This workflow does not inspect, store or transmit actual health/genetic records.
 - 새 프록시 단독 배포로 개인정보 보호가 완성되는 것이 아닙니다. 기존 웹앱의 공개 접근 차단, 운영자만의 시트 권한, 정보주체별 접근, 동의·삭제·보유기간, 실제 브라우저 통합 검증이 필요합니다.
 
 검증: 보안 API/JWT 단위 테스트 21개 및 보호 웹 번들 검증 8개를 GitHub CI에서 실행합니다. 결괏값에 대한 임상적 유효성 판단, 실제 유전자형 저장 데이터 접근, Cloudflare 로그인 계정 생성은 포함하지 않았습니다.
+
+## 2026-11-14 poster launch rule
+
+Caffeine Atlas must offer no-login public educational analysis and PDF downloads while only approved researchers have authenticated Sheets storage. Related public release PR: https://github.com/Haru-today/caffeine-atlas/pull/5. NEVER disable the existing public Caffeine Atlas GitHub Pages route when cutting over the protected research copy. The QR shortener destination must be verified with a phone before the event; the GitHub connector cannot change or conclusively validate the existing Naver short-link redirect.
