@@ -55,7 +55,7 @@ jobs:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Inspect protected file allowlist and public Caffeine Atlas URL
-        run: node --test tests/free-auth-bundle.test.cjs
+        run: node --test free-auth/tests/bundle.test.cjs
       - name: Reject accidentally shipped credentials or Caffeine Atlas pages
         run: |
           test ! -e free-auth/dist/caffeine-atlas
