@@ -200,6 +200,7 @@ test("anonymous visitor sees Google request page but not protected homepage, CSS
   }
   assert.equal((await handleRequest(req("/login.html"), f.env, f.opts)).status, 200);
   assert.equal((await handleRequest(req("/pending.html"), f.env, f.opts)).status, 200);
+  assert.equal((await handleRequest(req("/membership-privacy.html"), f.env, f.opts)).status, 200);
   assert.equal((await handleRequest(req("/caffeine-atlas/"), f.env, f.opts)).status, 404);
   assert.equal((await handleRequest(req("/api/admin/applications"), f.env, f.opts)).status, 401);
 });
