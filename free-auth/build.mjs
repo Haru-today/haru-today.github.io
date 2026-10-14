@@ -103,7 +103,9 @@ async function build() {
   // Never leave private LabInsight resources in offline CacheStorage after logout.
   await writeFile(join(labOutput, "service-worker.js"),
     'self.addEventListener("install", e => e.waitUntil(self.skipWaiting()));\n' +
-    'self.addEventListener("activate", e => e.waitUntil(self.clients.claim()));\n');
+    'self.addEventListener("activate", e => e.waitUntil(\n' +
+    '  Promise.all([self.clients.claim(), caches.keys().then(keys => Promise.all(keys.map(key => caches.delete(key))))])\n' +
+    '));\n');
   await writeFile(join(output, "robots.txt"), "User-agent: *\nDisallow: /\n");
   const expected = [
     "index.html", "login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html",
