@@ -16,7 +16,7 @@ function fakeReply(url) {
 test('realistic anonymous Worker gate plus unchanged public Caffeine URLs pass',async()=>{
  const result=await probeTrialWorker(ORIGIN,async url=>fakeReply(url));
  assert.equal(result.ok,true);
- assert.equal(result.results.length,20);
+ assert.equal(result.results.length,21);
  assert.equal(result.results.filter(x=>x.kind==='caffeine').length,4);
 });
 test('no credentials, no redirects followed, no write methods or OAuth state creation',async()=>{
@@ -24,7 +24,7 @@ test('no credentials, no redirects followed, no write methods or OAuth state cre
  await probeTrialWorker(ORIGIN,async(url,options)=>{
    calls.push({url,options});return fakeReply(url);
  });
- assert.equal(calls.length,20);
+ assert.equal(calls.length,21);
  for (const {url,options} of calls) {
    assert.equal(options.method,'GET');
    assert.equal(options.credentials,'omit');
