@@ -155,7 +155,11 @@ async function verifyAccessJwt(request, env, options = {}) {
     "RSASSA-PKCS1-v1_5", key, decodeSegment(parts[2]), signed
   );
   if (!verified) throw new AuthError(401, "유효하지 않은 인증 정보입니다.");
-  return Object.freeze({ subject: payload.sub });
+  return Object.freeze({
+    subject: payload.sub,
+    email: typeof payload.email === "string" && payload.email.length <= 254
+      ? payload.email.trim().toLowerCase() : ""
+  });
 }
 
 
@@ -185,7 +189,23 @@ async function sheetSignature(secret, payload, timestamp, nonce) {
   return [...signed].map(byte => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function callSheetBackend(request, env, options = {}) {
+
+function permittedStorageReader(identity, env) {
+  // Only an explicitly approved, Cloudflare-verified email can call the
+  // Sheets API. A missing list denies ALL access (including receipt GETs).
+  const raw = env?.STORAGE_WRITER_EMAILS;
+  if (typeof raw !== "string" || !raw.trim()) return { valid: false, allowed: false };
+  const entries = raw.split(",").map(email => email.trim().toLowerCase());
+  if (!entries.length || entries.length > 50 || entries.some(email =>
+    !/^[a-z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email) || email.length > 254
+  )) return { valid: false, allowed: false };
+  return { valid: true, allowed: entries.includes(identity.email || "") };
+}
+
+async function callSheetBackend(request, env, options = {}, identity) {
+  const writer = permittedStorageReader(identity || {}, env);
+  if (!writer.valid) return jsonResponse(503, { ok: false, code: "STORAGE_POLICY_NOT_CONFIGURED" });
+  if (!writer.allowed) return jsonResponse(403, { ok: false, code: "STORAGE_NOT_AUTHORIZED" });
   const config = sheetsConfig(env);
   if (!config) return jsonResponse(503, { ok: false, code: "STORAGE_NOT_CONFIGURED" });
   const url = new URL(request.url);
@@ -278,8 +298,9 @@ async function handleRequest(request, env, options = {}) {
     return statusResponse(404, "요청한 페이지가 없습니다.");
   }
 
+  let identity;
   try {
-    await verifyAccessJwt(request, env, options);
+    identity = await verifyAccessJwt(request, env, options);
   } catch (err) {
     return statusResponse(err instanceof AuthError ? err.status : 503,
       err instanceof AuthError ? err.message : "인증 확인 중 오류가 발생했습니다.");
@@ -287,7 +308,7 @@ async function handleRequest(request, env, options = {}) {
 
   if (isSaveApi) {
     if (request.method === "HEAD") return statusResponse(405, "허용되지 않는 요청입니다.");
-    return callSheetBackend(request, env, options);
+    return callSheetBackend(request, env, options, identity);
   }
 
   if (url.pathname === "/labinsight" || url.pathname === "/caffeine-atlas") {
