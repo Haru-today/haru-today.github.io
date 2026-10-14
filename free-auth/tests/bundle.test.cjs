@@ -31,6 +31,7 @@ test("public login and approval-waiting pages are present as real self-service U
   const login = read("login.html"), pending = read("pending.html");
   assert.match(login, /Google 계정으로 가입 신청/);
   assert.match(login, /href="\/auth\/start"/);
+  assert.match(login, /href="\/membership-privacy\.html"/);
   assert.match(login, /승인 전에는 건강검진 결과 조회 페이지에 접근/);
   assert.match(pending, /\/api\/me/);
   assert.match(pending, /\/api\/application/);
@@ -51,6 +52,8 @@ test("admin dashboard offers approval, denial and revocation without hidden fake
   assert.doesNotMatch(admin, /innerHTML\s*=/);
   assert.match(account, /\/api\/me/);
   assert.match(account, /\/labinsight\//);
+  assert.match(account, /\/api\/account\/delete/);
+  assert.match(pending, /\/api\/account\/delete/);
   assert.match(account, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
 });
 
@@ -82,6 +85,8 @@ test("private legal documents preserve accessible public Caffeine Atlas destinat
 test("no privileged service-worker cache or legacy cloud access script in static bundle", () => {
   const sw = read("labinsight/service-worker.js");
   assert.match(sw, /skipWaiting/);
+  assert.match(sw, /caches\.keys\(\)/);
+  assert.match(sw, /caches\.delete\(key\)/);
   assert.doesNotMatch(sw, /caches\.open|cache\.put|CacheStorage/);
   for (const rel of ["auth-gateway/worker.mjs", "free-auth/worker.mjs",
                      "google-apps-script/Code.gs", "secrets", ".dev.vars"]) {
