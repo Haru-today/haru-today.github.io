@@ -1,7 +1,7 @@
 const { defineConfig } = require("@playwright/test");
 module.exports = defineConfig({
   testDir: "./tests",
-  testMatch: /browser\.spec\.cjs/,
+  testMatch: /(?:browser|account-hardening)\.spec\.cjs/,
   timeout: 30_000,
   expect: { timeout: 7000 },
   retries: process.env.CI ? 1 : 0,
