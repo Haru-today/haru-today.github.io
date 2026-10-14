@@ -140,3 +140,68 @@ a:focus-visible{outline-color:#245baa}
   footer{padding:25px 0}
   .footer-links a{min-height:44px}
 }
+
+/* Direct, accessible two-product first-visit gateway, October 2026. */
+.hero-quick-entry {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  align-items: stretch;
+  gap: 9px;
+  max-width: 620px;
+  padding-top: 21px;
+  margin-top: 19px;
+  border-top: 1px solid #cbdaf0;
+}
+.hero-quick-label {
+  grid-column: 1/-1;
+  display: block;
+  color: #315683;
+  font-size: .77rem;
+  letter-spacing: .06em;
+  font-weight: 780;
+}
+.hero-quick-entry a {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 1px 12px;
+  align-items: center;
+  min-width: 0;
+  min-height: 69px;
+  padding: 13px 15px;
+  color: #173c6b;
+  background: rgba(255,255,255,.92);
+  border: 1px solid #bfcfe6;
+  border-radius: 12px;
+  transition: border-color .15s,background .15s;
+}
+.hero-quick-entry a:hover { border-color: #3469af; background: #fff; }
+.hero-quick-entry a:focus-visible { outline: 3px solid #245baa; outline-offset: 3px; }
+.hero-quick-entry strong { font-size: .92rem; line-height: 1.3; }
+.hero-quick-entry small { grid-column: 1; color: #496581; font-size: .77rem; line-height: 1.4; font-weight: 540; }
+.hero-quick-entry a>span { grid-column: 2;grid-row: 1/3; font-size: 1.25rem; font-weight: 600; color: #2c5e9c; }
+.service-content .service-entry-detail {
+  font-size: .81rem;
+  line-height: 1.65;
+  color: #4a5e79;
+  margin: -12px 0 19px;
+}
+.service-content .service-entry-detail strong {
+  display: inline;
+  color: #214e82;
+  font-weight: 800;
+}
+@media(max-width:660px) {
+  .hero-quick-entry { margin-top: 13px; padding-top: 14px; gap: 8px; }
+  .hero-quick-entry a { padding: 12px; min-height: 66px; }
+  .hero-quick-entry strong { font-size: .79rem; }
+  .hero-quick-entry small { font-size: .69rem; }
+  .hero-quick-entry a>span { font-size: 1rem; }
+  .service-content .service-entry-detail { font-size: .79rem; margin: -4px 0 14px; }
+}
+@media(max-width:350px) {
+  .hero-quick-entry { grid-template-columns: 1fr; }
+  .hero-quick-entry a { min-height: 54px; }
+}
+@media(prefers-reduced-motion:reduce) {
+  .hero-quick-entry a { transition:none; }
+}

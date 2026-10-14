@@ -127,3 +127,19 @@ test('navy brand colors and device-specific concise landing presentation', async
     await expect(page.locator('.mobile-rules')).toBeHidden();
   }
 });
+
+test('first-time visitors can reach both products directly without changing poster QR', async ({ page }) => {
+  await page.goto('/');
+  const shortcuts = page.locator('.hero-quick-entry a');
+  await expect(shortcuts).toHaveCount(2);
+  await expect(shortcuts.nth(0)).toHaveAttribute('href', 'https://haru-today.github.io/labinsight/');
+  await expect(shortcuts.nth(1)).toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
+  await expect(shortcuts.nth(0)).toBeVisible();
+  await expect(shortcuts.nth(1)).toBeVisible();
+  await expect(page.locator('.service-entry-detail')).toHaveCount(2);
+  const sizes = await page.evaluate(() => ({
+    width: document.documentElement.clientWidth,
+    contentWidth: document.documentElement.scrollWidth
+  }));
+  expect(sizes.contentWidth).toBeLessThanOrEqual(sizes.width + 1);
+});
