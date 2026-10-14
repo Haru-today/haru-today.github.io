@@ -2,7 +2,9 @@
  * LABDAM protected-service gateway (deployment-ready component, NOT live).
  * A Cloudflare Access application authenticates visitors; this Worker validates
  * its signed token before returning even a single static service asset.
- * Original public GitHub Pages service URLs must be retired after cutover.
+ * Retire only the legacy public LabInsight after cutover. Keep the 2026-11-14
+ * symposium Caffeine Atlas public QR demo accessible without login; this Worker
+ * hosts a SEPARATE, authenticated research data-storage copy.
  */
 const PREFIXES = Object.freeze(["/labinsight/", "/caffeine-atlas/"]);
 const KEY_CACHE_MS = 5 * 60 * 1000;
