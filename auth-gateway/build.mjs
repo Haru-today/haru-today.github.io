@@ -1,7 +1,7 @@
 /*
- * Assemble only published web assets for protected hosting.
- * No bookings, patient/genetic records or server data files are accessed.
- * This script never deploys anything.
+ * Assemble a private, access-protected LABDAM portal and LabInsight web shell.
+ * This builds artifacts ONLY; it never deploys a site or accesses health data.
+ * The public Caffeine Atlas QR demo is intentionally excluded.
  */
 import { copyFile, mkdir, readFile, writeFile, stat, readdir } from "node:fs/promises";
 import { existsSync } from "node:fs";
@@ -10,20 +10,14 @@ import { fileURLToPath } from "node:url";
 
 const here = dirname(fileURLToPath(import.meta.url));
 const dist = resolve(here, "dist");
+const portal = resolve(process.env.LABDAM_SOURCE || join(here, ".."));
 const lab = resolve(process.env.LABINSIGHT_SOURCE || join(here, "../../labinsight"));
-const caffeine = resolve(process.env.CAFFEINE_SOURCE || join(here, "../../caffeine-atlas"));
 const labOut = join(dist, "labinsight");
-const cafOut = join(dist, "caffeine-atlas");
-const cafAppOut = join(cafOut, "caffeine-sensitivity-app");
-
+const portalFiles = ["index.html", "privacy.html", "terms.html"];
 const labFiles = [
   "index.html", "checkup.html", "report.html", "hospitals.html",
   "styles.css", "app.js", "ocr-review.js", "reference-ranges.js",
   "hospital-data.js", "runtime-config.js", "manifest.webmanifest"
-];
-const cafFiles = [
-  "index.html", "analyzer.html", "board.html", "board-write.html",
-  "app.js", "styles.css"
 ];
 
 function assertInside(root, file) {
@@ -39,7 +33,7 @@ async function publicTextCopy(src, dst, transform = null) {
 }
 
 function preventIndexing(text) {
-  let html = text.replace(
+  const html = text.replace(
     /<meta\s+name=["']robots["']\s+content=["'][^"']+["']\s*\/?>/i, ""
   );
   const marker = '<meta name="robots" content="noindex,nofollow">';
@@ -48,62 +42,29 @@ function preventIndexing(text) {
 }
 
 function protectedLinkRewrite(text) {
-  // The public LABDAM portal remains accessible; the two service links do not.
+  // LABDAM and LabInsight become same-origin protected pages. The independent
+  // public Caffeine Atlas URL is NEVER rewritten behind Access.
   return text
-    .replaceAll("https://haru-today.github.io/caffeine-atlas/", "/caffeine-atlas/")
     .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")
-    .replaceAll('hidden data-disabled-feature="account"', "")
-    .replaceAll("회원 안내", "내 계정")
-    .replaceAll("구축 방식 보기", "내 계정 확인");
+    .replace(/https:\/\/haru-today\.github\.io\/(?!caffeine-atlas\/)/g, "/")
+    .replace(/(href|src)=(["'])\/caffeine-atlas\//g,
+      '$1=$2https://haru-today.github.io/caffeine-atlas/');
+}
+
+function protectedPortalHtml(text) {
+  let html = preventIndexing(protectedLinkRewrite(text));
+  // The visitor can inspect their verified session from both protected sites.
+  const marker = '<a class="nav-cta" href="#contact">';
+  if (!html.includes(marker)) throw new Error("Portal navigation anchor not found");
+  html = html.replace(marker, '<a href="/account.html">내 계정</a>\n        ' + marker);
+  return html;
 }
 
 function protectedLabInsightHtml(text) {
   const output = protectedLinkRewrite(text);
   const target = '<a class="nav-cta"';
-  if (!output.includes(target)) throw new Error("LabInsight account navigation anchor missing.");
-  return output.replace(target, '<a href="./account.html">내 계정</a>' + target);
-}
-
-function protectCaffeineBrowserApp(source) {
-  // This transformation exists only in the protected deployment bundle.
-  // Never ship a signed credential or the direct Google Apps Script URL.
-  let output = protectedLinkRewrite(source);
-  // Public QR bundle has no backend URL and disallows every upload.
-  // Only the private, Access-gated bundle explicitly opts into research mode.
-  const endpoint = 'var GOOGLE_SHEETS_ENDPOINT = "";';
-  const mode = 'var RESEARCH_STORAGE_MODE = false;';
-  if (!output.includes(endpoint) || !output.includes(mode)) {
-    throw new Error("Public-only storage flags missing in reviewed Caffeine Atlas source.");
-  }
-  output = output.replace(endpoint, 'var GOOGLE_SHEETS_ENDPOINT = "/api/caffeine-atlas";');
-  output = output.replace(mode, 'var RESEARCH_STORAGE_MODE = true;');
-  const start = output.indexOf("function requestEndpointStatus(parameters) {");
-  const end = output.indexOf("function verifyBatchEndpointSupport()", start);
-  if (start < 0 || end < 0) throw new Error("Cannot identify JSONP receipt transport.");
-  const secureStatus = [
-    "function requestEndpointStatus(parameters) {",
-    '    return fetch(GOOGLE_SHEETS_ENDPOINT + "?" + parameters, {',
-    '      method: "GET", credentials: "same-origin", cache: "no-store"',
-    '    }).then(function (response) {',
-    '      if (!response.ok) throw new Error("인증된 저장 서버에 연결할 수 없습니다.");',
-    '      return response.json();',
-    '    });',
-    "  }",
-    "",
-    "  "
-  ].join("\n");
-  output = output.slice(0, start) + secureStatus + output.slice(end);
-  const oldMode = 'mode: "no-cors",';
-  const oldType = '"Content-Type": "text/plain;charset=utf-8"';
-  if (!output.includes(oldMode) || !output.includes(oldType)) {
-    throw new Error("Cannot identify insecure POST transport.");
-  }
-  output = output.replace(oldMode, 'credentials: "same-origin",');
-  output = output.replace(oldType, '"Content-Type": "application/json;charset=utf-8"');
-  if (output.includes("https://script.google.com/macros/")) {
-    throw new Error("Public Apps Script URL still present in the protected bundle.");
-  }
-  return output;
+  if (!output.includes(target)) throw new Error("LabInsight account navigation anchor missing");
+  return preventIndexing(output.replace(target, '<a href="./account.html">내 계정</a>' + target));
 }
 
 async function copyCuratedAssets(from, to, allowed) {
@@ -121,72 +82,61 @@ async function run() {
   if (existsSync(dist)) {
     throw new Error("Output directory already exists; refusing to overwrite: " + dist);
   }
-  if (!existsSync(join(lab, "index.html")) || !existsSync(join(caffeine, "index.html"))) {
-    throw new Error("Expected sibling public-source checkouts for both services.");
+  if (!existsSync(join(portal, "index.html")) || !existsSync(join(lab, "index.html"))) {
+    throw new Error("Expected LABDAM and LabInsight checked-out sources.");
   }
+
+  await mkdir(dist, { recursive: true });
+  await mkdir(join(dist, "assets"), { recursive: true });
   await mkdir(labOut, { recursive: true });
-  await mkdir(cafAppOut, { recursive: true });
+  for (const file of portalFiles) {
+    const src = join(portal, file);
+    assertInside(portal, src);
+    if (!existsSync(src)) throw new Error("Missing LABDAM source: " + file);
+    await publicTextCopy(src, join(dist, file), file === "index.html"
+      ? protectedPortalHtml : text => preventIndexing(protectedLinkRewrite(text)));
+  }
+  await copyFile(join(portal, "favicon.svg"), join(dist, "favicon.svg"));
+  await copyFile(join(portal, "assets", "portal-redesign.css"),
+    join(dist, "assets", "portal-redesign.css"));
+  await copyFile(join(here, "account.html"), join(dist, "account.html"));
 
   for (const file of labFiles) {
     const source = join(lab, file);
     const dest = join(labOut, file);
     assertInside(lab, source);
-    if (!existsSync(source)) throw new Error("Missing public source file: " + file);
+    if (!existsSync(source)) throw new Error("Missing LabInsight source: " + file);
     await (file.endsWith(".html") ?
-      publicTextCopy(source, dest, text => preventIndexing(protectedLabInsightHtml(text))) :
-      file.endsWith(".js") ?
-        publicTextCopy(source, dest, protectedLinkRewrite) :
-        copyFile(source, dest));
+      publicTextCopy(source, dest, protectedLabInsightHtml) :
+      file.endsWith(".js") ? publicTextCopy(source, dest, protectedLinkRewrite) :
+      copyFile(source, dest));
   }
-  // Identical signed-in LABDAM account status works from either product.
   await copyFile(join(here, "account.html"), join(labOut, "account.html"));
   await copyCuratedAssets(join(lab, "icons"), join(labOut, "icons"),
     new Set(["icon.svg", "icon-192.png", "icon-512.png"]));
 
-  // Disable offline service-worker caching so logout cannot leave a usable
-  // app shell on this NEW protected origin. Existing native apps are separate.
+  // Never cache a private PWA shell after logout in the protected origin.
   await writeFile(join(labOut, "service-worker.js"),
     'self.addEventListener("install",e=>e.waitUntil(self.skipWaiting()));\n' +
     'self.addEventListener("activate",e=>e.waitUntil(self.clients.claim()));\n');
 
-  await publicTextCopy(join(caffeine, "index.html"), join(cafOut, "index.html"),
-    source => preventIndexing(protectedLinkRewrite(source)));
-  for (const file of cafFiles) {
-    const source = join(caffeine, "caffeine-sensitivity-app", file);
-    const dest = join(cafAppOut, file);
-    assertInside(caffeine, source);
-    if (!existsSync(source)) throw new Error("Missing public source file: " + file);
-    await publicTextCopy(source, dest,
-      text => file.endsWith(".html") ?
-        preventIndexing(protectedLinkRewrite(text).replace(
-          '<body class="public-demo">', '<body class="research-mode">'
-        )) :
-        file === "app.js" ? protectCaffeineBrowserApp(text) : protectedLinkRewrite(text));
-  }
-  // The source repository's account.html contains a NONFUNCTIONAL email/
-  // password sign-in mockup. It MUST NEVER ship as a login page. Instead
-  // include the verified session-status page backed by /api/session.
-  await copyFile(join(here, "account.html"), join(cafAppOut, "account.html"));
-  await copyCuratedAssets(join(caffeine, "caffeine-sensitivity-app/assets"),
-    join(cafAppOut, "assets"), new Set([
-      "caffeine-atlas-logo-simple.svg", "caffeine-atlas-logo-wordmark.png",
-      "caffeine-atlas-logo.svg", "hero-caffeine-genetics.png",
-      "labinsight-icon.png", "personal-health-atlas-logo.png",
-      "caffeine-atlas-batch-template.xlsx"
-    ]));
-  await copyCuratedAssets(join(caffeine, "caffeine-sensitivity-app/vendor"),
-    join(cafAppOut, "vendor"), new Set(["xlsx.full.min.js"]));
-
   await writeFile(join(dist, "robots.txt"), "User-agent: *\nDisallow: /\n");
   const expected = [
-    "labinsight/index.html", "labinsight/checkup.html", "labinsight/account.html",
-    "caffeine-atlas/index.html", "caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
-    "caffeine-atlas/caffeine-sensitivity-app/account.html"
+    "index.html", "account.html", "privacy.html", "terms.html",
+    "favicon.svg", "assets/portal-redesign.css", "robots.txt",
+    "labinsight/index.html", "labinsight/checkup.html", "labinsight/report.html",
+    "labinsight/account.html", "labinsight/reference-ranges.js"
   ];
   for (const file of expected) {
-    if (!(await stat(join(dist, file))).isFile()) throw new Error("Missing required asset " + file);
+    if (!(await stat(join(dist, file))).isFile()) {
+      throw new Error("Missing protected web asset: " + file);
+    }
   }
-  console.log("Prepared public web shell for protected hosting, NOT deployed.");
+  // Strong guard against accidental inclusion of the independent public app.
+  if (existsSync(join(dist, "caffeine-atlas"))) {
+    throw new Error("Caffeine Atlas MUST NOT ship in an authenticated bundle.");
+  }
+  console.log("Prepared private LABDAM + LabInsight assets only. NOT deployed.");
 }
 
 run().catch(err => { console.error(err.message); process.exitCode = 1; });
