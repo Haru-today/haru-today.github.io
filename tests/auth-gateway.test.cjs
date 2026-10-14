@@ -395,3 +395,33 @@ test("storage email comparison is case-insensitive and never trusts unsigned ide
   assert.equal(blocked.status, 401);
   assert.equal(x.metrics.calls, 1);
 });
+
+
+test("account session endpoint denies anonymous calls and reveals only own validated claims", async () => {
+  const x = gatewayApi();
+  const anonymous = await handleRequest(request("/api/session"), x.env, x.options);
+  assert.equal(anonymous.status, 401);
+  assert.equal(x.metrics.calls, 0);
+
+  const approved = await handleRequest(request("/api/session", signedToken()), x.env, x.options);
+  assert.equal(approved.status, 200);
+  assert.deepEqual(await approved.json(), {
+    authenticated: true, email: "reviewer@labdam.example", storageAllowed: true
+  });
+  assert.equal(approved.headers.get("Cache-Control"), "private, no-store, max-age=0");
+
+  const visitor = await handleRequest(request("/api/session", signedToken({
+    email: "visitor@example.net"
+  })), x.env, x.options);
+  assert.deepEqual(await visitor.json(), {
+    authenticated: true, email: "visitor@example.net", storageAllowed: false
+  });
+  assert.equal(x.metrics.calls, 0, "Session endpoint never reaches Google");
+});
+
+test("session endpoint refuses HEAD and POST even for authenticated visitors", async () => {
+  const x = gatewayApi();
+  const token = signedToken();
+  assert.equal((await handleRequest(request("/api/session", token, "HEAD"), x.env, x.options)).status, 405);
+  assert.equal((await handleRequest(request("/api/session", token, "POST"), x.env, x.options)).status, 405);
+});
