@@ -44,7 +44,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Haru-today/caffeine-atlas
-          ref: f5cca76fe96950854e4f4e40d835d5cf86c37be8
+          ref: a8a409a0dca13d959e21aa7f620e4a1091cf6e3e
           path: sources/caffeine-atlas
           persist-credentials: false
       - uses: actions/setup-node@v4
