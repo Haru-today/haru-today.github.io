@@ -27,6 +27,19 @@ test("protected LABDAM portal links into LabInsight but not to a protected Caffe
   assert.doesNotMatch(portal, /href="\/caffeine-atlas\//);
 });
 
+test("protected privacy and terms disclose Google approval processing accurately", () => {
+  const privacy = read("privacy.html");
+  const terms = read("terms.html");
+  assert.match(privacy, /회원가입·로그인 정보 처리/);
+  assert.match(privacy, /Google 계정 식별자/);
+  assert.match(privacy, /승인제 회원가입 과정에서 이메일·이름/);
+  assert.match(privacy, /href="\/membership-privacy\.html"/);
+  assert.doesNotMatch(privacy, /포털에는 이름·검사값 입력란이 없습니다/);
+  assert.match(terms, /LABDAM 회원 승인 방식/);
+  assert.match(terms, /Caffeine Atlas는 이 로그인 정책과 무관/);
+  assert.match(terms, /href="\/membership-privacy\.html"/);
+});
+
 test("public login and approval-waiting pages are present as real self-service UI", () => {
   const login = read("login.html"), pending = read("pending.html");
   assert.match(login, /Google 계정으로 가입 신청/);
