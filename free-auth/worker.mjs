@@ -288,7 +288,7 @@ function privatePath(path) {
       path === "/assets/portal-redesign.css" || path === "/admin.html" ||
       path === "/admin" || path === "/labinsight" || path === "/api/me" ||
       path === "/api/admin/applications" || path === "/api/admin/review" ||
-      path === "/api/application" || path === "/auth/logout") return true;
+      path === "/api/application" || path === "/api/account/delete" || path === "/auth/logout") return true;
   return path.startsWith("/labinsight/");
 }
 async function jsonBody(request) {
@@ -338,6 +338,26 @@ async function adminReview(request, env, admin, now) {
   // revocation takes effect even if a previous session cookie still exists.
   return json(200, { ok: true, google_sub: data.google_sub, status: data.status });
 }
+
+async function deleteMemberAccount(env, member) {
+  // An admin cannot accidentally erase the sole bootstrap administrator.
+  // A D1 foreign-key cascade removes all outstanding sessions for this member.
+  if (member.role !== "member") return json(403, { ok: false, code: "ADMIN_PROTECTED" });
+  const removed = await env.DB.prepare(
+    "DELETE FROM members WHERE google_sub=? AND role='member' RETURNING google_sub"
+  ).bind(member.google_sub).first();
+  if (!removed) return json(404, { ok: false, code: "ACCOUNT_NOT_FOUND" });
+  return putCookie(json(200, { ok: true, code: "ACCOUNT_DELETED" }),
+    COOKIE_SESSION, "", 0);
+}
+async function purgeExpiredRecords(env, now) {
+  // Daily, bounded-scope free-D1 maintenance. Membership application/approval
+  // decisions are NEVER swept as part of ephemeral session-state cleanup.
+  await env.DB.prepare("DELETE FROM oauth_states WHERE expires_at<=?").bind(now).run();
+  await env.DB.prepare("DELETE FROM sessions WHERE expires_at<=?").bind(now).run();
+  await env.DB.prepare("DELETE FROM login_throttle WHERE window_start<?").bind(now - 86400).run();
+}
+
 function privateAssets(env) {
   if (!env?.ASSETS || typeof env.ASSETS.fetch !== "function") {
     throw new LoginError(503, "보호된 홈페이지가 아직 배포되지 않았습니다.");
@@ -401,6 +421,10 @@ async function handleRequest(request, env, opts = {}) {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
       return await applicationUpdate(request, env, member, nowSecs(opts));
     }
+    if (path === "/api/account/delete" && method === "POST") {
+      if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
+      return await deleteMemberAccount(env, member);
+    }
     if (member.status !== "approved") {
       if (method === "GET" && isHtmlRoute(path)) return redirect("/pending.html", origin);
       return json(403, { ok: false, code: "AWAITING_ADMIN_APPROVAL" });
@@ -428,5 +452,8 @@ async function handleRequest(request, env, opts = {}) {
     return simple(503, "서비스를 잠시 이용할 수 없습니다.");
   }
 }
-export default { fetch: handleRequest };
-export { handleRequest, googleIdentity, safeNext };
+export default {
+  fetch: handleRequest,
+  scheduled: async (_controller, env) => { if (env?.DB) await purgeExpiredRecords(env, Math.floor(Date.now() / 1000)); }
+};
+export { handleRequest, googleIdentity, safeNext, purgeExpiredRecords };
