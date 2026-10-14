@@ -288,7 +288,7 @@ function privatePath(path) {
       path === "/assets/portal-redesign.css" || path === "/admin.html" ||
       path === "/admin" || path === "/labinsight" || path === "/api/me" ||
       path === "/api/admin/applications" || path === "/api/admin/review" ||
-      path === "/api/application") return true;
+      path === "/api/application" || path === "/auth/logout") return true;
   return path.startsWith("/labinsight/");
 }
 async function jsonBody(request) {
