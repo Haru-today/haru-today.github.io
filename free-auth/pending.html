@@ -7,7 +7,7 @@
 <div id="purposeWrap"><form id="purposeForm"><label for="purpose">가입 목적 (선택, 최대 240자)</label><p class="muted">서비스 사용 목적을 짧게 적어 주시면 관리자가 신청을 검토할 수 있습니다. 건강검진 수치나 민감정보는 입력하지 마세요.</p><textarea id="purpose" maxlength="240" autocomplete="off"></textarea><div class="actions"><button type="submit" id="savePurpose">가입 목적 저장</button></div></form></div>
 <p id="formMessage" role="status" class="status"></p></section>
 <div class="actions"><a class="button secondary" href="/login.html">다른 계정으로 로그인</a><button type="button" class="secondary" id="logout">로그아웃</button><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 공개 체험</a></div></main>
-<footer>관리자 승인 전에는 LABDAM과 LabInsight를 이용할 수 없습니다.</footer>
+<footer>관리자 승인 전에는 LABDAM과 LabInsight를 이용할 수 없습니다. <a href="/membership-privacy.html">가입 개인정보 안내</a> · <button type="button" id="withdraw" class="secondary">가입 신청 철회·정보 삭제</button> <span id="withdrawMessage" role="status"></span></footer>
 <script>(async function(){
 const msg=document.getElementById("message"),detail=document.getElementById("detail"),form=document.getElementById("purposeForm");
 let csrf="";
@@ -29,6 +29,15 @@ form.addEventListener("submit",async e=>{
   const r=await fetch("/api/application",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify({purpose:document.getElementById("purpose").value})});
   target.textContent=r.ok?"가입 목적이 저장되었습니다.":"저장하지 못했습니다. 다시 확인해 주세요.";
  }catch(_){target.textContent="네트워크 연결을 확인해 주세요.";}
+});
+document.getElementById("withdraw").addEventListener("click",async()=>{
+ if(!confirm("가입 신청과 Google 계정 연결 정보를 삭제할까요? 다시 이용하려면 새 가입 신청부터 시작해야 합니다."))return;
+ const status=document.getElementById("withdrawMessage");
+ try{
+  const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
+  if(!r.ok){status.textContent="가입 철회 처리에 실패했습니다.";return;}
+  location.replace("/login.html");
+ }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
 });
 document.getElementById("logout").addEventListener("click",async()=>{
  const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
