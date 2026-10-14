@@ -1,48 +1,48 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const { generateKeyPairSync, sign, createHmac } = require("node:crypto");
+const { generateKeyPairSync, sign } = require("node:crypto");
 const { handleRequest } = require("../auth-gateway/worker.mjs");
 
 const TEAM = "https://labdam-example.cloudflareaccess.com";
 const AUD = "abcdef0123456789abcdef0123456789abcdef0123456789abcdef0123456789";
 const NOW = Math.floor(Date.now() / 1000);
 const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 2048 });
-const publicJwk = { ...publicKey.export({ format: "jwk" }), kid: "test-signing-key-001", alg: "RS256", use: "sig" };
+const publicJwk = {
+  ...publicKey.export({ format: "jwk" }),
+  kid: "test-signing-key-001", alg: "RS256", use: "sig"
+};
 
 function encoded(object) {
   return Buffer.from(JSON.stringify(object)).toString("base64url");
 }
-
 function signedToken(claims = {}, options = {}) {
   const header = { alg: "RS256", kid: publicJwk.kid, ...(options.header || {}) };
   const payload = {
     aud: [AUD], iss: TEAM, type: "app", sub: "account-user-id",
-    email: "reviewer@labdam.example",
-    iat: NOW - 60, exp: NOW + 3600,
+    email: "reviewer@labdam.example", iat: NOW - 60, exp: NOW + 3600,
     ...claims
   };
   const body = encoded(header) + "." + encoded(payload);
   return body + "." + sign("RSA-SHA256", Buffer.from(body), options.privateKey || privateKey)
     .toString("base64url");
 }
-
 function mocks({ presentAssets = true, certificatesAvailable = true } = {}) {
-  const metrics = { assets: 0, jwks: 0 };
+  const metrics = { assets: 0, jwks: 0, paths: [] };
   const env = { TEAM_DOMAIN: TEAM, ACCESS_AUD: AUD };
   if (presentAssets) env.ASSETS = {
     fetch: async request => {
-      metrics.assets += 1;
-      return new Response("private test fixture: " + new URL(request.url).pathname, {
-        status: 200,
-        headers: { "Content-Type": "text/plain" }
+      metrics.assets++;
+      metrics.paths.push(new URL(request.url).pathname);
+      return new Response("protected fixture " + new URL(request.url).pathname, {
+        status: 200, headers: { "Content-Type": "text/plain" }
       });
     }
   };
   const options = {
     nowSeconds: NOW,
     fetcher: async url => {
-      metrics.jwks += 1;
+      metrics.jwks++;
       assert.equal(url, TEAM + "/cdn-cgi/access/certs");
       return new Response(JSON.stringify({ keys: [publicJwk] }), {
         status: certificatesAvailable ? 200 : 503,
@@ -52,376 +52,193 @@ function mocks({ presentAssets = true, certificatesAvailable = true } = {}) {
   };
   return { env, options, metrics };
 }
-
-function request(path, token, method = "GET") {
-  const headers = token ? { "Cf-Access-Jwt-Assertion": token } : {};
-  return new Request("https://services.labdam.example" + path, { method, headers });
+function request(path, token, method = "GET", headers = {}) {
+  return new Request("https://services.labdam.example" + path, {
+    method, headers: {
+      ...(token ? { "Cf-Access-Jwt-Assertion": token } : {}), ...headers
+    }
+  });
 }
 
-test("no JWT: both service home pages are unavailable", async () => {
+const PRIVATE_PATHS = [
+  "/", "/index.html", "/account.html", "/privacy.html", "/terms.html",
+  "/favicon.svg", "/assets/portal-redesign.css",
+  "/labinsight/", "/labinsight/index.html", "/labinsight/checkup.html",
+  "/labinsight/report.html", "/labinsight/app.js", "/labinsight/styles.css",
+  "/labinsight/account.html", "/api/session"
+];
+
+test("anonymous users cannot access LABDAM or LabInsight content, static files or account details", async () => {
   const x = mocks();
-  for (const path of ["/labinsight/", "/caffeine-atlas/", "/labinsight/checkup.html",
-                      "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html"]) {
-    const response = await handleRequest(request(path), x.env, x.options);
-    assert.equal(response.status, 401, path);
-    assert.match(await response.text(), /로그인/);
-    assert.equal(response.headers.get("Cache-Control"), "private, no-store, max-age=0");
+  for (const path of PRIVATE_PATHS) {
+    const res = await handleRequest(request(path), x.env, x.options);
+    assert.equal(res.status, 401, path);
+    assert.match(await res.text(), /로그인/);
+    assert.equal(res.headers.get("Cache-Control"), "private, no-store, max-age=0");
   }
   assert.equal(x.metrics.assets, 0);
   assert.equal(x.metrics.jwks, 0);
 });
 
-test("fake identity header or fake session cookie cannot bypass auth", async () => {
+test("valid Cloudflare identity accesses LABDAM homepage itself, not an old public redirect", async () => {
   const x = mocks();
-  const forged = new Request("https://services.labdam.example/labinsight/", {
-    headers: { "Cf-Access-Authenticated-User-Email": "someone@example.com",
-               "Cookie": "CF_Authorization=unverified" }
-  });
-  assert.equal((await handleRequest(forged, x.env, x.options)).status, 401);
-  assert.equal(x.metrics.assets, 0);
+  const res = await handleRequest(request("/", signedToken()), x.env, x.options);
+  assert.equal(res.status, 200);
+  assert.equal(res.headers.get("Location"), null);
+  assert.match(await res.text(), /protected fixture \//);
+  assert.equal(res.headers.get("X-Robots-Tag"), "noindex, nofollow, noarchive");
+  assert.deepEqual(x.metrics.paths, ["/"]);
 });
 
-test("valid signed Access account can open assets in BOTH services", async () => {
+test("same login protects LABDAM and all LabInsight screens and files", async () => {
   const x = mocks();
   const token = signedToken();
-  const paths = [
-    "/labinsight/index.html", "/labinsight/app.js",
-    "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
-    "/caffeine-atlas/caffeine-sensitivity-app/styles.css"
-  ];
-  for (const path of paths) {
-    const response = await handleRequest(request(path, token), x.env, x.options);
-    assert.equal(response.status, 200, path);
-    assert.match(await response.text(), /private test fixture/);
-    assert.equal(response.headers.get("X-Frame-Options"), "DENY");
-    assert.equal(response.headers.get("Cache-Control"), "private, no-store, max-age=0");
+  for (const path of PRIVATE_PATHS.filter(p => p !== "/api/session")) {
+    const res = await handleRequest(request(path, token), x.env, x.options);
+    assert.equal(res.status, 200, path);
+    assert.match(await res.text(), /protected fixture/);
+    assert.equal(res.headers.get("X-Frame-Options"), "DENY");
+    assert.equal(res.headers.get("Cache-Control"), "private, no-store, max-age=0");
   }
-  assert.equal(x.metrics.assets, paths.length);
-  assert.equal(x.metrics.jwks, paths.length);
+  assert.equal(x.metrics.assets, PRIVATE_PATHS.length - 1);
 });
 
-test("valid tokens can use HEAD and directory canonical redirects", async () => {
+test("Caffeine Atlas has no protected login route or Google Sheets proxy in this Worker", async () => {
   const x = mocks();
-  const token = signedToken();
-  assert.equal((await handleRequest(request("/labinsight/index.html", token, "HEAD"), x.env, x.options)).status, 200);
-  const redirect = await handleRequest(request("/caffeine-atlas", token), x.env, x.options);
-  assert.equal(redirect.status, 302);
-  assert.equal(redirect.headers.get("location"), "https://services.labdam.example/caffeine-atlas/");
+  for (const path of [
+    "/caffeine-atlas/", "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html",
+    "/api/caffeine-atlas", "/api/caffeine-atlas?action=capabilities",
+    "/caffeine-atlas/caffeine-sensitivity-app/account.html"
+  ]) {
+    for (const token of [null, signedToken()]) {
+      const res = await handleRequest(request(path, token), x.env, x.options);
+      assert.equal(res.status, 404, path);
+    }
+  }
+  assert.equal(x.metrics.assets, 0);
+  assert.equal(x.metrics.jwks, 0);
 });
 
-test("tampered signature cannot open either app", async () => {
+test("Caffeine storage POST is unavailable even with a valid token", async () => {
   const x = mocks();
-  const otherKey = generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey;
-  const response = await handleRequest(request("/labinsight/", signedToken({}, { privateKey: otherKey })), x.env, x.options);
-  assert.equal(response.status, 401);
+  const res = await handleRequest(
+    request("/api/caffeine-atlas", signedToken(), "POST",
+      { "Content-Type": "application/json" }), x.env, x.options
+  );
+  assert.equal(res.status, 405);
   assert.equal(x.metrics.assets, 0);
 });
 
-test("wrong issuer, audience, expired or not-yet-valid tokens fail closed", async () => {
-  const tokenVariants = [
+test("identity headers or fake CF_Authorization cookie do not bypass Access signatures", async () => {
+  const x = mocks();
+  const res = await handleRequest(request("/", null, "GET", {
+    "Cf-Access-Authenticated-User-Email": "forged@labdam.example",
+    "Cookie": "CF_Authorization=unverified"
+  }), x.env, x.options);
+  assert.equal(res.status, 401);
+  assert.equal(x.metrics.assets, 0);
+});
+
+test("tampered JWT signature, wrong issuer and audience cannot open homepage", async () => {
+  const invalidClaims = [
     { iss: "https://attacker.cloudflareaccess.com" },
     { aud: ["00000000000000000000000000000000"] },
-    { exp: NOW },
-    { exp: NOW - 10 },
-    { nbf: NOW + 30 },
-    { iat: NOW + 120 },
-    { sub: "" },
-    { type: "org" },
-    { exp: "2030-01-01" }
+    { exp: NOW }, { exp: NOW - 1 },
+    { nbf: NOW + 30 }, { iat: NOW + 120 },
+    { sub: "" }, { type: "org" }, { exp: "2030-01-01" }
   ];
-  for (const claims of tokenVariants) {
+  for (const claims of invalidClaims) {
     const x = mocks();
-    const response = await handleRequest(request("/caffeine-atlas/", signedToken(claims)), x.env, x.options);
-    assert.equal(response.status, 401, JSON.stringify(claims));
+    const res = await handleRequest(request("/", signedToken(claims)), x.env, x.options);
+    assert.equal(res.status, 401, JSON.stringify(claims));
     assert.equal(x.metrics.assets, 0);
   }
-});
-
-test("service tokens with no human subject cannot unlock medical tools", async () => {
   const x = mocks();
-  const response = await handleRequest(request("/caffeine-atlas/", signedToken({ sub: "" })), x.env, x.options);
-  assert.equal(response.status, 401);
+  const badKey = generateKeyPairSync("rsa", { modulusLength: 2048 }).privateKey;
+  const res = await handleRequest(request("/", signedToken({}, { privateKey: badKey })), x.env, x.options);
+  assert.equal(res.status, 401);
   assert.equal(x.metrics.assets, 0);
 });
 
-test("JWT algorithm confusion fails closed", async () => {
-  const x = mocks();
+test("algorithm confusion and tokens from automation users cannot open LabInsight", async () => {
   for (const alg of ["none", "HS256", "ES256"]) {
-    const response = await handleRequest(request("/labinsight/", signedToken({}, { header: { alg } })), x.env, x.options);
-    assert.equal(response.status, 401);
-    assert.equal(x.metrics.assets, 0);
+    const x = mocks();
+    const res = await handleRequest(request("/labinsight/", signedToken({}, {
+      header: { alg }
+    })), x.env, x.options);
+    assert.equal(res.status, 401);
   }
+  const x = mocks();
+  const res = await handleRequest(request("/labinsight/", signedToken({
+    type: "service_token", sub: ""
+  })), x.env, x.options);
+  assert.equal(res.status, 401);
 });
 
-test("missing or invalid Access configuration NEVER serves assets", async () => {
-  for (const envChange of [
+test("missing or invalid Access configuration and unavailable JWKS fail closed", async () => {
+  for (const changes of [
+    { TEAM_DOMAIN: "" },
     { TEAM_DOMAIN: "http://labdam-example.cloudflareaccess.com" },
-    { TEAM_DOMAIN: "https://attacker.invalid" },
+    { TEAM_DOMAIN: "https://attacker.example" },
     { ACCESS_AUD: "" },
-    { ACCESS_AUD: "not-a-real-audience" }
+    { ACCESS_AUD: "not-a-valid-audience" }
   ]) {
     const x = mocks();
-    const response = await handleRequest(request("/labinsight/", signedToken()),
-      { ...x.env, ...envChange }, x.options);
-    assert.equal(response.status, 503, JSON.stringify(envChange));
+    const res = await handleRequest(request("/", signedToken()), { ...x.env, ...changes }, x.options);
+    assert.equal(res.status, 503, JSON.stringify(changes));
     assert.equal(x.metrics.assets, 0);
   }
-});
-
-test("JWKS provider outage denies access without serving content", async () => {
   const x = mocks({ certificatesAvailable: false });
-  const response = await handleRequest(request("/labinsight/", signedToken()), x.env, x.options);
-  assert.equal(response.status, 503);
+  const res = await handleRequest(request("/", signedToken()), x.env, x.options);
+  assert.equal(res.status, 503);
   assert.equal(x.metrics.assets, 0);
 });
 
-test("missing protected assets binding denies access", async () => {
+test("missing private asset binding never serves public source content", async () => {
   const x = mocks({ presentAssets: false });
-  const response = await handleRequest(request("/labinsight/", signedToken()), x.env, x.options);
-  assert.equal(response.status, 503);
+  const res = await handleRequest(request("/", signedToken()), x.env, x.options);
+  assert.equal(res.status, 503);
 });
 
-test("unknown routes and write methods never reach the protected assets", async () => {
+test("only GET/HEAD are supported, directories canonicalize behind authentication", async () => {
   const x = mocks();
-  assert.equal((await handleRequest(request("/admin/", signedToken()), x.env, x.options)).status, 404);
-  assert.equal((await handleRequest(request("/labinsight/", signedToken(), "POST"), x.env, x.options)).status, 405);
-  assert.equal((await handleRequest(request("/caffeine-atlas/", signedToken(), "DELETE"), x.env, x.options)).status, 405);
-  assert.equal(x.metrics.assets, 0);
-});
-
-test("logout uses Cloudflare Access and never invents local auth state", async () => {
-  const x = mocks();
-  const r = await handleRequest(request("/logout"), x.env, x.options);
-  assert.equal(r.status, 302);
-  assert.equal(r.headers.get("location"), TEAM + "/cdn-cgi/access/logout");
-  assert.equal(x.metrics.assets, 0);
-});
-
-test("public LABDAM portal stays separate from protected services", async () => {
-  const x = mocks();
-  const r = await handleRequest(request("/"), x.env, x.options);
-  assert.equal(r.status, 302);
-  assert.equal(r.headers.get("location"), "https://haru-today.github.io/");
-  assert.equal(x.metrics.assets, 0);
-});
-
-
-const STORAGE_KEY = "TEST-ONLY-HMAC-GATEWAY-KEY-AT-LEAST-32-CHARS";
-const STORAGE_ENDPOINT = "https://script.google.com/macros/s/abcdefghijklmnopqrstuvwxyzABCDEF1234/exec";
-
-function gatewayApi({ response = { ok: true, state: "saved", savedCount: 1 }, backendFail = false } = {}) {
-  const x = mocks();
-  const metrics = { calls: 0, verified: false, outbound: null };
-  x.env.STORAGE_WRITER_EMAILS = "reviewer@labdam.example, owner@labdam.example";
-  x.env.CAFFEINE_APPS_SCRIPT_URL = STORAGE_ENDPOINT;
-  x.env.CAFFEINE_ATLAS_WRITE_HMAC_KEY = STORAGE_KEY;
-  x.options.apiFetch = async (url, init) => {
-    metrics.calls++;
-    metrics.outbound = { url, init };
-    const query = new URL(url).searchParams;
-    let textToSign, stamp, nonce, signature;
-    if (init.method === "POST") {
-      const envelope = JSON.parse(init.body);
-      stamp = envelope.auth.timestamp;
-      nonce = envelope.auth.nonce;
-      signature = envelope.auth.signature;
-      textToSign = JSON.stringify(envelope.payload);
-    } else {
-      stamp = Number(query.get("timestamp"));
-      nonce = query.get("nonce");
-      signature = query.get("signature");
-      textToSign = JSON.stringify("GET:" + query.get("action") + ":" + (query.get("requestId") || ""));
-    }
-    const expected = createHmac("sha256", STORAGE_KEY)
-      .update(String(stamp) + "." + nonce + "." + textToSign).digest("hex");
-    assert.equal(signature, expected, "Only server-side Cloudflare secret may sign the request.");
-    assert.match(nonce, /^[0-9a-f]{32}$/);
-    assert.ok(Math.abs(stamp - Math.floor(Date.now() / 1000)) < 60);
-    metrics.verified = true;
-    return new Response(JSON.stringify(response), { status: backendFail ? 503 : 200 });
-  };
-  return { ...x, metrics };
-}
-
-function apiRequest(path, token, method, body, origin = "https://services.labdam.example") {
-  const headers = {};
-  if (token) headers["Cf-Access-Jwt-Assertion"] = token;
-  if (method === "POST") {
-    headers["Content-Type"] = "application/json";
-    if (origin) headers.Origin = origin;
-  }
-  return new Request("https://services.labdam.example" + path, {
-    method, headers, body: method === "POST" ? JSON.stringify(body) : undefined
-  });
-}
-
-test("Sheets API requires signed-in Access account for GET, status and POST", async () => {
-  const x = gatewayApi();
-  const paths = ["/api/caffeine-atlas", "/api/caffeine-atlas?action=saveStatus&requestId=" + "a".repeat(32)];
-  for (const path of paths) {
-    assert.equal((await handleRequest(apiRequest(path, null, "GET"), x.env, x.options)).status, 401);
-  }
-  assert.equal((await handleRequest(apiRequest(paths[0], null, "POST", { requestId: "a".repeat(32), consent: true }),
-    x.env, x.options)).status, 401);
-  assert.equal(x.metrics.calls, 0);
-});
-
-test("valid account can read signed capabilities without exposing sheet IDs", async () => {
-  const x = gatewayApi({ response: { ok: true, version: "v-test", capabilities: { batchSave: true }, spreadsheetId: "DO-NOT-EXPOSE" } });
-  const res = await handleRequest(apiRequest("/api/caffeine-atlas?action=capabilities", signedToken(), "GET"), x.env, x.options);
-  assert.equal(res.status, 200);
-  assert.equal((await res.json()).capabilities.batchSave, true);
-  assert.ok(x.metrics.verified);
-  assert.equal(x.metrics.outbound.init.method, "GET");
-  assert.equal(x.metrics.outbound.url.startsWith(STORAGE_ENDPOINT + "?"), true);
-});
-
-test("valid login signs and submits only consented JSON from same origin", async () => {
-  const x = gatewayApi();
-  const payload = { requestId: "b".repeat(32), consent: true, sampleId: "SAMPLE-NONIDENTIFIABLE",
-    rs6968865: "AT", score: 50 };
-  const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST", payload), x.env, x.options);
-  assert.equal(res.status, 200);
-  assert.equal((await res.json()).savedCount, 1);
-  assert.equal(x.metrics.outbound.init.method, "POST");
-  assert.ok(x.metrics.verified);
-  const requestBody = JSON.parse(x.metrics.outbound.init.body);
-  assert.deepEqual(requestBody.payload, payload);
-  assert.equal(requestBody.auth.signature.length, 64);
-  assert.ok(!x.metrics.outbound.init.body.includes("STORAGE_KEY"));
-});
-
-test("browser CSRF attempt with wrong or missing origin is rejected", async () => {
-  const x = gatewayApi();
-  const p = { requestId: "c".repeat(32), consent: true };
-  const wrong = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST",
-    p, "https://attacker.example"), x.env, x.options);
-  const absent = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST",
-    p, null), x.env, x.options);
-  assert.equal(wrong.status, 403);
-  assert.equal(absent.status, 403);
-  assert.equal(x.metrics.calls, 0);
-});
-
-test("forged admin command and unsigned consent are blocked before contacting Sheets", async () => {
-  const x = gatewayApi();
-  for (const payload of [
-    { action: "setupTemplate", requestId: "d".repeat(32), consent: true },
-    { action: "batchSave", requestId: "d".repeat(32), rows: [] },
-    { requestId: "d".repeat(32), consent: false }
-  ]) {
-    const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "POST", payload),
-      x.env, x.options);
-    assert.equal(res.status, 400);
-  }
-  assert.equal(x.metrics.calls, 0);
-});
-
-test("missing or malicious Sheets settings are fail closed", async () => {
-  const x = gatewayApi();
-  for (const settings of [
-    { CAFFEINE_APPS_SCRIPT_URL: "" },
-    { CAFFEINE_APPS_SCRIPT_URL: "https://attacker.invalid/api" },
-    { CAFFEINE_ATLAS_WRITE_HMAC_KEY: "" }
-  ]) {
-    const res = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "GET"),
-      { ...x.env, ...settings }, x.options);
-    assert.equal(res.status, 503);
-  }
-  assert.equal(x.metrics.calls, 0);
-});
-
-test("invalid receipt action and storage failures do not leak internal errors", async () => {
-  const x = gatewayApi({ backendFail: true });
-  const bad = await handleRequest(apiRequest("/api/caffeine-atlas?action=saveStatus&requestId=bad", signedToken(), "GET"),
-    x.env, x.options);
-  assert.equal(bad.status, 400);
-  assert.equal(x.metrics.calls, 0);
-  const outage = await handleRequest(apiRequest("/api/caffeine-atlas", signedToken(), "GET"), x.env, x.options);
-  assert.equal(outage.status, 502);
-  assert.deepEqual(await outage.json(), { ok: false, code: "STORAGE_UNAVAILABLE" });
-});
-
-
-test("verified Access account without write permission cannot query or save Sheets", async () => {
-  const x = gatewayApi();
-  const token = signedToken({ email: "visitor@example.net" });
-  for (const route of ["/api/caffeine-atlas", "/api/caffeine-atlas?action=saveStatus&requestId=" + "f".repeat(32)]) {
-    const response = await handleRequest(apiRequest(route, token, "GET"), x.env, x.options);
-    assert.equal(response.status, 403, route);
-    assert.deepEqual(await response.json(), { ok: false, code: "STORAGE_NOT_AUTHORIZED" });
-  }
-  const p = { requestId: "a".repeat(32), consent: true };
-  const response = await handleRequest(apiRequest("/api/caffeine-atlas", token, "POST", p), x.env, x.options);
-  assert.equal(response.status, 403);
-  assert.equal(x.metrics.calls, 0, "No denied request may reach Google Sheets");
-});
-
-test("missing, untrusted or malformed storage allowlist fails closed", async () => {
-  const x = gatewayApi();
-  for (const list of [undefined, "", "*", "everyone", "@example.com", "valid@example.com, *"]) {
-    const env = { ...x.env };
-    if (list === undefined) delete env.STORAGE_WRITER_EMAILS;
-    else env.STORAGE_WRITER_EMAILS = list;
-    const response = await handleRequest(
-      apiRequest("/api/caffeine-atlas", signedToken(), "GET"),
-      env, x.options
-    );
-    assert.equal(response.status, 503, JSON.stringify(list));
-  }
-  assert.equal(x.metrics.calls, 0);
-});
-
-test("missing JWT email cannot access Sheets but can use both public app shells after login", async () => {
-  const x = gatewayApi();
-  const token = signedToken({ email: undefined });
-  const api = await handleRequest(apiRequest("/api/caffeine-atlas", token, "GET"), x.env, x.options);
-  assert.equal(api.status, 403);
-  assert.equal(x.metrics.calls, 0);
-  const staticResponse = await handleRequest(request("/labinsight/app.js", token), x.env, x.options);
-  assert.equal(staticResponse.status, 200);
-});
-
-test("storage email comparison is case-insensitive and never trusts unsigned identity headers", async () => {
-  const x = gatewayApi();
-  const token = signedToken({ email: "REVIEWER@LABDAM.EXAMPLE" });
-  const allowed = await handleRequest(apiRequest("/api/caffeine-atlas", token, "GET"), x.env, x.options);
-  assert.equal(allowed.status, 200);
-  assert.equal(x.metrics.calls, 1);
-  const forged = new Request("https://services.labdam.example/api/caffeine-atlas", {
-    headers: { "Cf-Access-Authenticated-User-Email": "reviewer@labdam.example" }
-  });
-  const blocked = await handleRequest(forged, x.env, x.options);
-  assert.equal(blocked.status, 401);
-  assert.equal(x.metrics.calls, 1);
-});
-
-
-test("account session endpoint denies anonymous calls and reveals only own validated claims", async () => {
-  const x = gatewayApi();
-  const anonymous = await handleRequest(request("/api/session"), x.env, x.options);
-  assert.equal(anonymous.status, 401);
-  assert.equal(x.metrics.calls, 0);
-
-  const approved = await handleRequest(request("/api/session", signedToken()), x.env, x.options);
-  assert.equal(approved.status, 200);
-  assert.deepEqual(await approved.json(), {
-    authenticated: true, email: "reviewer@labdam.example", storageAllowed: true
-  });
-  assert.equal(approved.headers.get("Cache-Control"), "private, no-store, max-age=0");
-
-  const visitor = await handleRequest(request("/api/session", signedToken({
-    email: "visitor@example.net"
-  })), x.env, x.options);
-  assert.deepEqual(await visitor.json(), {
-    authenticated: true, email: "visitor@example.net", storageAllowed: false
-  });
-  assert.equal(x.metrics.calls, 0, "Session endpoint never reaches Google");
-});
-
-test("session endpoint refuses HEAD and POST even for authenticated visitors", async () => {
-  const x = gatewayApi();
   const token = signedToken();
-  assert.equal((await handleRequest(request("/api/session", token, "HEAD"), x.env, x.options)).status, 405);
-  assert.equal((await handleRequest(request("/api/session", token, "POST"), x.env, x.options)).status, 405);
+  assert.equal((await handleRequest(request("/", token, "POST"), x.env, x.options)).status, 405);
+  assert.equal((await handleRequest(request("/labinsight/", token, "DELETE"), x.env, x.options)).status, 405);
+  assert.equal((await handleRequest(request("/index.html", token, "HEAD"), x.env, x.options)).status, 200);
+  const redirect = await handleRequest(request("/labinsight", token), x.env, x.options);
+  assert.equal(redirect.status, 302);
+  assert.equal(redirect.headers.get("Location"), "https://services.labdam.example/labinsight/");
+});
+
+test("authenticated user can read own session email but not storage permissions", async () => {
+  const x = mocks();
+  const session = await handleRequest(request("/api/session", signedToken()), x.env, x.options);
+  assert.equal(session.status, 200);
+  assert.deepEqual(await session.json(), {
+    authenticated: true, email: "reviewer@labdam.example"
+  });
+  assert.equal(session.headers.get("Cache-Control"), "private, no-store, max-age=0");
+  assert.equal((await handleRequest(request("/api/session", null), x.env, x.options)).status, 401);
+  assert.equal((await handleRequest(request("/api/session", signedToken(), "HEAD"), x.env, x.options)).status, 405);
+  assert.equal(x.metrics.assets, 0);
+});
+
+test("logout delegates to Cloudflare, no homemade credentials or local password", async () => {
+  const x = mocks();
+  const res = await handleRequest(request("/logout"), x.env, x.options);
+  assert.equal(res.status, 302);
+  assert.equal(res.headers.get("Location"), TEAM + "/cdn-cgi/access/logout");
+  assert.equal(x.metrics.assets, 0);
+});
+
+test("unknown routes, staged secrets and README paths cannot be fetched as assets", async () => {
+  const x = mocks();
+  for (const path of [
+    "/admin/", "/auth-gateway/worker.mjs", "/README.md", "/.github/workflows/auth-gateway-ci.yml",
+    "/sitemap.xml", "/caffeine-atlas/", "/api/storage"
+  ]) {
+    assert.equal((await handleRequest(request(path, signedToken()), x.env, x.options)).status, 404, path);
+  }
+  assert.equal(x.metrics.assets, 0);
 });
