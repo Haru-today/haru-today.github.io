@@ -14,7 +14,7 @@ module.exports = defineConfig({
     { name: "mobile-390", use: { browserName: "chromium", viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true } }
   ],
   webServer: {
-    command: "python3 -m http.server 4177 --bind 127.0.0.1 --directory free-auth/dist",
+    command: "python3 -m http.server 4177 --bind 127.0.0.1 --directory dist",
     url: "http://127.0.0.1:4177/login.html",
     reuseExistingServer: !process.env.CI,
     timeout: 20_000
