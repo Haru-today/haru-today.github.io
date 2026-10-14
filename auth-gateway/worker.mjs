@@ -1,12 +1,11 @@
 /*
- * LABDAM protected-service gateway (deployment-ready component, NOT live).
- * A Cloudflare Access application authenticates visitors; this Worker validates
- * its signed token before returning even a single static service asset.
- * Retire only the legacy public LabInsight after cutover. Keep the 2026-11-14
- * symposium Caffeine Atlas public QR demo accessible without login; this Worker
- * hosts a SEPARATE, authenticated research data-storage copy.
+ * LABDAM + LabInsight login gateway. PRE-DEPLOYMENT ONLY.
+ * LABDAM home / and all LabInsight routes share one Cloudflare Access session.
+ * Caffeine Atlas is an independent, NO-LOGIN public GitHub Pages service.
+ * Do not disable or redirect the symposium QR: /caffeine-atlas/ stays public
+ * at https://haru-today.github.io/caffeine-atlas/ outside this Worker.
  */
-const PREFIXES = Object.freeze(["/labinsight/", "/caffeine-atlas/"]);
+const PREFIXES = Object.freeze(["/labinsight/"]);
 const KEY_CACHE_MS = 5 * 60 * 1000;
 const keyCache = new Map();
 
@@ -165,139 +164,40 @@ async function verifyAccessJwt(request, env, options = {}) {
 }
 
 
-const SAVE_API_PATH = "/api/caffeine-atlas";
-const MAX_SHEET_REQUEST_BYTES = 2 * 1024 * 1024;
-
-function jsonResponse(status, obj) {
-  return securityHeaders(new Response(JSON.stringify(obj), {
+function jsonResponse(status, body) {
+  return securityHeaders(new Response(JSON.stringify(body), {
     status, headers: { "Content-Type": "application/json; charset=utf-8" }
   }));
 }
 
-function sheetsConfig(env) {
-  const endpoint = env?.CAFFEINE_APPS_SCRIPT_URL;
-  const secret = env?.CAFFEINE_ATLAS_WRITE_HMAC_KEY;
-  if (typeof endpoint !== "string" ||
-      !/^https:\/\/script\.google\.com\/macros\/s\/[A-Za-z0-9_-]{20,200}\/exec$/.test(endpoint) ||
-      typeof secret !== "string" || secret.length < 32) return null;
-  return { endpoint, secret };
-}
+const PROTECTED_ROOT_FILES = new Set([
+  "/index.html", "/account.html", "/privacy.html", "/terms.html",
+  "/robots.txt", "/favicon.svg", "/assets/portal-redesign.css"
+]);
 
-async function sheetSignature(secret, payload, timestamp, nonce) {
-  const data = String(timestamp) + "." + nonce + "." + JSON.stringify(payload);
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret),
-    { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
-  const signed = new Uint8Array(await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(data)));
-  return [...signed].map(byte => byte.toString(16).padStart(2, "0")).join("");
-}
-
-
-function permittedStorageReader(identity, env) {
-  // Only an explicitly approved, Cloudflare-verified email can call the
-  // Sheets API. A missing list denies ALL access (including receipt GETs).
-  const raw = env?.STORAGE_WRITER_EMAILS;
-  if (typeof raw !== "string" || !raw.trim()) return { valid: false, allowed: false };
-  const entries = raw.split(",").map(email => email.trim().toLowerCase());
-  if (!entries.length || entries.length > 50 || entries.some(email =>
-    !/^[a-z0-9.!#$%&'*+/=?^_\`{|}~-]+@[a-z0-9.-]+\.[a-z]{2,}$/i.test(email) || email.length > 254
-  )) return { valid: false, allowed: false };
-  return { valid: true, allowed: entries.includes(identity.email || "") };
-}
-
-async function callSheetBackend(request, env, options = {}, identity) {
-  const writer = permittedStorageReader(identity || {}, env);
-  if (!writer.valid) return jsonResponse(503, { ok: false, code: "STORAGE_POLICY_NOT_CONFIGURED" });
-  if (!writer.allowed) return jsonResponse(403, { ok: false, code: "STORAGE_NOT_AUTHORIZED" });
-  const config = sheetsConfig(env);
-  if (!config) return jsonResponse(503, { ok: false, code: "STORAGE_NOT_CONFIGURED" });
-  const url = new URL(request.url);
-  const timestamp = Math.floor(Date.now() / 1000);
-  const nonce = crypto.randomUUID().replace(/-/g, "").toLowerCase();
-  const backendFetch = options.apiFetch || fetch;
-  let body;
-  let backendUrl = config.endpoint;
-  let method = request.method;
-
-  if (method === "GET") {
-    const action = url.searchParams.get("action") || "capabilities";
-    const requestId = url.searchParams.get("requestId") || "";
-    if (!["capabilities", "saveStatus"].includes(action) ||
-        (action === "saveStatus" && !/^[a-f0-9]{32}$/.test(requestId))) {
-      return jsonResponse(400, { ok: false, code: "INVALID_ACTION" });
-    }
-    const payload = "GET:" + action + ":" + requestId;
-    const signature = await sheetSignature(config.secret, payload, timestamp, nonce);
-    const qs = new URLSearchParams({ action, timestamp: String(timestamp), nonce, signature });
-    if (action === "saveStatus") qs.set("requestId", requestId);
-    backendUrl = config.endpoint + "?" + qs.toString();
-  } else if (method === "POST") {
-    const origin = request.headers.get("Origin");
-    if (origin !== url.origin) return jsonResponse(403, { ok: false, code: "ORIGIN_REQUIRED" });
-    if (!(request.headers.get("Content-Type") || "").toLowerCase().startsWith("application/json")) {
-      return jsonResponse(415, { ok: false, code: "JSON_REQUIRED" });
-    }
-    const raw = await request.text();
-    if (new TextEncoder().encode(raw).length > MAX_SHEET_REQUEST_BYTES) {
-      return jsonResponse(413, { ok: false, code: "PAYLOAD_TOO_LARGE" });
-    }
-    let payload;
-    try { payload = JSON.parse(raw); } catch (_) { return jsonResponse(400, { ok: false, code: "INVALID_JSON" }); }
-    if (!payload || typeof payload !== "object" || Array.isArray(payload) ||
-        (payload.action && payload.action !== "batchSave") ||
-        !/^[a-f0-9]{32}$/.test(payload.requestId) ||
-        (payload.action === "batchSave" && (!Array.isArray(payload.rows) ||
-          payload.rows.length < 1 || payload.rows.length > 200)) ||
-        (payload.action !== "batchSave" && payload.consent !== true)) {
-      return jsonResponse(400, { ok: false, code: "INVALID_PAYLOAD" });
-    }
-    const signature = await sheetSignature(config.secret, payload, timestamp, nonce);
-    body = JSON.stringify({ payload, auth: { timestamp, nonce, signature } });
-  } else return jsonResponse(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
-
-  try {
-    const response = await backendFetch(backendUrl, {
-      method,
-      redirect: "follow",
-      headers: method === "POST" ? { "Content-Type": "text/plain; charset=utf-8" } : undefined,
-      body
-    });
-    if (!response.ok) return jsonResponse(502, { ok: false, code: "STORAGE_UNAVAILABLE" });
-    const text = await response.text();
-    if (text.length > 16384) return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" });
-    let result;
-    try { result = JSON.parse(text); }
-    catch (_) { return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" }); }
-    if (!result || typeof result !== "object" || Array.isArray(result)) {
-      return jsonResponse(502, { ok: false, code: "INVALID_STORAGE_RESPONSE" });
-    }
-    // Whitelist response fields. Never mirror Google Spreadsheet IDs or secrets.
-    const safe = {};
-    for (const k of ["ok", "code", "state", "savedCount", "action", "batchId", "version", "capabilities"]) {
-      if (Object.prototype.hasOwnProperty.call(result, k)) safe[k] = result[k];
-    }
-    return jsonResponse(200, safe);
-  } catch (_) {
-    return jsonResponse(502, { ok: false, code: "STORAGE_UNAVAILABLE" });
-  }
+function recognizedProtectedRoute(pathname) {
+  if (pathname === "/" || pathname === "/labinsight" ||
+      pathname === "/api/session" || PROTECTED_ROOT_FILES.has(pathname)) return true;
+  return PREFIXES.some(prefix => pathname.startsWith(prefix));
 }
 
 async function handleRequest(request, env, options = {}) {
   const url = new URL(request.url);
-  const isSaveApi = url.pathname === SAVE_API_PATH;
-  const isSessionApi = url.pathname === "/api/session";
-  if (!["GET", "HEAD"].includes(request.method) && !(isSaveApi && request.method === "POST")) {
+  const method = request.method;
+  if (!["GET", "HEAD"].includes(method)) {
     return statusResponse(405, "허용되지 않는 요청입니다.");
   }
-  if (url.pathname === "/") {
-    return securityHeaders(Response.redirect("https://haru-today.github.io/", 302));
-  }
+  // Cloudflare owns the login cookie and logout endpoint. Nothing in this
+  // Worker mints a token, captures passwords, or trusts unsigned headers.
   if (url.pathname === "/logout") {
     const team = trustedTeamDomain(env?.TEAM_DOMAIN);
     if (!team) return statusResponse(503, "로그인 서비스가 아직 설정되지 않았습니다.");
     return securityHeaders(Response.redirect(team + "/cdn-cgi/access/logout", 302));
   }
-  if (!isSaveApi && !isSessionApi && !PREFIXES.some(p => url.pathname.startsWith(p)) &&
-      !["/labinsight", "/caffeine-atlas"].includes(url.pathname)) {
+
+  // Never serve, sign, proxy or authenticate Caffeine Atlas here. The public
+  // GitHub Pages app runs independently and is NOT a protected Worker bundle.
+  if (!recognizedProtectedRoute(url.pathname)) {
     return statusResponse(404, "요청한 페이지가 없습니다.");
   }
 
@@ -309,29 +209,19 @@ async function handleRequest(request, env, options = {}) {
       err instanceof AuthError ? err.message : "인증 확인 중 오류가 발생했습니다.");
   }
 
-  if (isSessionApi) {
-    if (request.method !== "GET") return jsonResponse(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
-    // An authenticated visitor can read only their own identity and
-    // whether the operator has explicitly approved cloud storage.
-    const writer = permittedStorageReader(identity, env);
-    return jsonResponse(200, {
-      authenticated: true,
-      email: identity.email,
-      storageAllowed: writer.valid && writer.allowed
-    });
+  if (url.pathname === "/api/session") {
+    if (method !== "GET") return jsonResponse(405, { ok: false, code: "METHOD_NOT_ALLOWED" });
+    return jsonResponse(200, { authenticated: true, email: identity.email });
   }
-  if (isSaveApi) {
-    if (request.method === "HEAD") return statusResponse(405, "허용되지 않는 요청입니다.");
-    return callSheetBackend(request, env, options, identity);
-  }
-
-  if (url.pathname === "/labinsight" || url.pathname === "/caffeine-atlas") {
-    return securityHeaders(Response.redirect(new URL(url.pathname + "/", url.origin).href, 302));
+  if (url.pathname === "/labinsight") {
+    return securityHeaders(Response.redirect(new URL("/labinsight/", url.origin).href, 302));
   }
   if (!env?.ASSETS || typeof env.ASSETS.fetch !== "function") {
-    return statusResponse(503, "보호된 서비스가 아직 배포되지 않았습니다.");
+    return statusResponse(503, "로그인 서비스가 아직 배포되지 않았습니다.");
   }
-  // Every file — JS, HTML, CSS, image — is requested through this Worker.
+
+  // The / path is a real protected LABDAM homepage, never a redirect to an
+  // unprotected github.io origin. assets.run_worker_first=true is required.
   try {
     return securityHeaders(await env.ASSETS.fetch(request));
   } catch (_) {
