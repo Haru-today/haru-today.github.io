@@ -8,15 +8,24 @@
 <div class="table-wrap"><table><thead><tr><th>신청자</th><th>신청 내용</th><th>상태</th><th>관리자 처리</th></tr></thead><tbody id="members"></tbody></table></div>
 </section></main><footer>승인 이력과 신청 상태는 D1에 저장됩니다. 비밀번호는 저장하지 않습니다.</footer>
 <script>(async function(){
-const msg=document.getElementById("status"),body=document.getElementById("members");let csrf="";
+const msg=document.getElementById("status"),body=document.getElementById("members");
+const refresh=document.getElementById("refresh");let csrf="",updating=false,loading=false;
+function setBusy(busy){
+ refresh.disabled=busy||loading;
+ for(const button of body.querySelectorAll("button[data-next-status]")){
+  button.disabled=busy||button.dataset.nextStatus===button.closest("tr").dataset.currentStatus;
+ }
+}
 async function load(){
+ if(loading)return;
+ loading=true;setBusy(updating);
  msg.textContent="신청 목록을 불러오는 중입니다.";
  try{
   const res=await fetch("/api/admin/applications",{credentials:"same-origin",cache:"no-store"});
   if(!res.ok){msg.textContent="관리자 권한이 없거나 로그인 세션이 만료되었습니다.";return;}
   const data=await res.json();body.replaceChildren();
   for(const m of data.members){
-   const row=document.createElement("tr");
+   const row=document.createElement("tr");row.dataset.currentStatus=m.status;
    const identity=document.createElement("td");const email=document.createElement("strong");email.textContent=m.email;
    const small=document.createElement("small");small.textContent=" "+(m.display_name||"")+" · 신청 "+new Date(m.created_at*1000).toLocaleDateString("ko-KR");
    identity.append(email,document.createElement("br"),small);
@@ -25,23 +34,28 @@ async function load(){
    const actions=document.createElement("td");const commands=document.createElement("div");commands.className="actions";
    for(const [caption,next] of [["승인","approved"],["거절","rejected"],["대기로","pending"]]){
     const button=document.createElement("button");button.type="button";button.className=next==="approved"?"":"secondary";button.textContent=caption;
-    button.disabled=m.status===next;
+    button.dataset.nextStatus=next;button.disabled=m.status===next;
     button.addEventListener("click",async()=>{
-     if(!window.confirm(m.email+" 계정을 '"+caption+"' 처리할까요?"))return;
-     button.disabled=true;
+     if(updating||loading)return;
+     const warning=(next!=="approved"||m.status==="rejected")?"\n기존 로그인 세션은 무효화됩니다. 재승인 후에는 다시 로그인해야 할 수 있습니다.":"";
+     if(!window.confirm(m.email+" 계정을 '"+caption+"' 처리할까요?"+warning))return;
+     updating=true;setBusy(true);msg.textContent="회원 상태를 변경하고 있습니다.";
      try{
       const result=await fetch("/api/admin/review",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify({google_sub:m.google_sub,status:next})});
-      if(!result.ok)throw new Error("update_failed");await load();
-     }catch(_){msg.textContent="회원 상태를 변경하지 못했습니다. 다시 시도해 주세요.";button.disabled=false;}
+      if(!result.ok)throw new Error("update_failed");
+      await load();
+     }catch(_){msg.textContent="회원 상태를 변경하지 못했습니다. 다시 시도해 주세요.";}
+     finally{updating=false;setBusy(false);}
     });
     commands.appendChild(button);
    }actions.append(commands);row.append(identity,purpose,status,actions);body.append(row);
   }
   msg.textContent="신청자 "+data.members.length+"명. 승인되지 않은 신청자는 보호된 서비스에 접근할 수 없습니다.";
  }catch(_){msg.textContent="신청 목록 조회에 실패했습니다.";}
+ finally{loading=false;setBusy(updating);}
 }
 try{const res=await fetch("/api/me",{cache:"no-store",credentials:"same-origin"});if(!res.ok)throw Error("invalid");
 const me=await res.json();if(me.role!=="admin"||me.status!=="approved"){msg.textContent="관리자만 사용할 수 있습니다.";return;}
-csrf=me.csrf;document.getElementById("refresh").addEventListener("click",load);await load();
+csrf=me.csrf;refresh.addEventListener("click",()=>{if(!updating)load();});await load();
 }catch(_){msg.textContent="로그인과 관리자 승인 상태를 확인할 수 없습니다.";}
 })();</script></body></html>

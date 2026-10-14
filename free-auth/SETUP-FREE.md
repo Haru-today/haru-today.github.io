@@ -130,3 +130,23 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 - [ ] `/healthz`의 200은 Google/D1 준비 완료를 뜻하지 않음. 실제 OAuth callback·D1 저장·승인·철회로 준비 상태 확인
 
 **이 문서는 실제 클라우드 배포의 성공을 의미하지 않습니다.** 관리자 계정의 검증된 Cloudflare/Google 정보를 입력하고 현장 테스트가 끝나기 전까지 코드 상태만 유지합니다.
+
+
+## 7. 익명 공개 Pages 실측 확인 (읽기 전용 · 배포/삭제 없음)
+
+기존 공개 저장소의 LABDAM/LabInsight 직접 접근 문제와 Caffeine Atlas 포스터 URL을 한 번에 검사하는 도구가 있습니다. **쿠키·회원정보 없이 GET만 실행하고 어떤 파일이나 Pages 설정도 변경하지 않습니다.**
+
+    node free-auth/scripts/audit-public-pages.mjs
+
+- `EXPOSED`: 로그인 없이 보호 대상 페이지/JS/CSS가 2xx로 제공되므로 운영 전 조치 필요.
+- `CLOSED`: 401/403/404/410. 이전 공개 경로에서는 차단 상태로 분류하지만 링크·캐시·사용자 경험은 별도 확인 필요.
+- `PUBLIC`: 포스터 Caffeine Atlas의 지정 공개 주소가 2xx로 열림.
+- `REVIEW`: 리디렉션, 5xx, 네트워크 실패/시간 초과 등. 보안을 확인한 것으로 취급하지 않음.
+
+점검 대상은 LabInsight HTML·JS·CSS·manifest·icons·service worker와 Caffeine Atlas 공개 주소 4개입니다. 현재 운영 중인 옛 서비스에서 `EXPOSED`가 나오는 것은 예상되는 미완료 사항이며, **일반 실행은 경고만 출력합니다.** 코드 PR CI에서도 읽기 전용 진단은 성공/실패 게이트로 오해하지 않도록 별도 단계로 표시합니다.
+
+기존 공개 자원 정리 계획을 승인·실행한 **이후에만** 아래 엄격 모드로 재검사합니다.
+
+    node free-auth/scripts/audit-public-pages.mjs --require-cutover
+
+엄격 모드는 보호 대상이 모두 `CLOSED`이고 Caffeine Atlas 4개가 모두 `PUBLIC`일 때만 종료 코드 0을 반환합니다. 이는 물리 QR·기기 캐시·다운로드된 복사본 검증을 대체하지 않습니다. 본 PR에서는 레거시 게시물 삭제·Pages 설정 변경·운영 배포를 하지 않습니다.

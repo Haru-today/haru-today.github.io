@@ -120,3 +120,34 @@ test("administrator sees the approval dashboard and cannot accidentally delete o
   await expect(page.locator("#adminLink")).toBeVisible();
   await expect(page.locator("#withdrawWrap")).toBeHidden();
 });
+
+test("admin review disables all competing decisions and refresh until the server confirms", async ({ page }) => {
+  const members=[{google_sub:"12345678901234",email:"review@example.invalid",display_name:"Reviewer",
+    purpose:"학습",status:"approved",role:"member",created_at:1780000000}];
+  let started=0,release;
+  await page.route("**/api/me",route=>route.fulfill({json:{
+    authenticated:true,email:"admin@example.invalid",name:"Admin",
+    status:"approved",role:"admin",csrf:"b".repeat(64)
+  }}));
+  await page.route("**/api/admin/applications",route=>route.fulfill({json:{ok:true,members}}));
+  await page.route("**/api/admin/review",async route=>{
+    started++;
+    await new Promise(resolve=>{release=resolve;});
+    members[0].status="rejected";
+    await route.fulfill({json:{ok:true}});
+  });
+  page.on("dialog",dialog=>dialog.accept());
+  await page.goto("/admin.html");
+  await expect(page.getByRole("button",{name:"거절",exact:true})).toBeEnabled();
+  await page.getByRole("button",{name:"거절",exact:true}).click();
+  await expect.poll(()=>started).toBe(1);
+  for(const name of ["승인","거절","대기로"]){
+    await expect(page.getByRole("button",{name,exact:true})).toBeDisabled();
+  }
+  await expect(page.locator("#refresh")).toBeDisabled();
+  release();
+  await expect(page.locator("#refresh")).toBeEnabled();
+  await expect(page.getByRole("button",{name:"거절",exact:true})).toBeDisabled();
+  await expect(page.getByRole("button",{name:"승인",exact:true})).toBeEnabled();
+  expect(started).toBe(1);
+});
