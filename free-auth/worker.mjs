@@ -235,9 +235,28 @@ async function oauthCallback(request, env, origin, opts) {
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: params.toString(), redirect: "error"
     });
-    if (!response.ok) throw new Error("oauth_exchange_rejected");
+    if (!response.ok) {
+      // Only log Google error categories from a fixed allowlist. Do NOT emit
+      // the provider response, description, OAuth code/state, token or secrets.
+      let category = "provider_error";
+      try {
+        const failure = await response.json();
+        const code = failure && !Array.isArray(failure) && failure.error;
+        if (typeof code === "string" && [
+          "invalid_client", "invalid_grant", "invalid_request",
+          "unauthorized_client", "access_denied", "unsupported_grant_type"
+        ].includes(code)) category = code;
+      } catch (_) { /* Malformed provider response remains provider_error. */ }
+      console.warn("LABDAM_OAUTH_TOKEN_REJECTED", response.status, category);
+      throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
+    }
     googleToken = await response.json();
-  } catch (_) { throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요."); }
+  } catch (error) {
+    if (error instanceof LoginError) throw error;
+    // Never serialize raw transport errors; they may contain request details.
+    console.warn("LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE");
+    throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
+  }
   const identity = await googleIdentity(googleToken.id_token, stored.nonce, env, opts);
   const bootstrap = typeof env.BOOTSTRAP_ADMIN_EMAIL === "string" &&
     env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase() === identity.email &&

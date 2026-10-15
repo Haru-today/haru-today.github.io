@@ -197,3 +197,14 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 - Mac 로컬의 보호 번들 빌드 결과는 파일 27개 사전검사를 통과했습니다. 새로운 개발 브랜치 설정을 받으려면 `cd ~/labdam-auth-setup/free-auth && git pull --ff-only` 후 `node scripts/preflight-static.mjs --require-real-d1`을 실행합니다.
 - `npx wrangler deploy --dry-run`은 정적 번들·Worker 준비 상태를 **배포 없이** 미리 검사하는 선택적 단계입니다. 이 작업은 실제 무료 Worker 생성, 비밀값 설정, 또는 OAuth 콜백 동작 확인을 대신하지 않습니다.
 - Worker 자체는 아직 미생성 상태입니다. `wrangler deploy`나 `wrangler secret put`은 별도 시험 배포 승인 및 안전한 비밀값 입력 경로가 준비되기 전에는 실행하지 않습니다.
+
+
+## 2026-10-15 · Google 토큰 교환 503 원인 진단 (시험 Worker 전용)
+
+사용자 브라우저에서 `Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.`가 발생했습니다. 503 원인은 token endpoint의 `invalid_client`, `invalid_grant`, 기타 HTTP 거절, 네트워크/응답 파싱 실패를 구분해야 합니다.
+
+`worker.mjs`의 token exchange 실패 경로에 **고정된 오류 분류만** `console.warn`으로 기록하도록 추가했습니다. 사용자의 Google 비밀번호, Client Secret, OAuth 코드, state, 액세스/ID 토큰, 이메일, 응답 원문, 오류 설명을 로그에 기록하지 않습니다. 실패 시 외부 사용자에게 표시하는 기존 일반 문구와 503 상태코드는 그대로 유지됩니다.
+
+분류 값: `LABDAM_OAUTH_TOKEN_REJECTED <HTTP상태> <invalid_client|invalid_grant|invalid_request|unauthorized_client|access_denied|unsupported_grant_type|provider_error>` 또는 `LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE`. 테스트로 원문/비밀 토큰이 기록되지 않는지 검증합니다.
+
+**현재 GitHub 변경은 자동 배포되지 않습니다.** Mac에서 `git pull --ff-only` 후 기존 보호 번들 `dist`를 유지하고 `npx wrangler deploy --dry-run` 검수한 다음, 사용자가 별도로 `npx wrangler deploy`를 수행해야 시험 Worker가 갱신됩니다. 다시 로그인할 때 `npx wrangler tail labdam-free-approval --format pretty`로 직접 실시간 로그를 확인할 수 있습니다. **로그 전체를 채팅에 붙이지 말고 `LABDAM_OAUTH_TOKEN_...` 줄만 공유**합니다. 특히 Callback 요청 URL은 `code`/`state`가 포함될 수 있으므로 공유 금지.

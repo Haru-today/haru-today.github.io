@@ -465,3 +465,62 @@ test("daily free D1 cleanup removes only expired OAuth states, sessions and rate
   assert.equal(f.DB.throttles.has("new"), true);
   assert.equal(f.DB.members.size, 1);
 });
+
+test("rejected Google token exchange reports only a fixed error category, never secrets", async () => {
+  const f = fixture();
+  const privateMarker = "DO-NOT-LOG-GOOGLE-SECRET-OR-OAUTH-CODE";
+  f.opts.googleFetch = async (url) => {
+    assert.equal(url, "https://oauth2.googleapis.com/token");
+    return new Response(JSON.stringify({
+      error: "invalid_client", error_description: privateMarker, access_token: privateMarker
+    }), { status: 401 });
+  };
+  const recorded = [], oldWarn = console.warn;
+  console.warn = (...args) => recorded.push(args);
+  try {
+    const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+    assert.equal(start.status, 302);
+    const state = new URL(start.headers.get("location")).searchParams.get("state");
+    const callback = "/auth/callback?code=" + privateMarker + "&state=" + state;
+    const result = await handleRequest(req(callback, {
+      cookie: "__Host-labdam_oauth_state=" + state
+    }), f.env, f.opts);
+    assert.equal(result.status, 503);
+    assert.match(await result.text(), /Google 로그인 연결에 실패했습니다/);
+    assert.equal(f.DB.members.size, 0);
+    assert.equal(f.DB.sessions.size, 0);
+    assert.deepEqual(recorded, [["LABDAM_OAUTH_TOKEN_REJECTED", 401, "invalid_client"]]);
+    assert.ok(!JSON.stringify(recorded).includes(privateMarker));
+  } finally {
+    console.warn = oldWarn;
+  }
+});
+
+test("unexpected provider error and token network failures reveal no raw response", async () => {
+  for (const responseMode of ["unknown", "transport"]) {
+    const f = fixture(), recorded = [], oldWarn = console.warn;
+    f.opts.googleFetch = async () => {
+      if (responseMode === "transport") throw Error("SECRET-MARKER-TRANSPORT");
+      return new Response(JSON.stringify({
+        error: "SOME_UNBOUNDED_PRIVATE_ERROR", error_description: "SECRET-MARKER-BODY"
+      }), { status: 400 });
+    };
+    console.warn = (...args) => recorded.push(args);
+    try {
+      const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+      const state = new URL(start.headers.get("location")).searchParams.get("state");
+      const result = await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+        cookie: "__Host-labdam_oauth_state=" + state
+      }), f.env, f.opts);
+      assert.equal(result.status, 503);
+      const output = JSON.stringify(recorded);
+      assert.ok(!output.includes("SECRET-MARKER"));
+      assert.deepEqual(recorded,
+        responseMode === "transport"
+          ? [["LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE"]]
+          : [["LABDAM_OAUTH_TOKEN_REJECTED", 400, "provider_error"]]);
+    } finally {
+      console.warn = oldWarn;
+    }
+  }
+});
