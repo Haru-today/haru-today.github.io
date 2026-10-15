@@ -1,0 +1,6 @@
+{
+  "name": "labdam-local-workers-tests",
+  "private": true,
+  "scripts": { "test": "node --test integration.test.cjs" },
+  "devDependencies": { "miniflare": "5.20261012.0-beta" }
+}

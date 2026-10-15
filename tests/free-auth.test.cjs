@@ -2,7 +2,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { createHash, generateKeyPairSync, sign } = require("node:crypto");
-const { handleRequest, safeNext, purgeExpiredRecords } = require("../free-auth/worker.mjs");
+const { handleRequest, googleIdentity, safeNext, purgeExpiredRecords } = require("../free-auth/worker.mjs");
 
 const ORIGIN = "https://labdam-test.workers.dev";
 const CLIENT = "1234567890-verified-web-client.apps.googleusercontent.com";
@@ -11,6 +11,35 @@ const { privateKey, publicKey } = generateKeyPairSync("rsa", { modulusLength: 20
 const JWK = { ...publicKey.export({ format: "jwk" }), kid: "google-test-kid-001", alg: "RS256", use: "sig" };
 const hash = value => createHash("sha256").update(value).digest("hex");
 const base64 = value => Buffer.from(JSON.stringify(value)).toString("base64url");
+test("OIDC null, array and primitive header/payload are authentication errors", async () => {
+  const f = fixture();
+  for (const invalid of [null, [], "invalid", 1]) {
+    for (const [header, payload] of [[invalid, {}], [{ alg: "RS256", kid: JWK.kid }, invalid]]) {
+      await assert.rejects(googleIdentity(base64(header) + "." + base64(payload) + ".c2ln", "nonce", f.env, f.opts),
+        error => error.status === 401);
+    }
+  }
+});
+test("provider timeout is bounded, consumes state and clears the browser OAuth cookie", async () => {
+  const f = fixture(), logs = [], original = console.warn;
+  f.opts.googleFetch = async (_url, options) => {
+    assert.ok(options.signal instanceof AbortSignal);
+    throw new DOMException("synthetic-sensitive-message", "TimeoutError");
+  };
+  console.warn = (...args) => logs.push(args.join(" "));
+  try {
+    const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+    const state = new URL(start.headers.get("location")).searchParams.get("state");
+    const request = req("/auth/callback?code=SYNTHETIC_CODE&state=" + state, { cookie: "__Host-labdam_oauth_state=" + state });
+    const response = await handleRequest(request, f.env, f.opts);
+    assert.equal(response.status, 503);
+    assert.match(response.headers.get("set-cookie"), /__Host-labdam_oauth_state=;.*Max-Age=0/);
+    assert.equal(f.DB.states.size, 0);
+    assert.equal(f.DB.sessions.size, 0);
+    assert.deepEqual(logs, ["LABDAM_OAUTH_TOKEN_FETCH_FAILURE other"]);
+    assert.equal((await handleRequest(request, f.env, f.opts)).status, 400);
+  } finally { console.warn = original; }
+});
 function signedIdToken(claims = {}) {
   const header = base64({ alg: "RS256", kid: JWK.kid, typ: "JWT" });
   const payload = base64({
@@ -25,6 +54,19 @@ function fakeDb() {
   const members = new Map(), states = new Map(), sessions = new Map(), throttles = new Map();
   return {
     members, states, sessions, throttles,
+    async batch(statements) {
+      const snapshots = [members, states, sessions, throttles].map(m => structuredClone(m));
+      try {
+        const results = [];
+        for (const statement of statements) results.push(await statement.all());
+        return results;
+      } catch (error) {
+        [members, states, sessions, throttles].forEach((m, i) => {
+          m.clear(); for (const [k, v] of snapshots[i]) m.set(k, v);
+        });
+        throw error;
+      }
+    },
     prepare(sql) {
       let args;
       return {
@@ -107,6 +149,12 @@ function fakeDb() {
           throw Error("Unhandled D1 first statement: " + sql);
         },
         async all() {
+          if (sql.startsWith("DELETE FROM sessions") || sql.startsWith("INSERT INTO")) {
+            await this.run(); return { success: true, results: [] };
+          }
+          if (sql.startsWith("UPDATE members SET status") || sql.startsWith("SELECT google_sub,email,display_name,status,role FROM members")) {
+            const row = await this.first(); return { success: true, results: row ? [row] : [] };
+          }
           if (sql.startsWith("SELECT google_sub,email,display_name,status,role,purpose")) {
             return { results: [...members.values()].filter(m => m.role === "member") };
           }

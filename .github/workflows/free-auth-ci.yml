@@ -66,13 +66,17 @@ jobs:
         run: node free-auth/scripts/preflight-static.mjs --require-real-d1
       - name: Inspect protected file allowlist and public Caffeine Atlas URL
         run: node --test free-auth/tests/bundle.test.cjs
+      - name: Install pinned local Workers runtime (no cloud credentials)
+        run: npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
+      - name: Exercise real workerd, local D1 and gated assets with synthetic Google responses
+        run: npm test --prefix free-auth/tests/runtime
       - name: Reject accidentally shipped credentials or Caffeine Atlas pages
         run: |
           test ! -e free-auth/dist/caffeine-atlas
           test ! -e free-auth/dist/free-auth
           ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
       - name: Install pinned UI browser test dependencies
-        run: npm install --no-audit --no-fund
+        run: npm ci --no-audit --no-fund
       - name: Install Chromium for login and membership UI checks
         run: npx playwright install --with-deps chromium
       - name: Verify login, pending, admin and account screens at desktop and mobile widths

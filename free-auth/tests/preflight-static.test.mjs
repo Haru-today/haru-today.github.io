@@ -67,7 +67,7 @@ test('secrets and symlink assets are rejected',async()=>fixture(async({root,dist
   assert.match(r.errors.join(' '),/Forbidden asset path/);
 }));
 test('symlinked asset tree cannot escape inspected bundle',async()=>fixture(async({root,dist})=>{
-  await symlink('/tmp',join(dist,'external'));
+  await symlink(tmpdir(),join(dist,'external'),process.platform === 'win32' ? 'junction' : 'dir');
   const r=await inspectStatic(root);assert.equal(r.ok,false);
   assert.match(r.errors.join(' '),/symbolic link/);
 }));
@@ -85,7 +85,7 @@ test('CLI resolves repository root from its own path, not caller cwd',async()=>f
   const dest=join(root,'free-auth','scripts','preflight-static.mjs');
   await mkdir(join(root,'free-auth','scripts'),{recursive:true});
   await copyFile(fileURLToPath(new URL('../scripts/preflight-static.mjs',import.meta.url)),dest);
-  const run=spawnSync(process.execPath,[dest,'--json'],{cwd:'/tmp',encoding:'utf8'});
+  const run=spawnSync(process.execPath,[dest,'--json'],{cwd:tmpdir(),encoding:'utf8'});
   assert.equal(run.status,0,run.stderr);
   const report=JSON.parse(run.stdout);
   assert.equal(report.ok,true);
@@ -93,7 +93,7 @@ test('CLI resolves repository root from its own path, not caller cwd',async()=>f
 }));
 test('a symlinked dist root cannot be treated as an inspected protected bundle',async()=>fixture(async({root,dist})=>{
   await rm(dist,{recursive:true});
-  await symlink('/tmp',dist);
+  await symlink(tmpdir(),dist,process.platform === 'win32' ? 'junction' : 'dir');
   const r=await inspectStatic(root);
   assert.equal(r.ok,false);
   assert.match(r.errors.join(' '),/real directory/);

@@ -6,6 +6,7 @@
  */
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
+const GOOGLE_TIMEOUT_MS = 10_000;
 const GOOGLE_JWKS_URL = "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const COOKIE_SESSION = "__Host-labdam_session";
@@ -120,7 +121,9 @@ async function googleIdentity(idToken, nonce, env, opts) {
   if (parts.length !== 3 || idToken.length > 12000) throw new LoginError(401, "Google 인증에 실패했습니다.");
   const header = decodedJson(parts[0]), payload = decodedJson(parts[1]);
   const now = nowSecs(opts);
-  if (header.alg !== "RS256" || typeof header.kid !== "string" ||
+  if (!header || !payload || typeof header !== "object" || typeof payload !== "object" ||
+      Array.isArray(header) || Array.isArray(payload) ||
+      header.alg !== "RS256" || typeof header.kid !== "string" ||
       !/^[A-Za-z0-9_-]{3,200}$/.test(header.kid) ||
       !["accounts.google.com", "https://accounts.google.com"].includes(payload.iss) ||
       payload.aud !== env.GOOGLE_CLIENT_ID ||
@@ -135,7 +138,9 @@ async function googleIdentity(idToken, nonce, env, opts) {
   }
   let keys;
   try {
-    const response = await (opts.googleFetch || fetch)(GOOGLE_JWKS_URL, { redirect: "manual" });
+    const response = await (opts.googleFetch || fetch)(GOOGLE_JWKS_URL, {
+      redirect: "manual", signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS)
+    });
     // workerd rejects the unsupported error redirect mode at request construction time. Explicitly
     // reject any 3xx instead of following a response to an untrusted host.
     if (response.status >= 300 && response.status < 400) throw new Error("Google key endpoint redirect blocked");
@@ -238,7 +243,7 @@ async function oauthCallback(request, env, origin, opts) {
   try {
     response = await (opts.googleFetch || fetch)(GOOGLE_TOKEN_URL, {
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(), redirect: "manual"
+      body: params.toString(), redirect: "manual", signal: AbortSignal.timeout(GOOGLE_TIMEOUT_MS)
     });
   } catch (error) {
     console.warn("LABDAM_OAUTH_TOKEN_FETCH_FAILURE",
@@ -273,25 +278,27 @@ async function oauthCallback(request, env, origin, opts) {
     console.warn("LABDAM_OAUTH_TOKEN_JSON_FAILURE", response.status);
     throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
   }
-  const identity = await googleIdentity(googleToken.id_token, stored.nonce, env, opts);
+  const identity = await googleIdentity(googleToken?.id_token, stored.nonce, env, opts);
   const bootstrap = typeof env.BOOTSTRAP_ADMIN_EMAIL === "string" &&
     env.BOOTSTRAP_ADMIN_EMAIL.trim().toLowerCase() === identity.email &&
     identity.emailAuthoritative;
-  await env.DB.prepare(
+  // Profile refresh and session issuance share one D1 transaction. A concurrent
+  // review cannot split them; a failed session insert leaves no partial signup.
+  const rawSession = tokenRandom(32), csrf = tokenRandom(32);
+  const issued = await env.DB.batch([env.DB.prepare(
     "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) " +
     "VALUES (?,?,?,?,?,?,?) ON CONFLICT(google_sub) DO UPDATE SET " +
     "email=excluded.email,display_name=excluded.display_name,updated_at=excluded.updated_at"
   ).bind(identity.sub, identity.email, identity.name,
-    bootstrap ? "approved" : "pending", bootstrap ? "admin" : "member", now, now).run();
-  const member = await env.DB.prepare(
-    "SELECT google_sub,email,display_name,status,role FROM members WHERE google_sub=?"
-  ).bind(identity.sub).first();
-  if (!member) throw new LoginError(503, "가입 신청 상태를 저장할 수 없습니다.");
-
-  const rawSession = tokenRandom(32), csrf = tokenRandom(32);
-  await env.DB.prepare(
+    bootstrap ? "approved" : "pending", bootstrap ? "admin" : "member", now, now),
+  env.DB.prepare(
     "INSERT INTO sessions(token_hash,google_sub,csrf_token,expires_at,created_at) VALUES (?,?,?,?,?)"
-  ).bind(await digest(rawSession), identity.sub, csrf, now + SESSION_SECONDS, now).run();
+  ).bind(await digest(rawSession), identity.sub, csrf, now + SESSION_SECONDS, now),
+  env.DB.prepare(
+    "SELECT google_sub,email,display_name,status,role FROM members WHERE google_sub=?"
+  ).bind(identity.sub)]);
+  const member = issued[2].results?.[0];
+  if (!member) throw new LoginError(503, "가입 신청 상태를 저장할 수 없습니다.");
   const destination = member.status === "approved" ? safeNext(stored.next_path) : "/pending.html";
   let out = redirect(destination, origin);
   out = putCookie(out, COOKIE_OAUTH, "", 0);
@@ -396,18 +403,19 @@ async function adminReview(request, env, admin, now) {
   }
   // Purge server sessions BEFORE a downgrade or re-approval from rejected.
   // Initial pending -> approved keeps its session (no second Google sign-in).
-  // A failed D1 deletion must not change membership status.
-  await env.DB.prepare(
+  // D1 batch is transactional: concurrent reviews/logins cannot interleave
+  // between deletion and the status change, and either failure rolls back both.
+  const changes = await env.DB.batch([env.DB.prepare(
     "DELETE FROM sessions WHERE google_sub=? AND EXISTS (" +
     "SELECT 1 FROM members WHERE google_sub=? AND role='member' " +
     "AND (status='rejected' OR ?!='approved'))"
-  ).bind(data.google_sub, data.google_sub, data.status).run();
+  ).bind(data.google_sub, data.google_sub, data.status),
   // Admins are deliberately immutable through the member approval endpoint.
-  const changed = await env.DB.prepare(
+  env.DB.prepare(
     "UPDATE members SET status=?,updated_at=?,reviewed_at=?,reviewed_by=? " +
     "WHERE google_sub=? AND role='member' RETURNING google_sub"
-  ).bind(data.status, now, now, admin.google_sub, data.google_sub).first();
-  if (!changed) return json(404, { ok: false, code: "NOT_MEMBER" });
+  ).bind(data.status, now, now, admin.google_sub, data.google_sub)]);
+  if (!changes[1].results?.length) return json(404, { ok: false, code: "NOT_MEMBER" });
   // Revoked sessions cannot be revived by a later approval. Previously opened
   // pages and downloaded reports cannot be remotely removed.
   return json(200, { ok: true, google_sub: data.google_sub, status: data.status });
@@ -522,11 +530,12 @@ async function handleRequest(request, env, opts = {}) {
     if (path === "/labinsight") return redirect("/labinsight/", origin);
     return await assetFor(request, env, path);
   } catch (error) {
-    if (error instanceof LoginError) {
-      return simple(error.status, error.message);
-    }
     // Fail closed and never leak tokens, DB schema or email to the browser.
-    return simple(503, "서비스를 잠시 이용할 수 없습니다.");
+    const response = error instanceof LoginError
+      ? simple(error.status, error.message)
+      : simple(503, "서비스를 잠시 이용할 수 없습니다.");
+    return path === "/auth/callback"
+      ? putCookie(response, COOKIE_OAUTH, "", 0) : response;
   }
 }
 export default {
