@@ -188,3 +188,12 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
     node free-auth/scripts/preflight-static.mjs --require-real-d1 --require-final-policy
 
 이는 기존 placeholder 및 요구 항목 존재를 검사하는 제한적인 자동 점검으로, 사업자 실체·DB 실제 연결·법률 준수를 인증하지 않습니다. 원격 배포·기존 Pages 공개 자원 삭제·유료 전환은 수행하지 않습니다.
+
+
+## 2026-10-15 · 사용자 확인 원격 D1 및 Google OAuth 공개 Client ID 준비
+
+- 사용자가 Wrangler CLI에서 원격 `labdam-membership`의 `0001_initial.sql` 적용 성공과 `members`, `sessions`, `oauth_states`, `login_throttle` 네 테이블 존재를 확인했습니다. 실제 시험 Worker에서의 D1 연동은 아직 미검증입니다.
+- 사용자 제공 Google OAuth **Web application Client ID**만 공개 `wrangler.jsonc`의 `vars.GOOGLE_CLIENT_ID`에 설정했습니다. Client ID는 공개 식별자이며 비밀번호가 아닙니다. `GOOGLE_CLIENT_SECRET`은 저장소·채팅·빌드 디렉터리에 저장하지 않습니다.
+- Mac 로컬의 보호 번들 빌드 결과는 파일 27개 사전검사를 통과했습니다. 새로운 개발 브랜치 설정을 받으려면 `cd ~/labdam-auth-setup/free-auth && git pull --ff-only` 후 `node scripts/preflight-static.mjs --require-real-d1`을 실행합니다.
+- `npx wrangler deploy --dry-run`은 정적 번들·Worker 준비 상태를 **배포 없이** 미리 검사하는 선택적 단계입니다. 이 작업은 실제 무료 Worker 생성, 비밀값 설정, 또는 OAuth 콜백 동작 확인을 대신하지 않습니다.
+- Worker 자체는 아직 미생성 상태입니다. `wrangler deploy`나 `wrangler secret put`은 별도 시험 배포 승인 및 안전한 비밀값 입력 경로가 준비되기 전에는 실행하지 않습니다.
