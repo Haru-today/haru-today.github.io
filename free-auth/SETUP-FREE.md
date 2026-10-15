@@ -24,13 +24,17 @@
 
 1. Cloudflare 대시보드에서 현재 계정이 **Workers Free**인지 확인합니다. Workers Paid로 전환하지 마세요.
 2. D1에서 **labdam-membership**이라는 새 무료 데이터베이스를 만듭니다.
-3. 해당 D1 데이터베이스 UUID를 확인해 free-auth/wrangler.jsonc의 REPLACE_WITH_REAL_FREE_D1_DATABASE_ID 값에만 지정합니다. 이 값은 토큰이 아닌 D1 식별자이지만 GitHub PR에서는 실제 값 교체 전에 재검토합니다.
+3. 사용자 제공 D1 데이터베이스 UUID를 2026-10-15 개발 브랜치의 `free-auth/wrangler.jsonc` `database_id`에 반영했습니다. UUID는 비밀번호나 API 토큰이 아닙니다. **이는 식별자 형식 확인일 뿐, 실제 Cloudflare 계정에서 해당 데이터베이스 존재·소유권 또는 원격 연결을 검증했다는 의미가 아닙니다.** GitHub CI는 이제 `--require-real-d1`로 누락·형식 오류를 차단합니다.
 4. Node.js와 Wrangler(Cloudflare 공식 CLI)로 프로젝트의 무료 데이터베이스 마이그레이션을 적용합니다.
 
 실제 체크아웃한 저장소의 free-auth 폴더에서 실행 예:
 
-    npx wrangler d1 create labdam-membership
+    npx wrangler login
+    npx wrangler whoami
+    npx wrangler d1 migrations list labdam-membership --remote
     npx wrangler d1 migrations apply labdam-membership --remote
+
+**중요:** 위 D1은 사용자가 이미 만들었다고 알려주었으므로 `wrangler d1 create`를 다시 실행하지 않습니다. 처음 실행할 때 마이그레이션 확인 프롬프트에서 대상 DB 이름이 `labdam-membership`인지 확인하세요. `--remote` 없이 실행하면 로컬 데이터베이스에 적용될 수 있습니다. 이 단계는 관리자 컴퓨터에서 본인 Cloudflare 계정에 로그인한 후 실행해야 하며, GitHub CI에서는 원격 DB 테이블을 변경하지 않습니다.
 
 **주의:** 마이그레이션 전에 대상 데이터베이스 이름·UUID가 정확한지 재확인하세요. 다른 연구 데이터를 저장한 시트나 DB를 덮어쓰지 않습니다.
 

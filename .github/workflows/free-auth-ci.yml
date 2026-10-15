@@ -63,7 +63,7 @@ jobs:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Check reviewed static Worker config and built assets
-        run: node free-auth/scripts/preflight-static.mjs
+        run: node free-auth/scripts/preflight-static.mjs --require-real-d1
       - name: Inspect protected file allowlist and public Caffeine Atlas URL
         run: node --test free-auth/tests/bundle.test.cjs
       - name: Reject accidentally shipped credentials or Caffeine Atlas pages

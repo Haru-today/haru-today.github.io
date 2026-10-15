@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "labdam-membership",
-      "database_id": "REPLACE_WITH_REAL_FREE_D1_DATABASE_ID",
+      "database_id": "4ff9780e-9af3-49ce-a4e3-a32821038401",
       "migrations_dir": "migrations"
     }
   ]
