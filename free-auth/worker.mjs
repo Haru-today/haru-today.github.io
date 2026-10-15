@@ -136,7 +136,7 @@ async function googleIdentity(idToken, nonce, env, opts) {
   let keys;
   try {
     const response = await (opts.googleFetch || fetch)(GOOGLE_JWKS_URL, { redirect: "manual" });
-    // workerd rejects redirect:"error" at request construction time. Explicitly
+    // workerd rejects the unsupported error redirect mode at request construction time. Explicitly
     // reject any 3xx instead of following a response to an untrusted host.
     if (response.status >= 300 && response.status < 400) throw new Error("Google key endpoint redirect blocked");
     if (!response.ok) throw new Error("Google public signing keys unavailable");
@@ -247,7 +247,7 @@ async function oauthCallback(request, env, origin, opts) {
   }
   if (response.status >= 300 && response.status < 400) {
     // Preserve the original no-redirect security property without unsupported
-    // redirect:"error": never send a Google authorization code to Location.
+    // automatic redirect handling: never send a Google authorization code to Location.
     console.warn("LABDAM_OAUTH_TOKEN_REJECTED", response.status, "redirect_blocked");
     throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
   }
