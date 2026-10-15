@@ -18,6 +18,7 @@ const files = [
 ];
 const validUuid = '4ac37a14-46b2-47ab-9b4e-cc2e25e2d1a0'; // synthetic, not a real DB
 const config = () => ({ name:'labdam-free-approval',main:'./worker.mjs',workers_dev:true,
+  vars:{ AUTH_ORIGIN:'https://labdam-free-approval.jleegenomics.workers.dev' },
   assets:{directory:'./dist',binding:'ASSETS',run_worker_first:true},
   d1_databases:[{binding:'DB',database_name:'labdam-membership',database_id:'REPLACE_WITH_REAL_FREE_D1_DATABASE_ID',migrations_dir:'migrations'}]
 });
@@ -116,4 +117,11 @@ test('strict policy check detects missing private contact and recognizes synthet
   await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간: 검토된 기간. <a href="mailto:privacy@example.invalid">전용 문의</a>');
   const result=await inspectStatic(root,{requireFinalPolicy:true});
   assert.equal(result.ok,true,result.errors.join('; '));
+}));
+
+test('trial host is exact and public vars cannot accidentally include credentials',async()=>fixture(async({root,writeConfig})=>{
+  const c=config();c.vars.AUTH_ORIGIN='https://some-other-worker.workers.dev';await writeConfig(c);
+  let r=await inspectStatic(root);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/AUTH_ORIGIN/);
+  c.vars.AUTH_ORIGIN='https://labdam-free-approval.jleegenomics.workers.dev';c.vars.GOOGLE_CLIENT_SECRET='SHOULD_NOT_BE_IN_VARS';await writeConfig(c);
+  r=await inspectStatic(root);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/AUTH_ORIGIN/);
 }));

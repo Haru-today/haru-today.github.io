@@ -44,7 +44,7 @@
 
 1. Google Cloud Console에서 프로젝트를 생성하거나 결제 활성화가 불필요한 기존 프로젝트를 선택합니다.
 2. Google Auth Platform에서 OAuth 동의 화면을 준비합니다. 개인정보 설명과 앱 연락처를 정확히 입력하고, Web application 유형의 OAuth Client ID를 생성합니다.
-3. 승인된 JavaScript origin은 보호 Worker의 HTTPS origin, 승인된 redirect URI는 정확히 https://<실제 Worker 호스트>/auth/callback 으로 등록합니다.
+3. **현재 확정된 시험 Worker origin**은 `https://labdam-free-approval.jleegenomics.workers.dev`입니다. `wrangler.jsonc` 공개 `vars.AUTH_ORIGIN`에 이를 고정했습니다. **해당 Worker는 아직 생성·배포되지 않았으므로 주소는 아직 실제로 응답하지 않습니다.** Google Cloud Web application OAuth Client의 **Authorized redirect URIs**에는 `https://labdam-free-approval.jleegenomics.workers.dev/auth/callback`을 정확히 등록합니다. 서버측 redirect flow이므로 Authorized JavaScript origins 설정은 필수 아닙니다. 화면에서 요구할 경우 같은 HTTPS origin을 입력할 수 있습니다.
 4. Google 공식 안내에 따르면 **기본 신원 범위(openid/email/profile)만 요청하는 앱은 테스트 사용자 허용 목록 제한에 예외가 있습니다.** 따라서 이 범위만으로 가입 신청을 받는 구조를 유지합니다. 다만 실제 인증 화면의 조직 정책, 앱 게시 상태 및 접속 도메인 제약은 계정에서 검증해야 하며, Google 인증 성공도 LABDAM 관리자 승인을 뜻하지 않습니다.
 5. 인증 요청은 openid, email, profile 범위만 요구합니다. Gmail/Drive/Contacts 권한을 요청하지 않습니다.
 6. Google Client Secret은 GitHub, README, 이슈, 채팅이나 프런트엔드에 절대 저장하지 않습니다.
@@ -54,7 +54,7 @@ Google OAuth 사용·게시 심사와 무료 지원 범위는 Google 계정 유�
 ## 3. Worker 환경 변수와 Secret
 
 Worker에 사용되는 값:
-- AUTH_ORIGIN: 실제 Worker의 HTTPS origin, 예: https://YOUR-WORKER.workers.dev
+- AUTH_ORIGIN: 시험 Worker의 HTTPS origin `https://labdam-free-approval.jleegenomics.workers.dev` (**공개 설정**, 이미 `wrangler.jsonc` `vars`에 고정됨. 별도 secret 설정 불필요)
 - GOOGLE_CLIENT_ID: Google 웹 OAuth 클라이언트 ID (공개 식별자)
 - GOOGLE_CLIENT_SECRET: **비밀값**
 - RATE_LIMIT_SECRET: **무작위 32자 이상 비밀값**, API 요청 제한에 사용
@@ -68,7 +68,7 @@ Worker에 사용되는 값:
     npx wrangler secret put RATE_LIMIT_SECRET
     npx wrangler secret put BOOTSTRAP_ADMIN_EMAIL
 
-AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Variables 화면에서 직접 설정 가능합니다.
+GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker의 Variables 화면에서 설정합니다. **AUTH_ORIGIN은 이미 소스 설정에 있으므로 중복으로 Secret에 넣지 않습니다.** `wrangler.jsonc` 공개 vars에 Client Secret·RATE_LIMIT_SECRET·개인 이메일 등을 넣지 마세요.
 
 **선행 조건:** 실제 Google redirect URI를 먼저 정한 다음에 Workers secret을 설정합니다. 설정 완료 전에는 OAuth 코드교환이 진행되지 않도록 503으로 닫히는 구조입니다. 승인용 앱 운영 주체와 가입 심사 고지·보존 기간도 정해야 합니다.
 

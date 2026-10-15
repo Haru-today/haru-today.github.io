@@ -50,6 +50,14 @@ export async function inspectStatic(root, { requireRealD1 = false, requireFinalP
   if (config.name !== 'labdam-free-approval') errors.push('Unexpected Worker name');
   if (config.main !== './worker.mjs') errors.push('Worker entry must be ./worker.mjs');
   if (config.workers_dev !== true) errors.push('Expected workers_dev=true for isolated trial origin');
+  // AUTH_ORIGIN is public configuration; keep it pinned to the separately confirmed
+  // free test hostname. Never place OAuth secrets or user data in Wrangler vars.
+  const vars = config.vars;
+  if (!vars || typeof vars !== 'object' || Array.isArray(vars) ||
+      vars.AUTH_ORIGIN !== 'https://labdam-free-approval.jleegenomics.workers.dev' ||
+      Object.keys(vars).length !== 1) {
+    errors.push('AUTH_ORIGIN must match the confirmed isolated trial URL; only AUTH_ORIGIN is allowed in public vars');
+  }
   if (config.assets?.directory !== './dist' || config.assets?.binding !== 'ASSETS' ||
       config.assets?.run_worker_first !== true) {
     errors.push('Static assets must be served through ASSETS with run_worker_first=true');
