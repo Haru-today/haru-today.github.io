@@ -55,7 +55,8 @@ export async function inspectStatic(root, { requireRealD1 = false, requireFinalP
   const vars = config.vars;
   if (!vars || typeof vars !== 'object' || Array.isArray(vars) ||
       vars.AUTH_ORIGIN !== 'https://labdam-free-approval.jleegenomics.workers.dev' ||
-      Object.keys(vars).length !== 1) {
+      vars.GOOGLE_CLIENT_ID !== '226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com' ||
+      Object.keys(vars).length !== 2) {
     errors.push('AUTH_ORIGIN must match the confirmed isolated trial URL; only AUTH_ORIGIN is allowed in public vars');
   }
   if (config.assets?.directory !== './dist' || config.assets?.binding !== 'ASSETS' ||

@@ -18,7 +18,7 @@ const files = [
 ];
 const validUuid = '4ac37a14-46b2-47ab-9b4e-cc2e25e2d1a0'; // synthetic, not a real DB
 const config = () => ({ name:'labdam-free-approval',main:'./worker.mjs',workers_dev:true,
-  vars:{ AUTH_ORIGIN:'https://labdam-free-approval.jleegenomics.workers.dev' },
+  vars:{ AUTH_ORIGIN:'https://labdam-free-approval.jleegenomics.workers.dev', GOOGLE_CLIENT_ID:'226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com' },
   assets:{directory:'./dist',binding:'ASSETS',run_worker_first:true},
   d1_databases:[{binding:'DB',database_name:'labdam-membership',database_id:'REPLACE_WITH_REAL_FREE_D1_DATABASE_ID',migrations_dir:'migrations'}]
 });
@@ -124,4 +124,9 @@ test('trial host is exact and public vars cannot accidentally include credential
   let r=await inspectStatic(root);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/AUTH_ORIGIN/);
   c.vars.AUTH_ORIGIN='https://labdam-free-approval.jleegenomics.workers.dev';c.vars.GOOGLE_CLIENT_SECRET='SHOULD_NOT_BE_IN_VARS';await writeConfig(c);
   r=await inspectStatic(root);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/AUTH_ORIGIN/);
+}));
+
+test('unrecognized public OAuth Client ID is blocked',async()=>fixture(async({root,writeConfig})=>{
+  const c=config();c.vars.GOOGLE_CLIENT_ID='other.apps.googleusercontent.com';await writeConfig(c);
+  const r=await inspectStatic(root);assert.equal(r.ok,false);assert.match(r.errors.join(' '),/AUTH_ORIGIN/);
 }));

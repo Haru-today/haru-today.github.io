@@ -4,8 +4,15 @@
   "main": "./worker.mjs",
   "compatibility_date": "2026-10-14",
   "workers_dev": true,
-  "vars": { "AUTH_ORIGIN": "https://labdam-free-approval.jleegenomics.workers.dev" },
-  "triggers": { "crons": ["15 3 * * *"] },
+  "vars": {
+    "AUTH_ORIGIN": "https://labdam-free-approval.jleegenomics.workers.dev",
+    "GOOGLE_CLIENT_ID": "226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com"
+  },
+  "triggers": {
+    "crons": [
+      "15 3 * * *"
+    ]
+  },
   "assets": {
     "directory": "./dist",
     "binding": "ASSETS",
