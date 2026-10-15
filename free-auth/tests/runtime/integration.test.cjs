@@ -41,7 +41,8 @@ async function outbound(request) {
   return Response.json({ id_token: content + "." + sign("RSA-SHA256", Buffer.from(content), privateKey).toString("base64url") });
 }
 before(async () => {
-  mf = new Miniflare(convertV4MiniflareOptions({ name: "labdam", modules: true, scriptPath: resolve(root, "worker.mjs"),
+  mf = new Miniflare(convertV4MiniflareOptions({ name: "labdam", modules: true, modulesRoot: root,
+    scriptPath: resolve(root, "worker.mjs"),
     compatibilityDate: "2026-10-14", host: "127.0.0.1",
     bindings: { AUTH_ORIGIN: origin, GOOGLE_CLIENT_ID: client,
       GOOGLE_CLIENT_SECRET: "synthetic-secret-never-a-real-client", RATE_LIMIT_SECRET: "local-synthetic-rate-limit-secret-32-characters",
