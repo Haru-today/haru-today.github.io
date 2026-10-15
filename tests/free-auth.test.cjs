@@ -517,10 +517,49 @@ test("unexpected provider error and token network failures reveal no raw respons
       assert.ok(!output.includes("SECRET-MARKER"));
       assert.deepEqual(recorded,
         responseMode === "transport"
-          ? [["LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE"]]
+          ? [["LABDAM_OAUTH_TOKEN_FETCH_FAILURE", "other"]]
           : [["LABDAM_OAUTH_TOKEN_REJECTED", 400, "provider_error"]]);
     } finally {
       console.warn = oldWarn;
     }
+  }
+});
+
+test("Google success response with invalid JSON is reported without leaking body", async () => {
+  const f = fixture(), logged = [], original = console.warn;
+  const marker = "PRIVATE-TOKEN-MUST-NOT-PRINT";
+  f.opts.googleFetch = async () => new Response("{invalid-json " + marker, { status: 200 });
+  console.warn = (...args) => logged.push(args);
+  try {
+    const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+    const state = new URL(start.headers.get("location")).searchParams.get("state");
+    const callback = await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+      cookie: "__Host-labdam_oauth_state=" + state
+    }), f.env, f.opts);
+    assert.equal(callback.status, 503);
+    assert.deepEqual(logged, [["LABDAM_OAUTH_TOKEN_JSON_FAILURE", 200]]);
+    assert.equal(JSON.stringify(logged).includes(marker), false);
+    assert.equal(f.DB.members.size, 0);
+    assert.equal(f.DB.sessions.size, 0);
+  } finally {
+    console.warn = original;
+  }
+});
+
+test("fetch TypeError is reported with whitelisted category only", async () => {
+  const f = fixture(), logged = [], original = console.warn;
+  f.opts.googleFetch = async () => { throw new TypeError("PRIVATE-CODE-MUST-NOT-PRINT"); };
+  console.warn = (...args) => logged.push(args);
+  try {
+    const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+    const state = new URL(start.headers.get("location")).searchParams.get("state");
+    const callback = await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+      cookie: "__Host-labdam_oauth_state=" + state
+    }), f.env, f.opts);
+    assert.equal(callback.status, 503);
+    assert.deepEqual(logged, [["LABDAM_OAUTH_TOKEN_FETCH_FAILURE", "type_error"]]);
+    assert.ok(!JSON.stringify(logged).includes("PRIVATE-CODE"));
+  } finally {
+    console.warn = original;
   }
 });

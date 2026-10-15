@@ -208,3 +208,12 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 분류 값: `LABDAM_OAUTH_TOKEN_REJECTED <HTTP상태> <invalid_client|invalid_grant|invalid_request|unauthorized_client|access_denied|unsupported_grant_type|provider_error>` 또는 `LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE`. 테스트로 원문/비밀 토큰이 기록되지 않는지 검증합니다.
 
 **현재 GitHub 변경은 자동 배포되지 않습니다.** Mac에서 `git pull --ff-only` 후 기존 보호 번들 `dist`를 유지하고 `npx wrangler deploy --dry-run` 검수한 다음, 사용자가 별도로 `npx wrangler deploy`를 수행해야 시험 Worker가 갱신됩니다. 다시 로그인할 때 `npx wrangler tail labdam-free-approval --format pretty`로 직접 실시간 로그를 확인할 수 있습니다. **로그 전체를 채팅에 붙이지 말고 `LABDAM_OAUTH_TOKEN_...` 줄만 공유**합니다. 특히 Callback 요청 URL은 `code`/`state`가 포함될 수 있으므로 공유 금지.
+
+
+## 2026-10-16 · 실배포 오류: token transport vs JSON 상세 구분
+
+사용자가 Windows에서 시험 Worker `97abba38-37c9-46fb-8498-8566753b5849` 배포 후 실제 Google 브라우저 로그인에 실패했습니다. 터미널 실시간 로그에는 `LABDAM_OAUTH_TOKEN_NETWORK_OR_PARSE_FAILURE`가 나타났고, 이는 HTTP 거절(`invalid_client` 등)이 아닌 token fetch 예외 또는 성공 응답 JSON 파싱 실패로만 좁혀졌습니다. Tail 재연결 경고는 로그 스트림 문제일 수 있습니다.
+
+본 변경은 부가적인 공개 엔드포인트, 재시도 또는 User Token 저장 없이 두 실패 경로만 나누어 로깅합니다: `LABDAM_OAUTH_TOKEN_FETCH_FAILURE type_error|other`, `LABDAM_OAUTH_TOKEN_JSON_FAILURE <HTTP-status>`. 모든 분류값은 고정 화이트리스트/상태코드이며 `error.message`·`cause`·Google 응답 원문·코드·state·쿠키·토큰·Client Secret은 절대 기록하지 않습니다. 브라우저 오류 문구와 fail-closed 응답은 유지합니다.
+
+이 변경은 GitHub draft PR에만 반영하고 자동 배포하지 않습니다. CI 및 수동 dry-run 검증 후에만 사용자 승인된 시험 Worker 배포로 진단합니다. **OAuth callback 전체 URL은 일회용 인증 코드가 들어가므로 공유하지 마세요.**
