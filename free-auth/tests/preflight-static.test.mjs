@@ -97,3 +97,23 @@ test('a symlinked dist root cannot be treated as an inspected protected bundle',
   assert.equal(r.ok,false);
   assert.match(r.errors.join(' '),/real directory/);
 }));
+
+test('release-only privacy gate blocks unfinished notice but leaves development CI runnable',async()=>fixture(async({root,dist})=>{
+  const location=join(dist,'membership-privacy.html');
+  await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간 정식 개인정보처리방침 최종 확정 전 안내');
+  const development=await inspectStatic(root);
+  assert.equal(development.ok,true);
+  assert.match(development.warnings.join(' '),/Membership privacy notice/);
+  const release=await inspectStatic(root,{requireFinalPolicy:true});
+  assert.equal(release.ok,false);
+  assert.match(release.errors.join(' '),/Membership privacy notice/);
+}));
+test('strict policy check detects missing private contact and recognizes synthetic updated text',async()=>fixture(async({root,dist})=>{
+  const location=join(dist,'membership-privacy.html');
+  await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간');
+  assert.equal((await inspectStatic(root,{requireFinalPolicy:true})).ok,false);
+  // Synthetic fixtures test validation only; this does not certify legal completeness.
+  await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간: 검토된 기간. <a href="mailto:privacy@example.invalid">전용 문의</a>');
+  const result=await inspectStatic(root,{requireFinalPolicy:true});
+  assert.equal(result.ok,true,result.errors.join('; '));
+}));

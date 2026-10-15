@@ -38,7 +38,7 @@ async function walk(dir, base = dir) {
   return result;
 }
 
-export async function inspectStatic(root, { requireRealD1 = false } = {}) {
+export async function inspectStatic(root, { requireRealD1 = false, requireFinalPolicy = false } = {}) {
   const errors = [], warnings = [];
   let config;
   try {
@@ -75,16 +75,31 @@ export async function inspectStatic(root, { requireRealD1 = false } = {}) {
   try { files = await walk(dist); }
   catch (error) { errors.push('Cannot inspect protected dist: ' + error.message); }
   for (const path of REQUIRE) if (!files.includes(path)) errors.push('Missing protected asset: ' + path);
+  // Operational contact and retention claims must be reviewed before launch.
+  // This validates obvious placeholders, NOT legal compliance or real ownership.
+  if (files.includes('membership-privacy.html')) {
+    try {
+      const notice = await readFile(join(dist, 'membership-privacy.html'), 'utf8');
+      const incompleteWording = /정식 개인정보처리방침 최종 확정 전 안내|운영 담당자의 법적 명칭|공식 개인정보 담당자와 비공개 접수 방법|운영 보관기간은 정식 정책에서 확정해야/;
+      const providerNames = /Google/.test(notice) && /Cloudflare/.test(notice);
+      const retentionField = /보관기간|보유기간/.test(notice);
+      const privateContact = /mailto:[^"'<>\\s]+|href=["']https:\/\/[^"']+\/contact(?:[/?#][^"']*)?["']/i.test(notice);
+      if (incompleteWording.test(notice) || !providerNames || !retentionField || !privateContact) {
+        const message = 'Membership privacy notice needs final operator/contact, retention and provider review before launch';
+        if (requireFinalPolicy) errors.push(message); else warnings.push(message);
+      }
+    } catch (_) { errors.push('Cannot inspect membership privacy notice'); }
+  }
   return { ok: errors.length === 0, errors, warnings, checkedAssets: files.length };
 }
 
 async function main() {
   const flags = process.argv.slice(2);
-  if (flags.some(f => !['--require-real-d1', '--json'].includes(f))) {
-    process.stderr.write('Usage: node preflight-static.mjs [--require-real-d1] [--json]\n');
+  if (flags.some(f => !['--require-real-d1', '--require-final-policy', '--json'].includes(f))) {
+    process.stderr.write('Usage: node preflight-static.mjs [--require-real-d1] [--require-final-policy] [--json]\n');
     process.exitCode = 2; return;
   }
-  const result = await inspectStatic(DEFAULT_ROOT, { requireRealD1: flags.includes('--require-real-d1') });
+  const result = await inspectStatic(DEFAULT_ROOT, { requireRealD1: flags.includes('--require-real-d1'), requireFinalPolicy: flags.includes('--require-final-policy') });
   if (flags.includes('--json')) process.stdout.write(JSON.stringify(result, null, 2) + '\n');
   else {
     for (const e of result.errors) console.error('ERROR:', e);

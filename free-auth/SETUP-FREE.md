@@ -172,3 +172,15 @@ AUTH_ORIGIN 및 GOOGLE_CLIENT_ID도 Wrangler 비밀값 설정이나 Worker Varia
 **이 검사가 성공해도 배포 준비 완료를 뜻하지 않습니다.** `/healthz`는 상태 코드 검증일 뿐 Google OAuth, D1, 관리자 승인의 준비 상태를 확인하지 않습니다. 이후 실제 Google 계정으로 pending → approved → 접근 허용 → 철회/재승인 → 접근 차단을 별도 수동 검증해야 합니다. 기존 공개 Pages 18개 경로 정리 및 포스터 QR 실기기 검수는 별도입니다.
 
 무료 한도 관련 공식 문서(2026-10-15 확인): D1 Free는 행 읽기 500만/일, 행 쓰기 10만/일, 전체 저장 5 GB이며 개별 DB 최대 500 MB입니다. 2026-09-01부터 무료 일일 한도 초과 D1 쿼리는 리셋 전까지 오류가 발생합니다. 이 프로젝트는 자동 유료 업그레이드를 수행하지 않습니다.
+
+
+## 9. 정식 공개 전 개인정보 처리 안내 준비 검사
+
+현재 `membership-privacy.html`은 운영자, 비공개 문의 채널, 보관기간, 제공자 처리 고지 중 미확정 사항이 있음을 스스로 밝힙니다. 사용자의 실제 이름·이메일 등을 임의로 게시하지 않습니다.
+
+- 일반 개발 CI의 `node free-auth/scripts/preflight-static.mjs`는 고지의 알려진 누락을 **경고**하지만 테스트 실행은 유지합니다.
+- 운영자가 담당자·비공개 문의 수단·회원정보 보관기간·Google/Cloudflare 이용 안내를 실제로 검토해 고지를 변경한 후에만 아래 엄격 검사를 실행합니다.
+
+    node free-auth/scripts/preflight-static.mjs --require-real-d1 --require-final-policy
+
+이는 기존 placeholder 및 요구 항목 존재를 검사하는 제한적인 자동 점검으로, 사업자 실체·DB 실제 연결·법률 준수를 인증하지 않습니다. 원격 배포·기존 Pages 공개 자원 삭제·유료 전환은 수행하지 않습니다.
