@@ -167,9 +167,11 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
   let nonce;
   f.opts.googleFetch = async (url, request) => {
     if (url === "https://www.googleapis.com/oauth2/v3/certs") {
+      assert.equal(request.redirect, "manual");
       return new Response(JSON.stringify({ keys: [JWK] }), { status: 200 });
     }
     if (url === "https://oauth2.googleapis.com/token") {
+      assert.equal(request.redirect, "manual");
       const params = new URLSearchParams(request.body);
       assert.equal(params.get("grant_type"), "authorization_code");
       assert.equal(params.get("client_id"), CLIENT);
@@ -562,4 +564,65 @@ test("fetch TypeError is reported with whitelisted category only", async () => {
   } finally {
     console.warn = original;
   }
+});
+
+test("workerd-supported manual redirect mode rejects external token endpoint redirects", async () => {
+  const f = fixture(), logged = [], oldWarn = console.warn;
+  f.opts.googleFetch = async (url, init) => {
+    assert.equal(url, "https://oauth2.googleapis.com/token");
+    assert.equal(init.redirect, "manual");
+    return new Response(null, {
+      status: 302, headers: { Location: "https://attacker.invalid/collect-code" }
+    });
+  };
+  console.warn = (...args) => logged.push(args);
+  try {
+    const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+    const state = new URL(start.headers.get("location")).searchParams.get("state");
+    const result = await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+      cookie: "__Host-labdam_oauth_state=" + state
+    }), f.env, f.opts);
+    assert.equal(result.status, 503);
+    assert.equal(f.DB.members.size, 0);
+    assert.equal(f.DB.sessions.size, 0);
+    assert.deepEqual(logged, [["LABDAM_OAUTH_TOKEN_REJECTED", 302, "redirect_blocked"]]);
+  } finally {
+    console.warn = oldWarn;
+  }
+});
+
+test("Google JWKS redirect cannot be followed or accepted as a signing key source", async () => {
+  const f = fixture();
+  let nonce;
+  f.opts.googleFetch = async (url, init) => {
+    assert.equal(init.redirect, "manual");
+    if (url === "https://oauth2.googleapis.com/token") {
+      return new Response(JSON.stringify({
+        id_token: signedIdToken({ nonce })
+      }), { status: 200 });
+    }
+    if (url === "https://www.googleapis.com/oauth2/v3/certs") {
+      return new Response(null, {
+        status: 302, headers: { Location: "https://attacker.invalid/fake-jwks" }
+      });
+    }
+    throw Error("Unexpected provider URL");
+  };
+  const start = await handleRequest(req("/auth/start"), f.env, f.opts);
+  const state = new URL(start.headers.get("location")).searchParams.get("state");
+  nonce = f.DB.states.get(hash(state)).nonce;
+  const callback = await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+    cookie: "__Host-labdam_oauth_state=" + state
+  }), f.env, f.opts);
+  assert.equal(callback.status, 503);
+  assert.match(await callback.text(), /Google 인증 키를 확인할 수 없습니다/);
+  assert.equal(f.DB.members.size, 0);
+  assert.equal(f.DB.sessions.size, 0);
+});
+
+test("Worker source rejects unsupported workerd redirect:error compatibility regression", () => {
+  const { readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  const source = readFileSync(join(__dirname, "..", "free-auth", "worker.mjs"), "utf8");
+  assert.doesNotMatch(source, /redirect\s*:\s*["']error["']/);
 });

@@ -135,7 +135,10 @@ async function googleIdentity(idToken, nonce, env, opts) {
   }
   let keys;
   try {
-    const response = await (opts.googleFetch || fetch)(GOOGLE_JWKS_URL, { redirect: "error" });
+    const response = await (opts.googleFetch || fetch)(GOOGLE_JWKS_URL, { redirect: "manual" });
+    // workerd rejects redirect:"error" at request construction time. Explicitly
+    // reject any 3xx instead of following a response to an untrusted host.
+    if (response.status >= 300 && response.status < 400) throw new Error("Google key endpoint redirect blocked");
     if (!response.ok) throw new Error("Google public signing keys unavailable");
     keys = (await response.json()).keys;
   } catch (_) { throw new LoginError(503, "Google 인증 키를 확인할 수 없습니다."); }
@@ -235,11 +238,17 @@ async function oauthCallback(request, env, origin, opts) {
   try {
     response = await (opts.googleFetch || fetch)(GOOGLE_TOKEN_URL, {
       method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" },
-      body: params.toString(), redirect: "error"
+      body: params.toString(), redirect: "manual"
     });
   } catch (error) {
     console.warn("LABDAM_OAUTH_TOKEN_FETCH_FAILURE",
       error instanceof TypeError ? "type_error" : "other");
+    throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
+  }
+  if (response.status >= 300 && response.status < 400) {
+    // Preserve the original no-redirect security property without unsupported
+    // redirect:"error": never send a Google authorization code to Location.
+    console.warn("LABDAM_OAUTH_TOKEN_REJECTED", response.status, "redirect_blocked");
     throw new LoginError(503, "Google 로그인 연결에 실패했습니다. 다시 시도해 주세요.");
   }
   if (!response.ok) {

@@ -217,3 +217,12 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 본 변경은 부가적인 공개 엔드포인트, 재시도 또는 User Token 저장 없이 두 실패 경로만 나누어 로깅합니다: `LABDAM_OAUTH_TOKEN_FETCH_FAILURE type_error|other`, `LABDAM_OAUTH_TOKEN_JSON_FAILURE <HTTP-status>`. 모든 분류값은 고정 화이트리스트/상태코드이며 `error.message`·`cause`·Google 응답 원문·코드·state·쿠키·토큰·Client Secret은 절대 기록하지 않습니다. 브라우저 오류 문구와 fail-closed 응답은 유지합니다.
 
 이 변경은 GitHub draft PR에만 반영하고 자동 배포하지 않습니다. CI 및 수동 dry-run 검증 후에만 사용자 승인된 시험 Worker 배포로 진단합니다. **OAuth callback 전체 URL은 일회용 인증 코드가 들어가므로 공유하지 마세요.**
+
+
+## 2026-10-16 · 원인 특정: workerd는 redirect:error를 지원하지 않음
+
+사용자의 실제 시험 Worker 로그에서 `LABDAM_OAUTH_TOKEN_FETCH_FAILURE type_error`를 확인했습니다. Worker 코드의 Google OAuth token/JWKS `fetch` 요청에 모두 `redirect: "error"`가 포함되어 있었습니다. **Cloudflare workerd의 Request Redirect 열거형은 FOLLOW/MANUAL만 지원**하므로, 이 옵션은 네트워크 요청 여부와 무관하게 `TypeError`를 유발합니다. 업스트림 호환성 문제는 https://github.com/better-auth/better-auth/issues/10052 및 https://github.com/cloudflare/workerd/blob/main/src/workerd/api/http.h 에서 교차 확인했습니다.
+
+두 Google 요청 모두 `redirect: "manual"`로 수정하고, 실제 3xx 응답을 명시적으로 503으로 거절했습니다. 따라서 **OAuth 코드·Client Secret·서명키 요청이 리디렉션을 따라 제3자 호스트로 전송되지 않습니다**. HTTP 거절·로그인 상태·세션 fail-closed는 이전과 동일합니다. 성공 OAuth 모의요청에서도 `redirect=manual`을 검증하고 token/JWKS 리디렉션 거절 및 차후 `redirect:error` 재도입 방지 테스트를 추가했습니다.
+
+**GitHub 초안 PR 전용 수정이며 자동 배포하지 않았습니다.** Windows에서 `git pull --ff-only` 후 기존 `dist`를 유지한 채 `node scripts/preflight-static.mjs --require-real-d1` 및 `npx.cmd wrangler deploy --dry-run` 확인 뒤, 사용자가 수동으로 시험 Worker를 배포해야 합니다. 실제 Google 로그인·관리자 권한·2개 사이트 세션은 재검증하기 전까지 미확인입니다.
