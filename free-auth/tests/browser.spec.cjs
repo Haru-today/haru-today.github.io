@@ -80,6 +80,32 @@ test("Korean welcome message keeps complete words on narrow 320px phones", async
   }
 });
 
+test("small privacy guidance and local results notice meet WCAG AA contrast", async ({ page }) => {
+  await page.goto("/login.html");
+  const contrast = await page.evaluate(() => {
+    const linear = channel => {
+      const v = channel / 255;
+      return v <= 0.04045 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4;
+    };
+    const luminance = color => {
+      const channels = color.match(/[\d.]+/g).slice(0, 3).map(Number);
+      return channels.map(linear).reduce((sum, value, index) =>
+        sum + value * [0.2126, 0.7152, 0.0722][index], 0);
+    };
+    const background = luminance(getComputedStyle(document.querySelector(".login-panel")).backgroundColor);
+    return [".privacy-copy", "#localDataStatus"].map(selector => {
+      const el = document.querySelector(selector);
+      const foreground = luminance(getComputedStyle(el).color);
+      const ratio = (Math.max(background, foreground) + 0.05) / (Math.min(background, foreground) + 0.05);
+      return { selector, ratio, fontSize: Number.parseFloat(getComputedStyle(el).fontSize) };
+    });
+  });
+  for (const item of contrast) {
+    expect(item.ratio, item.selector + " text contrast").toBeGreaterThanOrEqual(4.5);
+    expect(item.fontSize, item.selector + " font size").toBeGreaterThanOrEqual(12);
+  }
+});
+
 test("redesigned Google CTA preserves protected destination and rejects external login redirect", async ({ page }) => {
   await page.goto("/login.html?next=%2Flabinsight%2Fcarepath.html");
   await expect(page.locator("#googleStart")).toHaveAttribute("href",
