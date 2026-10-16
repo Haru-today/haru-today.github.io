@@ -15,8 +15,8 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 0e3b7c404fedcc6c0515dc4ebf41c1d1bfb219e8/);
-  assert.match(yaml, /ref: 7388d1a3884e06c7765d01260f5645c2f3e20b58/);
+  assert.match(yaml, /ref: 863b02e8a045a9ff3c566227bf54a5a6ee2d2a2a/);
+  assert.match(yaml, /ref: 350aee397af7b47459a037ba8bbfe9bf4d563e6f/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
@@ -90,4 +90,14 @@ test("post-deploy smoke checks tolerate short propagation and report safe HTTP s
 test("read-only 21-route audit runs after deployment even when the basic HTTP probe fails", () => {
   assert.ok(yaml.includes("id: deploy_trial"));
   assert.ok(yaml.includes("if: ${{ !cancelled() && steps.deploy_trial.outcome == 'success' }}"));
+});
+
+test("CarePath deployment stays explicitly gated and only checks anonymous HTTP status", () => {
+  const src = fs.readFileSync(path.join(__dirname, "../.github/workflows/manual-auth-trial-release.yml"), "utf8");
+  assert.match(src, /test -f free-auth\/dist\/labinsight\/carepath.html/);
+  assert.match(src, /test -f free-auth\/dist\/labinsight\/carepath.js/);
+  assert.match(src, /test "\$path_code" = 303/);
+  assert.match(src, /test "\$script_code" = 401/);
+  assert.match(src, /test "\$model_code" = 401/);
+  assert.doesNotMatch(src, /wrangler d1 migrations apply|wrangler d1 execute .*UPDATE|curl .*--data/);
 });
