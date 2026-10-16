@@ -70,3 +70,21 @@ test("release clearly names missing secrets without disclosing their contents", 
   assert.doesNotMatch(block, /echo\s+["']?\$(?:CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID)/);
   assert.ok(block.includes("labdam-trial"));
 });
+
+test("post-deploy smoke checks tolerate short propagation and report safe HTTP statuses", () => {
+  const begin = yaml.indexOf("      - name: Read-only anonymous HTTP checks");
+  const finish = yaml.indexOf("      - name: Audit all protected pages", begin);
+  const block = yaml.slice(begin, finish);
+  assert.ok(block.includes("for attempt in 1 2 3 4 5; do"));
+  assert.ok(block.includes('echo "Attempt $attempt/5: health=$health login=$login protected_js=$gate private_html=$redirect"'));
+  assert.ok(block.includes("sleep 4"));
+  assert.ok(block.includes('test "$gate" = 401'));
+  assert.ok(block.includes('test "$redirect" = 303'));
+  assert.ok(block.includes('if [ "$ready" -ne 1 ]; then'));
+  assert.doesNotMatch(block, /wrangler.*deploy|d1 execute|auth\/start|auth\/callback/);
+});
+
+test("read-only 21-route audit runs after deployment even when the basic HTTP probe fails", () => {
+  assert.ok(yaml.includes("id: deploy_trial"));
+  assert.ok(yaml.includes("if: ${{ !cancelled() && steps.deploy_trial.outcome == 'success' }}"));
+});
