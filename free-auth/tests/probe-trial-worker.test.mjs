@@ -7,7 +7,7 @@ function fakeReply(url) {
   const pathname=new URL(url).pathname;
   const isCaffeine=url.startsWith(CAFFEINE);
   const isPublic=['/healthz','/login.html','/pending.html','/membership-privacy.html'].includes(pathname);
-  const isRedirect=['/','/index.html','/labinsight/','/labinsight/checkup.html','/labinsight/report.html','/admin.html'].includes(pathname);
+  const isRedirect=['/','/index.html','/labinsight/','/labinsight/checkup.html','/labinsight/report.html','/labinsight/carepath.html','/admin.html'].includes(pathname);
   const status=isCaffeine||isPublic?200:isRedirect?303:pathname==='/caffeine-atlas/'?404:401;
   const headers={'Cache-Control':'private, no-store, max-age=0'};
   if(isRedirect)headers.Location=ORIGIN+'/login.html?next=%2F';
@@ -16,7 +16,7 @@ function fakeReply(url) {
 test('realistic anonymous Worker gate plus unchanged public Caffeine URLs pass',async()=>{
  const result=await probeTrialWorker(ORIGIN,async url=>fakeReply(url));
  assert.equal(result.ok,true);
- assert.equal(result.results.length,21);
+ assert.equal(result.results.length,24);
  assert.equal(result.results.filter(x=>x.kind==='caffeine').length,4);
 });
 test('no credentials, no redirects followed, no write methods or OAuth state creation',async()=>{
@@ -24,7 +24,7 @@ test('no credentials, no redirects followed, no write methods or OAuth state cre
  await probeTrialWorker(ORIGIN,async(url,options)=>{
    calls.push({url,options});return fakeReply(url);
  });
- assert.equal(calls.length,21);
+ assert.equal(calls.length,24);
  for (const {url,options} of calls) {
    assert.equal(options.method,'GET');
    assert.equal(options.credentials,'omit');
@@ -70,4 +70,15 @@ test('rejects Pages, localhost, non-HTTPS and origin with credentials/path/query
   'https://labdam-test.workers.dev/#frag'
  ])assert.throws(()=>normalizeTrialOrigin(x),x);
  assert.equal(normalizeTrialOrigin(ORIGIN+'/'),ORIGIN);
+});
+
+test('CarePath HTML or model JavaScript inadvertently exposed fails closed', async () => {
+  for (const target of ['/labinsight/carepath.html', '/labinsight/carepath-data.js']) {
+    const report = await probeTrialWorker(ORIGIN, async url => {
+      if (new URL(url).pathname === target) return new Response(null, {status: 200});
+      return fakeReply(url);
+    });
+    assert.equal(report.ok, false, target);
+    assert.equal(report.results.find(x => x.path === target)?.ok, false, target);
+  }
 });
