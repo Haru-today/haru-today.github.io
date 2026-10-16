@@ -469,7 +469,12 @@ async function handleRequest(request, env, opts = {}) {
   if (!origin || url.origin !== origin) return simple(503, "허용된 로그인 서비스 주소가 설정되지 않았습니다.");
   try {
     if (path === "/healthz" && method === "GET") {
-      return json(200, { service: "labdam-free-auth", deployment: "configured-externally" });
+      // Read-only readiness: missing OAuth secrets, D1 or static assets must
+      // never be reported as a healthy release. This does not test real Google
+      // code exchange, remote table contents or member approval.
+      configured(env);
+      privateAssets(env);
+      return json(200, { service: "labdam-free-auth", readiness: "bindings-present" });
     }
     if (path === "/login" && method === "GET") return redirect("/login.html", origin);
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
