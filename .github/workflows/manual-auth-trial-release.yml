@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 0e3b7c404fedcc6c0515dc4ebf41c1d1bfb219e8
+          ref: 863b02e8a045a9ff3c566227bf54a5a6ee2d2a2a
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 7388d1a3884e06c7765d01260f5645c2f3e20b58
+          ref: 350aee397af7b47459a037ba8bbfe9bf4d563e6f
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -48,6 +48,9 @@ jobs:
           node free-auth/scripts/preflight-static.mjs --require-real-d1
           test ! -e free-auth/dist/caffeine-atlas
           test ! -e free-auth/dist/free-auth
+          test -f free-auth/dist/labinsight/carepath.html
+          test -f free-auth/dist/labinsight/carepath.js
+          test -f free-auth/dist/labinsight/carepath-data.js
           ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
       - name: Verify protected static assets and local workerd + D1 approval flows
         env:
@@ -123,6 +126,19 @@ jobs:
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
+      - name: Confirm new CarePath endpoints are gated (anonymous, read-only)
+        env:
+          TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
+        run: |
+          set -eu
+          path_code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/carepath.html")
+          script_code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/carepath.js")
+          model_code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/carepath-data.js")
+          test "$path_code" = 303
+          test "$script_code" = 401
+          test "$model_code" = 401
+          echo "CarePath anonymous resource access denied; verified without health data."
+
       - name: Audit all protected pages and existing public Caffeine Atlas URLs
         if: ${{ !cancelled() && steps.deploy_trial.outcome == 'success' }}
         env:
