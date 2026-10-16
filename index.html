@@ -4,272 +4,46 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209">
+  <meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ">
   <meta name="theme-color" content="#102B50">
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-  <meta name="application-name" content="LABDAM">
-  <meta name="color-scheme" content="light">
-  <meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209" />
-  <meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ" />
-  <title>LABDAM 랩담 | 개인 건강 통합 포털</title>
-  <meta name="description" content="LABDAM(랩담)은 Personal Health Atlas 통합 포털입니다. 건강검진 결과 서비스 LabInsight와 카페인 유전자 리포트 Caffeine Atlas, 두 서비스를 연결합니다.">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://haru-today.github.io/">
-  <meta property="og:type" content="website">
-  <meta property="og:locale" content="ko_KR">
-  <meta property="og:site_name" content="LABDAM">
-  <meta property="og:title" content="LABDAM 랩담 | Personal Health Atlas 통합 포털">
-  <meta property="og:description" content="건강검진 결과를 이해하기 쉽게, 유전자 데이터를 일상의 정보로. LabInsight와 Caffeine Atlas를 만나보세요.">
-  <meta property="og:url" content="https://haru-today.github.io/">
-  <meta name="twitter:card" content="summary">
-  <meta name="twitter:title" content="LABDAM 랩담 | 개인 건강 통합 포털">
-  <meta name="twitter:description" content="LabInsight와 Caffeine Atlas를 연결하는 디지털 헬스케어 브랜드 LABDAM.">
-  <script type="application/ld+json">
-  {"@context":"https://schema.org","@type":"WebSite","name":"LABDAM","alternateName":["랩담","Personal Health Atlas"],"url":"https://haru-today.github.io/","inLanguage":"ko-KR","description":"건강검진 수치 입력·해석과 유전자형 연구·교육 정보를 연결하는 개인 건강 통합 포털"}
-  </script>
+  <meta http-equiv="refresh" content="0;url=https://labdam-free-approval.jleegenomics.workers.dev/">
+  <title>LABDAM | 관리자 승인제 로그인으로 이동</title>
+  <meta name="description" content="LABDAM과 LabInsight는 Google 계정 인증과 관리자 승인 후 이용할 수 있습니다.">
   <style>
-    :root{color-scheme:light;--ink:#172b36;--muted:#586b76;--bg:#f7f9fa;--border:#dce6e9;--navy:#142c38;--teal:#246e72}
+    :root{color-scheme:light}
     *{box-sizing:border-box}
-    html{scroll-behavior:smooth}
-    body{margin:0;color:var(--ink);background:var(--bg);font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.7}
-    a{color:inherit;text-decoration:none}
-    a:focus-visible{outline:3px solid #1b8e9b;outline-offset:4px;border-radius:5px}
-    .container{width:min(1080px,calc(100% - 40px));margin:auto}
-    .skip{position:absolute;left:-1000px;top:10px;padding:8px 12px;background:white;z-index:20}
-    .skip:focus,.skip:focus-visible{left:12px}
-    header{border-bottom:1px solid var(--border);background:rgba(255,255,255,.94)}
-    header .bar{display:flex;justify-content:space-between;align-items:center;min-height:76px;gap:18px}
-    .brand{font-size:1.45rem;font-weight:850;letter-spacing:-.05em}
-    .brand span{color:var(--teal)}
-    .topnav{display:flex;align-items:center;gap:26px;font-size:.9rem;font-weight:650}
-    .topnav a:hover,.link:hover{color:var(--teal)}
-    main{overflow:hidden}
-    .hero{padding:102px 0 88px;background:radial-gradient(circle at 80% 20%,#d6e9e8 0%,transparent 38%),linear-gradient(150deg,#f8fafb,#edf4f4)}
-    .eyebrow{margin:0 0 18px;font-size:.78rem;letter-spacing:.16em;text-transform:uppercase;color:var(--teal);font-weight:800}
-    h1{font-size:clamp(2.45rem,5.4vw,4.75rem);line-height:1.22;letter-spacing:-.065em;margin:0 0 24px}
-    .hero .intro{max-width:655px;color:#485f6b;font-size:1.08rem;margin:0 0 33px;word-break:keep-all}
-    .hero-actions{display:flex;flex-wrap:wrap;gap:12px}
-    .button{display:inline-flex;justify-content:center;align-items:center;min-height:46px;border-radius:10px;padding:10px 20px;background:var(--navy);color:white;font-weight:700;font-size:.9rem}
-    .button:hover{background:#245463}
-    .button.outline{background:transparent;border:1px solid #9fb7bf;color:var(--ink)}
-    .button.outline:hover{background:#e5eeee}
-    .services{padding:78px 0 85px}
-    h2{font-size:clamp(1.65rem,3vw,2.3rem);margin:0 0 9px;letter-spacing:-.04em}
-    .section-lead{margin:0 0 31px;color:var(--muted)}
-    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-    .card{display:flex;flex-direction:column;align-items:flex-start;padding:32px;border-radius:17px;border:1px solid var(--border);background:white;box-shadow:0 12px 36px rgba(15,40,54,.035)}
-    .tag{display:inline-block;border:1px solid #d7e4e8;border-radius:100px;padding:4px 12px;font-size:.72rem;color:var(--teal);font-weight:750;letter-spacing:.02em;margin-bottom:19px}
-    .card h3{font-size:1.65rem;line-height:1.3;letter-spacing:-.045em;margin:0 0 9px}
-    .card .subtitle{margin:0 0 15px;font-size:.88rem;color:var(--muted);font-weight:650}
-    .card p{margin:0 0 27px;color:#50636e;font-size:.95rem;word-break:keep-all}
-    .link{margin-top:auto;font-weight:800;color:var(--navy);font-size:.92rem}
-    .note{background:#eff4f5;border-top:1px solid var(--border);padding:24px 0;color:#5c6f78;font-size:.8rem}
-    .note p{margin:0}
-    footer{background:#152c37;color:#d6e3e7;padding:29px 0}
-    footer .bottom{display:flex;justify-content:space-between;align-items:center;gap:15px;flex-wrap:wrap}
-    footer .wordmark{font-weight:800;color:#fff;letter-spacing:-.03em}
-    footer small{color:#b6c9d0}
-    @media(max-width:660px){header .bar{min-height:66px}.topnav{gap:13px;font-size:.8rem}.hero{padding:73px 0 65px}.services{padding:55px 0}.cards{grid-template-columns:1fr}.card{padding:25px}h1{font-size:2.6rem}.hero .intro{font-size:1rem}}
-    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
-    .topnav a,.link,footer a{display:inline-flex;align-items:center;min-height:40px}
-    .card:focus-within{border-color:var(--teal);box-shadow:0 0 0 2px #b7dbdc}
-    .card .link:focus-visible{outline:3px solid #146c76;outline-offset:5px}
-    @media(max-width:500px){.container{width:calc(100% - 28px)}.topnav{gap:8px 16px}.topnav a{min-height:44px}.hero-actions .button{flex:1 1 100%;text-align:center}.skip{min-height:44px}}
-
-    /* LABDAM official site: editorial sections */
-    .expanded-section{padding:78px 0;scroll-margin-top:40px}
-    .section-tinted{background:#edf3f4;border-block:1px solid var(--border)}
-    .story-grid{display:grid;grid-template-columns:.9fr 1.1fr;gap:64px}
-    .section-copy{font-size:1.05rem;line-height:1.85;color:#344d5b;margin:0 0 17px;word-break:keep-all}
-    .muted-copy{color:#5b6e79;font-size:.91rem;line-height:1.8;word-break:keep-all}
-    .principles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:17px;margin-top:30px}
-    .principle{border:1px solid var(--border);border-radius:15px;padding:26px;background:#fff}
-    .principle-num{font-size:.79rem;letter-spacing:.14em;font-weight:800;color:var(--teal)}
-    .principle h3{margin:13px 0 10px;font-size:1.18rem;letter-spacing:-.02em}
-    .principle p{margin:0;color:#586c76;font-size:.91rem;line-height:1.8;word-break:keep-all}
-    .contact-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:50px;align-items:center}
-    .contact-action{border:1px solid var(--border);background:white;border-radius:15px;padding:28px}
-    .contact-action p{font-size:.88rem;color:var(--muted);margin:9px 0 19px}
-    .contact-action .button{width:100%}
-    @media(max-width:780px){.story-grid,.contact-grid{grid-template-columns:1fr;gap:22px}.principles{grid-template-columns:1fr}.expanded-section{padding:54px 0}}
-    @media(max-width:660px){header .bar{flex-wrap:wrap;padding-block:12px;gap:6px}.topnav{flex-wrap:wrap;gap:12px;font-size:.78rem}.brand{font-size:1.3rem}}
+    body{margin:0;background:#f4f7f9;color:#172d3d;font:16px/1.65 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+    .skip{position:absolute;left:-9999px;top:0;background:#fff;color:#153e59;padding:10px}
+    .skip:focus{left:10px;z-index:2}
+    main{width:min(560px,calc(100% - 32px));margin:12vh auto;padding:38px 34px;border:1px solid #d7e3e9;border-radius:18px;background:white;box-shadow:0 8px 28px rgba(15,41,63,.05)}
+    .brand{font-size:1.25rem;letter-spacing:.05em;font-weight:850;color:#102b50}
+    .eyebrow{color:#32737c;text-transform:uppercase;font-size:.75rem;font-weight:800;letter-spacing:.1em}
+    h1{font-size:clamp(1.55rem,4.8vw,2.1rem);line-height:1.35;letter-spacing:-.04em;margin:16px 0}
+    p{color:#4a6272}
+    .primary{display:inline-block;padding:12px 18px;border-radius:9px;color:white;background:#102b50;font-weight:750;text-decoration:none;min-height:44px}
+    a:not(.primary){color:#185a70}
+    a:focus-visible{outline:3px solid #2b849d;outline-offset:4px}
+    .links{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:26px 0}
+    .notice{border-top:1px solid #e0e8eb;padding-top:18px;font-size:.86rem}
+    @media(max-width:440px){main{margin:6vh auto;padding:26px 22px}.links{align-items:stretch;flex-direction:column}.primary{text-align:center}}
+    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
   </style>
-  <link rel="stylesheet" href="/assets/portal-redesign.css?v=service-paths-20261014">
 </head>
 <body>
-  <a class="skip" href="#main">본문으로 바로가기</a>
-  <header>
-    <div class="container bar">
-      <a class="brand" href="/" aria-label="LABDAM 홈페이지">LAB<span>DAM</span></a>
-      <nav class="topnav" aria-label="주요 메뉴">
-        <a href="#about">소개</a>
-        <a href="#services">서비스</a>
-        <a href="#technology">연구·원칙</a>
-        <a class="nav-cta" href="#contact">문의 ↗</a>
-      </nav>
-    </div>
-  </header>
-  <main id="main">
-    <section class="hero" aria-labelledby="main-title">
-      <div class="container hero-grid">
-        <div class="hero-text">
-          <span class="kicker"><span class="dot" aria-hidden="true"></span> LABDAM · Personal Health Atlas</span>
-          <h1 id="main-title">내 건강의 정보,<br><em>이해의 시작</em>으로.</h1>
-          <p class="intro"><span class="desktop-intro">LABDAM(랩담)은 <strong>Personal Health Atlas 통합 포털</strong>입니다. 건강검진 수치를 이해하기 쉽게 정리하는 LabInsight와 카페인 관련 유전자형을 탐색하는 Caffeine Atlas를 하나의 브랜드 경험으로 연결합니다.</span><span class="mobile-intro">건강검진과 유전정보를 이해하는 두 가지 서비스.</span></p>
-          <div class="hero-actions">
-            <a class="button primary" href="#services">두 서비스 알아보기 <span aria-hidden="true">↗</span></a>
-            <a class="button outline" href="#about">LABDAM의 이야기 <span aria-hidden="true">↓</span></a>
-          </div>
-          <nav class="hero-quick-entry" aria-label="두 서비스 바로 시작">
-            <span class="hero-quick-label">바로 시작하기</span>
-            <a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">
-              <strong>LabInsight</strong><small>건강검진 결과 입력</small><span aria-hidden="true">↗</span>
-            </a>
-            <a href="https://haru-today.github.io/caffeine-atlas/">
-              <strong>Caffeine Atlas</strong><small>로그인 없이 공개 체험</small><span aria-hidden="true">↗</span>
-            </a>
-          </nav>
-          <p class="hero-footnote">연구·교육 및 참고 정보 제공 · 의료 진단을 대체하지 않습니다.</p>
-        </div>
-        <div class="atlas-board" role="img" aria-label="LABDAM을 중심으로 LabInsight와 Caffeine Atlas를 연결하는 추상적인 개념도. 실제 검사 결과나 분석 데이터가 아닙니다.">
-          <div class="board-top"><span>PERSONAL HEALTH ATLAS</span><span class="board-status">LABDAM PORTAL</span></div>
-          <div class="orbit" aria-hidden="true">
-            <span class="orbit-core">LAB<br>DAM</span>
-            <span class="orbit-node one">01</span>
-            <span class="orbit-node two">02</span>
-            <span class="orbit-node three"></span>
-          </div>
-          <div class="board-bottom" aria-hidden="true">
-            <div class="board-tile"><small>01 / HEALTH CHECKUP</small><strong>LabInsight</strong></div>
-            <div class="board-tile"><small>02 / GENETIC CONTEXT</small><strong>Caffeine Atlas</strong></div>
-          </div>
-          <p class="board-caption">서비스 연결 구조를 나타낸 개념적 시각화</p>
-        </div>
-      </div>
-    </section>
-
-    <div class="signal-strip" aria-label="LABDAM의 핵심 지향점">
-      <div class="container signal-grid">
-        <div class="signal"><b>01</b><span>검사 데이터를<br>읽기 쉬운 정보로</span></div>
-        <div class="signal"><b>02</b><span>유전자형을<br>연구 맥락에서 이해하기</span></div>
-        <div class="signal"><b>03</b><span>근거와 한계를<br>투명하게 안내하기</span></div>
-      </div>
-    </div>
-
-    <section id="services" class="services container section-anchor" aria-labelledby="services-title">
-      <p class="eyebrow">01 / Products &amp; Services</p>
-      <div class="section-header">
-        <h2 id="services-title">LABDAM의 두 가지 서비스<br class="desktop-only"><span class="desktop-only">각각의 목적에 맞게.</span></h2>
-        <p class="section-lead">건강검진 결과를 살펴보는 일부터 카페인과 유전자형의 연관성을 탐색하는 일까지. 두 서비스는 각기 다른 문제를 다룹니다.</p>
-      </div>
-      <div class="service-grid">
-        <article class="service-card">
-          <div class="service-visual health" aria-hidden="true">
-            <span class="visual-label">HEALTH DATA / 01</span>
-            <div class="ui-mini">
-              <div class="mini-top"><span>HEALTH CHECKUP OVERVIEW</span><span class="mini-dot-group"><i></i><i></i><i></i></span></div>
-              <div class="mini-heading">검사 항목 정보 정리</div>
-              <div class="mini-bar"></div><div class="mini-bar b"></div><div class="mini-bar c"></div>
-            </div>
-          </div>
-          <div class="service-content">
-            <span class="service-index">01 / Clinical laboratory information</span>
-            <h3>LabInsight</h3>
-            <p class="subtitle">랩인사이트 · 건강검진 수치 입력·해석</p>
-            <p class="desktop-only">건강검진 수치를 입력해 항목별 참고 범위와 설명을 살펴보고, 결과를 이해하는 데 필요한 질문을 정리하도록 돕습니다. 참고 범위는 검사기관 및 개인 상황에 따라 달라질 수 있습니다.</p><p class="mobile-only mobile-card-copy">검진 수치를 입력하거나 예시 리포트를 확인하세요.</p>
-            <div class="service-meta"><span>검사 항목 정리</span><span>검사기관 참고치</span><span>결과 리포트</span></div>
-            <p class="service-entry-detail"><strong>이용 안내</strong> 실제 결과지를 보며 수치를 입력하거나 가상 샘플 리포트로 체험할 수 있습니다.</p>
-            <a class="link" href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">LabInsight 이용하기 <span aria-hidden="true">↗</span></a>
-          </div>
-        </article>
-        <article class="service-card">
-          <div class="service-visual genetics" aria-hidden="true">
-            <span class="visual-label">GENETIC CONTEXT / 02</span>
-            <div class="gene-wave"><span class="gene-chip">AHR</span><span class="gene-chip">CYP1A2</span></div>
-          </div>
-          <div class="service-content">
-            <span class="service-index">02 / Molecular biology education</span>
-            <h3>Caffeine Atlas</h3>
-            <p class="subtitle">카페인 아틀라스 · 유전자형 기반 연구·교육 리포트</p>
-            <p class="desktop-only">카페인 관련 유전자형 정보를 연구·교육 맥락에서 살펴보는 서비스입니다. 모델 기반 지표는 실제 카페인 반응, 질환 위험 또는 개인별 안전 섭취량을 확정하지 않습니다.</p><p class="mobile-only mobile-card-copy">로그인 없이 가상 예시와 교육용 리포트를 체험하세요.</p>
-            <div class="service-meta"><span>유전자형 정보</span><span>모델 기반 지표</span><span>교육용 리포트</span></div>
-            <p class="service-entry-detail"><strong>공개 체험</strong> 회원가입 없이 4개 SNP 유전자형을 선택하거나 가상 예시로 리포트를 확인할 수 있습니다.</p>
-            <a class="link" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 이용하기 <span aria-hidden="true">↗</span></a>
-          </div>
-        </article>
-      </div>
-    </section>
-
-    <section id="about" class="story section-anchor" aria-labelledby="about-title">
-      <div class="container story-grid">
-        <div>
-          <p class="eyebrow">02 / About LABDAM</p>
-          <h2 id="about-title">복잡한 데이터와<br>일상 사이의 연결.</h2>
-        </div>
-        <div>
-          <p class="story-lede"><span class="desktop-only">건강검진 결과표의 숫자와 유전정보의 의미를 이해하기 위해, 무엇을 알고 무엇을 아직 모르는지부터 분명하게 살펴봅니다.</span><span class="mobile-only">건강 데이터를 더 쉽게 이해하도록 돕습니다.</span></p>
-          <p class="story-body desktop-only">LABDAM은 임상검사 및 분자생물학 정보를 보다 쉽게 전달하려는 디지털 프로젝트 브랜드입니다. Personal Health Atlas는 별도 서비스가 아닌 LABDAM 통합 포털의 방향을 나타냅니다. 현재 공개된 서비스는 LabInsight와 Caffeine Atlas 두 가지이며, 각 서비스의 실제 기능과 정보 이용 조건은 해당 페이지에서 확인할 수 있습니다.</p><details class="mobile-only mobile-more"><summary>LABDAM 더 알아보기</summary><p>LABDAM은 Personal Health Atlas와 동일한 통합 포털입니다. 임상검사와 분자생물학 정보를 전달하며, LabInsight와 Caffeine Atlas 두 서비스를 연결합니다.</p></details>
-          <div class="story-highlights" aria-label="주요 분야">
-            <span>Clinical Laboratory Science</span><span>Molecular Diagnostics</span><span>Bioinformatics</span>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <section id="technology" class="approach section-anchor" aria-labelledby="technology-title">
-      <div class="container">
-        <p class="eyebrow">03 / Our Approach</p>
-        <h2 id="technology-title">기술보다 중요한 것은<br>정보를 해석하는 맥락입니다.</h2>
-        <div class="principles">
-          <article class="principle">
-            <span class="principle-num">01</span>
-            <h3>Clinical context</h3>
-            <p>검사 수치는 측정법, 검사기관의 참고 범위, 개인별 조건을 함께 고려해야 합니다. LabInsight는 원본 결과지와 의료진의 판단을 대신하지 않습니다.</p>
-          </article>
-          <article class="principle">
-            <span class="principle-num">02</span>
-            <h3>Genetic context</h3>
-            <p>Caffeine Atlas의 유전자형 관련 내용은 연구·교육을 위한 참고 정보입니다. 단일 유전자형이나 모델 지표만으로 개인의 실제 반응을 확정할 수 없습니다.</p>
-          </article>
-          <article class="principle">
-            <span class="principle-num">03</span>
-            <h3>Transparent limitations</h3>
-            <p>모든 정보에는 적용 범위와 한계가 있습니다. 각 서비스의 기능, 데이터 처리 방식과 주의사항을 분리해 설명하며 임상 진단 또는 법적 인증을 주장하지 않습니다.</p>
-          </article>
-        </div>
-        <div class="mobile-rules mobile-only" aria-label="정보 해석 원칙 자세히 보기">
-          <details><summary>검사 수치에는 참고 범위가 필요합니다.</summary><p>측정 방법과 검사기관, 개인별 조건을 고려해야 하며 LabInsight는 의료진의 판단을 대신하지 않습니다.</p></details>
-          <details><summary>유전자형만으로 반응을 확정할 수 없습니다.</summary><p>Caffeine Atlas는 연구·교육용 참고 정보를 제공하며 실제 카페인 반응이나 개인별 안전 섭취량을 판정하지 않습니다.</p></details>
-          <details><summary>서비스의 한계를 투명하게 안내합니다.</summary><p>이용 범위와 데이터 처리는 서비스별로 다르며 의료 진단 또는 법적 인증 완료를 주장하지 않습니다.</p></details>
-        </div>
-        <p class="approach-note">※ LABDAM은 의료기관, 공인 임상검사기관 또는 의학적 진단 시스템을 의미하지 않습니다.</p>
-      </div>
-    </section>
-
-    <section id="contact" class="contact section-anchor" aria-labelledby="contact-title">
-      <div class="container contact-grid">
-        <div>
-          <p class="eyebrow">04 / Contact &amp; Feedback</p>
-          <h2 id="contact-title">더 나은 경험을 위한<br>의견을 들려주세요.</h2>
-          <p class="section-copy desktop-only">오류 제보와 접근성 개선 제안, 일반적인 기능 문의는 개발 저장소의 GitHub 이슈를 이용해 주세요.</p>
-          <p class="muted-copy">공개 게시판에 건강검진 결과, 유전자 검사 결과, 성명·연락처 등 개인·민감정보를 게시하지 마세요.</p>
-        </div>
-        <div class="contact-action">
-          <strong>LABDAM 개발 저장소</strong>
-          <p class="desktop-only">일반적인 사이트 이용 및 기능 개선 의견을 받습니다. 의료상담이나 민감정보 접수 창구는 아닙니다.</p>
-          <a class="button" href="https://github.com/Haru-today/haru-today.github.io/issues/new" target="_blank" rel="noopener noreferrer">의견 남기기 <span aria-hidden="true">↗</span></a>
-        </div>
-      </div>
-    </section>
-    <section class="note" aria-label="이용 안내"><div class="container"><p>본 포털 및 연결 서비스는 연구·교육과 참고 정보 제공을 목적으로 하며 의료적 진단·치료 또는 개인별 안전 섭취량 결정을 대신하지 않습니다.</p></div></section>
-  </main>
-  <footer>
-    <div class="container bottom">
-      <div><div class="footer-wordmark">LABDAM.</div><div class="footer-sub">PERSONAL HEALTH ATLAS</div></div>
-      <div>
-        <div class="footer-links"><a href="/privacy.html">개인정보 처리 안내</a><a href="/terms.html">서비스 이용 안내</a><a href="#main">맨 위로 ↑</a></div>
-        <small>© 2026 LABDAM · Digital Healthcare &amp; Bioinformatics.</small>
-      </div>
-    </div>
-  </footer>
+<a class="skip" href="#main">본문으로 바로가기</a>
+<main id="main">
+  <div class="brand">LABDAM</div>
+  <p class="eyebrow">Personal Health Atlas</p>
+  <h1>승인된 계정으로 이용할 수 있습니다.</h1>
+  <p>LABDAM과 LabInsight는 Google 로그인 및 관리자 승인 후 이용 가능합니다. 보호된 서비스로 이동합니다.</p>
+  <div class="links">
+    <a class="primary" href="https://labdam-free-approval.jleegenomics.workers.dev/">LABDAM 로그인·입장 <span aria-hidden="true">→</span></a>
+    <a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">LabInsight 바로가기</a>
+  </div>
+  <p class="notice">이미 로그인한 경우 별도 인증 없이 서비스가 열릴 수 있습니다. 로그인 여부를 확인하려면 시크릿 창에서 접속하세요.</p>
+  <p class="notice">Caffeine Atlas는 <a href="https://haru-today.github.io/caffeine-atlas/">로그인 없이 공개 이용</a>할 수 있습니다. 개인정보 안내와 이용 조건은 <a href="/privacy.html">개인정보 처리 안내</a> 및 <a href="/terms.html">서비스 이용 안내</a>를 참고하세요.</p>
+</main>
 </body>
 </html>
