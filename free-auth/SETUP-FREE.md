@@ -1,6 +1,6 @@
 # LABDAM · LabInsight 무료 승인제 로그인 설정서
 
-상태: 2026-10-16 로컬 workerd/D1 및 브라우저 검증 완료. **수정본 시험 재배포와 실제 Google 로그인 검증은 승인 대기이며, 기존 공개 Pages 직접 접근은 유지됩니다.** 최신 변경·테스트·배포 승인 범위는 [REVIEW-20261016.md](REVIEW-20261016.md), 이전 감사 기록은 [AUDIT-20261015.md](./AUDIT-20261015.md)를 확인하세요.
+상태(2026-10-16 오후, GitHub 실제 기록): **로컬 OAuth/workerd·D1·브라우저 보안 테스트는 성공했고, 시험 Worker는 배포 이력이 있습니다.** 마지막 수동 Worker 배포 잡은 사후 준비 검사 실패로 종료했으나, 이후 익명 접근 검사에서는 Worker 로그인/보호 경로(303/401)와 Pages 이전 주소의 공개 앱 제거(404), Caffeine Atlas 공개 경로가 통과했습니다. **실제 Google 로그인·첫 관리자 가입/승인·권한 철회의 성공은 아직 입증하지 못했습니다.** 최근 읽기 전용 검사: [LABDAM](https://github.com/Haru-today/haru-today.github.io/actions/runs/38871727517) · [LabInsight](https://github.com/Haru-today/labinsight/actions/runs/38869913283). 아래 2026-10-15/16 항목은 작성 당시의 문제 기록이며 현재 상태를 뜻하지 않습니다.
 
 ## 운영 원칙
 
@@ -44,7 +44,7 @@
 
 1. Google Cloud Console에서 프로젝트를 생성하거나 결제 활성화가 불필요한 기존 프로젝트를 선택합니다.
 2. Google Auth Platform에서 OAuth 동의 화면을 준비합니다. 개인정보 설명과 앱 연락처를 정확히 입력하고, Web application 유형의 OAuth Client ID를 생성합니다.
-3. **현재 확정된 시험 Worker origin**은 `https://labdam-free-approval.jleegenomics.workers.dev`입니다. `wrangler.jsonc` 공개 `vars.AUTH_ORIGIN`에 이를 고정했습니다. **해당 Worker는 아직 생성·배포되지 않았으므로 주소는 아직 실제로 응답하지 않습니다.** Google Cloud Web application OAuth Client의 **Authorized redirect URIs**에는 `https://labdam-free-approval.jleegenomics.workers.dev/auth/callback`을 정확히 등록합니다. 서버측 redirect flow이므로 Authorized JavaScript origins 설정은 필수 아닙니다. 화면에서 요구할 경우 같은 HTTPS origin을 입력할 수 있습니다.
+3. **현재 확정된 시험 Worker origin**은 `https://labdam-free-approval.jleegenomics.workers.dev`입니다. `wrangler.jsonc` 공개 `vars.AUTH_ORIGIN`에 이를 고정했습니다. **시험 Worker는 생성·배포 이력이 있고 익명 로그인 경로 응답이 검증됐습니다. 다만 실제 Google OAuth 로그인 완료의 증거는 아닙니다.** Google Cloud Web application OAuth Client의 **Authorized redirect URIs**에는 `https://labdam-free-approval.jleegenomics.workers.dev/auth/callback`을 정확히 등록합니다. 서버측 redirect flow이므로 Authorized JavaScript origins 설정은 필수 아닙니다. 화면에서 요구할 경우 같은 HTTPS origin을 입력할 수 있습니다.
 4. Google 공식 안내에 따르면 **기본 신원 범위(openid/email/profile)만 요청하는 앱은 테스트 사용자 허용 목록 제한에 예외가 있습니다.** 따라서 이 범위만으로 가입 신청을 받는 구조를 유지합니다. 다만 실제 인증 화면의 조직 정책, 앱 게시 상태 및 접속 도메인 제약은 계정에서 검증해야 하며, Google 인증 성공도 LABDAM 관리자 승인을 뜻하지 않습니다.
 5. 인증 요청은 openid, email, profile 범위만 요구합니다. Gmail/Drive/Contacts 권한을 요청하지 않습니다.
 6. Google Client Secret은 GitHub, README, 이슈, 채팅이나 프런트엔드에 절대 저장하지 않습니다.
@@ -94,7 +94,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 - BOOTSTRAP_ADMIN_EMAIL에 등록한 **본인 Google 계정**으로 /login.html에서 인증
 - D1에 자동으로 admin/approved 회원 기록 생성
 - /account.html에서 '회원 승인 관리'로 이동 → /admin.html
-- 실제 관리자 로그인과 승인 기능을 확인한 뒤 Worker 설정에서 **BOOTSTRAP_ADMIN_EMAIL을 제거**합니다. 기존 관리자 권한은 D1의 Google 고유 식별자에 연결되어 유지되며, 자동 지정 통로를 계속 열어 두지 않습니다. 이미 일반 회원으로 등록한 계정은 환경 변수 변경만으로 승격되지 않습니다. 관리자 복구·추가 지정은 별도 검토가 필요한 수동 DB 관리 작업입니다.
+- 실제 관리자 로그인과 승인 기능을 확인한 뒤 Worker 설정에서 **BOOTSTRAP_ADMIN_EMAIL을 제거**합니다. 기존 관리자 권한은 D1의 Google 고유 식별자에 연결되어 유지되며, 자동 지정 통로를 계속 열어 두지 않습니다. 이미 `pending`으로 등록된 최초 관리자 계정은 지정된 Google 계정의 검증된 신원을 사용해 **기존 승인된 관리자가 없고 거절되지 않은 경우에만** 최초 관리자로 복구할 수 있습니다. 임의 계정이나 거절된 계정을 승격하지 않으며, 실제 원격 D1에서의 동작은 확인이 필요합니다.
 
 일반 신청자:
 - /login.html → 'Google 계정으로 계속하기'
@@ -111,7 +111,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 
 ## 6. 정식 공개 전 절대 빠뜨리면 안 되는 작업
 
-**기존 공개 GitHub Pages를 남겨두면 보호 Worker만 사용하더라도 로그인 우회가 가능합니다.**
+**GitHub Pages에서 과거 기능 HTML·JS를 계속 공개하면 Worker 승인제를 우회할 수 있습니다. 2026-10-16 익명 검증에서는 LABDAM 루트 및 LabInsight Pages가 로그인 안내로 전환되었고 기존 `/labinsight/app.js`가 404로 확인됐습니다.** 기존 기기의 오래된 오프라인 캐시·다운로드된 복사본까지 지워졌다는 뜻은 아닙니다.
 
 - https://haru-today.github.io/ (기존 LABDAM 루트)
 - https://haru-today.github.io/labinsight/ (기존 LabInsight 공개 HTML)
@@ -133,7 +133,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 - [ ] 서비스 종료·로그아웃과 기기 local/sessionStorage, 다운로드된 파일 삭제는 서로 다른 문제임을 고지
 - [ ] `/healthz`의 200은 Google/D1 준비 완료를 뜻하지 않음. 실제 OAuth callback·D1 저장·승인·철회로 준비 상태 확인
 
-**이 문서는 실제 클라우드 배포의 성공을 의미하지 않습니다.** 관리자 계정의 검증된 Cloudflare/Google 정보를 입력하고 현장 테스트가 끝나기 전까지 코드 상태만 유지합니다.
+**익명 접근 경로가 정상이어도 실제 Google OAuth 로그인/관리자 권한을 검증한 것은 아닙니다.** 승인된 두 Google 계정으로 최초 관리자·일반 회원 승인/철회 실사용 시험과 개인정보 안내의 최종 검토를 마쳐야 합니다.
 
 
 ## 7. 익명 공개 Pages 실측 확인 (읽기 전용 · 배포/삭제 없음)
@@ -147,7 +147,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 - `PUBLIC`: 포스터 Caffeine Atlas의 지정 공개 주소가 2xx로 열림.
 - `REVIEW`: 리디렉션, 5xx, 네트워크 실패/시간 초과 등. 보안을 확인한 것으로 취급하지 않음.
 
-점검 대상은 LabInsight HTML·JS·CSS·manifest·icons·service worker와 Caffeine Atlas 공개 주소 4개입니다. 현재 운영 중인 옛 서비스에서 `EXPOSED`가 나오는 것은 예상되는 미완료 사항이며, **일반 실행은 경고만 출력합니다.** 코드 PR CI에서도 읽기 전용 진단은 성공/실패 게이트로 오해하지 않도록 별도 단계로 표시합니다.
+점검 대상은 LabInsight HTML·JS·CSS·manifest·icons·service worker와 Caffeine Atlas 공개 주소 4개입니다. 이 검사 도구의 출력은 실행 시점에 따라 다릅니다. 2026-10-16 후속 익명 검증에서는 Pages 앱 자원이 404, Caffeine 공개 경로가 200으로 확인됐습니다. **일반 실행은 경고만 출력하므로** 정식 안전성 판정에는 GitHub Actions의 최신 라이브 경계 감사도 함께 확인합니다. 코드 PR CI에서도 읽기 전용 진단은 성공/실패 게이트로 오해하지 않도록 별도 단계로 표시합니다.
 
 기존 공개 자원 정리 계획을 승인·실행한 **이후에만** 아래 엄격 모드로 재검사합니다.
 
@@ -173,7 +173,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 
 점검 대상은 시험 Worker의 공개 로그인/개인정보 안내와, 비로그인 LABDAM·LabInsight HTML 리디렉션, JS/CSS/API 거부, 캐시 방지 헤더, Worker 내 Caffeine Atlas 혼입 여부 및 기존 Caffeine Atlas 공개 URL 4개입니다. `--json`을 추가하면 결과를 JSON으로 출력합니다. **Google 로그인 시작 URL은 요청하지 않으며, D1/회원 데이터를 수정하거나 원격에 배포하지 않습니다.** 실제 Worker가 없다면 실행하지 않아도 됩니다.
 
-**이 검사가 성공해도 배포 준비 완료를 뜻하지 않습니다.** `/healthz`는 상태 코드 검증일 뿐 Google OAuth, D1, 관리자 승인의 준비 상태를 확인하지 않습니다. 이후 실제 Google 계정으로 pending → approved → 접근 허용 → 철회/재승인 → 접근 차단을 별도 수동 검증해야 합니다. 기존 공개 Pages 18개 경로 정리 및 포스터 QR 실기기 검수는 별도입니다.
+**익명 Worker 검사 성공은 실제 로그인 성공이 아닙니다.** 현재 `/healthz`의 HTTP 200은 필수 Worker 설정·D1/정적 바인딩 존재를 확인하는 코드 결과이나, Google 토큰 교환, 원격 회원 승인, 개인정보 처리 의무를 보증하지 않습니다. 두 실계정으로 pending → approved → 접근 허용 → 철회/재승인 → 접근 차단을 별도 검증하세요. Pages 공개 경로의 최신 감사는 통과했지만 과거 설치된 브라우저 캐시와 실제 포스터 QR 기기 검수는 별도입니다.
 
 무료 한도 관련 공식 문서(2026-10-15 확인): D1 Free는 행 읽기 500만/일, 행 쓰기 10만/일, 전체 저장 5 GB이며 개별 DB 최대 500 MB입니다. 2026-09-01부터 무료 일일 한도 초과 D1 쿼리는 리셋 전까지 오류가 발생합니다. 이 프로젝트는 자동 유료 업그레이드를 수행하지 않습니다.
 
@@ -196,7 +196,7 @@ GOOGLE_CLIENT_ID는 Cloudflare Worker Secret으로 입력하거나 해당 Worker
 - 사용자 제공 Google OAuth **Web application Client ID**만 공개 `wrangler.jsonc`의 `vars.GOOGLE_CLIENT_ID`에 설정했습니다. Client ID는 공개 식별자이며 비밀번호가 아닙니다. `GOOGLE_CLIENT_SECRET`은 저장소·채팅·빌드 디렉터리에 저장하지 않습니다.
 - Mac 로컬의 보호 번들 빌드 결과는 파일 27개 사전검사를 통과했습니다. 새로운 개발 브랜치 설정을 받으려면 `cd ~/labdam-auth-setup/free-auth && git pull --ff-only` 후 `node scripts/preflight-static.mjs --require-real-d1`을 실행합니다.
 - `npx wrangler deploy --dry-run`은 정적 번들·Worker 준비 상태를 **배포 없이** 미리 검사하는 선택적 단계입니다. 이 작업은 실제 무료 Worker 생성, 비밀값 설정, 또는 OAuth 콜백 동작 확인을 대신하지 않습니다.
-- Worker 자체는 아직 미생성 상태입니다. `wrangler deploy`나 `wrangler secret put`은 별도 시험 배포 승인 및 안전한 비밀값 입력 경로가 준비되기 전에는 실행하지 않습니다.
+- **당시(2026-10-15) 기록:** Worker는 아직 미생성 상태였습니다. 현재는 시험 Worker 배포 이력이 있으므로 기존 D1/Worker를 새로 생성하지 말고, 안전한 비밀키 관리와 수동 배포 워크플로의 설정·실행 이력을 먼저 확인하세요.
 
 
 ## 2026-10-15 · Google 토큰 교환 503 원인 진단 (시험 Worker 전용)
