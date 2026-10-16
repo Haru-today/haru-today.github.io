@@ -1,0 +1,113 @@
+name: Free Google approval-login security
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'free-auth/**'
+      - 'tests/free-auth*.test.cjs'
+      - '.github/workflows/free-auth-ci.yml'
+  push:
+    branches: [main, 'feature/free-google-approval-auth-20261014']
+    paths:
+      - 'free-auth/**'
+      - 'tests/free-auth*.test.cjs'
+      - '.github/workflows/free-auth-ci.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  auth-security:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check JavaScript syntax and no Cloudflare Access dependency
+        run: |
+          node --check free-auth/worker.mjs
+          node --check free-auth/build.mjs
+          ! grep -Ei 'cloudflareaccess\.com|Cf-Access-Jwt-Assertion|ACCESS_AUD|TEAM_DOMAIN' free-auth/worker.mjs
+      - name: Exercise OAuth signing, free D1 login, pending approval and revocation
+        run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
+      - name: Read-only anonymous Pages leakage and public poster URL audit (non-blocking until cutover)
+        run: node free-auth/scripts/audit-public-pages.mjs
+      - name: Test static deployment preflight with synthetic fixtures
+        run: node --test free-auth/tests/preflight-static.test.mjs
+      - name: Test isolated trial Worker anonymous gate (synthetic HTTP responses, no deploy)
+        run: node --test free-auth/tests/probe-trial-worker.test.mjs
+      - name: Preview proposed retention only with synthetic data (no D1, no deletion)
+        run: node --test free-auth/tests/retention-planning.test.mjs
+      - name: Verify OAuth provider disclosures reflect code and DB schema (read only)
+        run: node --test free-auth/tests/provider-privacy-review.test.mjs
+      - name: Validate real SQLite schema, unique members and cascading logout
+        run: python3 -m unittest discover -s free-auth/tests -p 'test_schema.py' -v
+
+  bundle-validation:
+    needs: auth-security
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      # PR merge previews now contain the public Pages handoff rather than the
+      # full LABDAM portal. Preserve the reviewed private portal snapshot.
+      - name: Fetch reviewed LABDAM portal before public Pages handoff
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/haru-today.github.io
+          ref: d7fd176de02bcc45652348161a58e2823d3ed980
+          path: sources/labdam
+          persist-credentials: false
+      - name: Fetch only reviewed LabInsight static website
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/labinsight
+          ref: 5ed1b25a24ca0718d23483606c4961037172edac
+          path: sources/labinsight
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Build only LABDAM + LabInsight protected assets without deployment
+        env:
+          LABDAM_SOURCE: ${{ github.workspace }}/sources/labdam
+          LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+        run: node free-auth/build.mjs
+      - name: Check reviewed static Worker config and built assets
+        run: node free-auth/scripts/preflight-static.mjs --require-real-d1
+      - name: Inspect protected file allowlist and public Caffeine Atlas URL
+        run: node --test free-auth/tests/bundle.test.cjs
+      - name: Install pinned local Workers runtime (no cloud credentials)
+        run: npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
+      - name: Exercise real workerd, local D1 and gated assets with synthetic Google responses
+        run: npm test --prefix free-auth/tests/runtime
+      - name: Reject accidentally shipped credentials or Caffeine Atlas pages
+        run: |
+          test ! -e free-auth/dist/caffeine-atlas
+          test ! -e free-auth/dist/free-auth
+          ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
+      - name: Install pinned UI browser test dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Install Chromium for login and membership UI checks
+        run: npx playwright install --with-deps chromium
+      - name: Verify login, pending, admin and account screens at desktop and mobile widths
+        run: npx playwright test --config free-auth/playwright.config.cjs
+      - name: Upload preview UI screenshots and traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: labdam-free-auth-browser-debug
+          path: |
+            free-auth-browser-results/
+            free-auth-browser-report/
+          retention-days: 3
+          if-no-files-found: ignore
+      - name: Upload non-sensitive staging bundle for local admin review
+        uses: actions/upload-artifact@v4
+        with:
+          name: labdam-free-auth-static-preview
+          path: free-auth/dist/
+          retention-days: 3

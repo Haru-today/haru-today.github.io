@@ -1,0 +1,93 @@
+<!doctype html><html lang="ko"><head><title>가입 승인 대기 | LABDAM</title><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer"><meta name="theme-color" content="#102b50"><style>
+:root{font-family:Arial,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#1b334c;background:#f3f6fb;font-size:16px}*{box-sizing:border-box}[hidden]{display:none!important}body{margin:0}header{background:#102b50;color:#fff;padding:18px max(20px,calc((100% - 980px)/2))}header a{color:#fff;text-decoration:none;font-weight:800;letter-spacing:.06em}main{max-width:770px;margin:0 auto;padding:clamp(28px,7vw,76px) 20px 80px}h1{font-size:clamp(1.75rem,5.5vw,2.55rem);letter-spacing:-.035em}h2{font-size:1.15rem}p{line-height:1.75}section{background:#fff;border:1px solid #d8e2ee;border-radius:16px;padding:clamp(18px,4vw,30px);margin:20px 0;box-shadow:0 7px 24px #102b5008}.muted{color:#52677b;font-size:.91rem}.hint{color:#365c85;font-weight:650}.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:20px}button,.button{display:inline-flex;align-items:center;justify-content:center;min-height:46px;border-radius:9px;padding:11px 17px;border:1px solid #1f5b97;background:#1f5b97;color:#fff;cursor:pointer;text-decoration:none;font-size:.95rem;font-weight:700}button.secondary,.button.secondary{background:#fff;color:#1f5b97}button:disabled{opacity:.55;cursor:not-allowed}a{color:#245baa}a:focus-visible,button:focus-visible,textarea:focus-visible{outline:3px solid #245baa;outline-offset:3px}textarea{display:block;width:100%;padding:12px;border-radius:9px;border:1px solid #9ab1cc;font:inherit;min-height:95px}label{font-weight:700}dl{display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px}dt{color:#53687b}dd{margin:0;overflow-wrap:anywhere}.status{font-weight:700;color:#234c78;line-height:1.65}.error{color:#9e203c}table{width:100%;border-collapse:collapse}th,td{padding:11px 7px;border-bottom:1px solid #dae4ee;text-align:left;font-size:.85rem;overflow-wrap:anywhere}th{color:#435c73}td .actions{margin:0;gap:5px}td button{min-height:40px;padding:7px 10px;font-size:.8rem}td button.secondary{color:#214d83;background:white}footer{max-width:770px;margin:0 auto;padding:18px 20px 55px;color:#637388;font-size:.8rem}@media(max-width:630px){dl{grid-template-columns:1fr;gap:4px}dd{margin-bottom:13px}.table-wrap{overflow-x:auto}table{min-width:600px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
+</style></head><body>
+<header><a href="/login.html">LABDAM</a></header><main>
+<p class="hint">MEMBERSHIP REQUEST</p><h1>가입 승인 안내</h1><p id="message" class="status" role="status">계정 상태를 확인하고 있습니다.</p>
+<button type="button" id="refreshStatus">승인 상태 다시 확인</button><p class="muted">승인 후 이 버튼을 누르면 다시 로그인하지 않고 LABDAM과 LabInsight를 이용할 수 있습니다.</p>
+<section id="detail" hidden><dl><dt>로그인 계정</dt><dd id="email"></dd><dt>신청 상태</dt><dd id="status"></dd></dl>
+<div id="purposeWrap"><form id="purposeForm"><label for="purpose">가입 목적 (선택, 최대 240자)</label><p class="muted">서비스 사용 목적을 짧게 적어 주시면 관리자가 신청을 검토할 수 있습니다. 건강검진 수치나 민감정보는 입력하지 마세요.</p><textarea id="purpose" maxlength="240" autocomplete="off"></textarea><div class="actions"><button type="submit" id="savePurpose">가입 목적 저장</button></div></form></div>
+<p id="formMessage" role="status" class="status"></p></section>
+<div class="actions"><a class="button secondary" href="/login.html">다른 계정으로 로그인</a><button type="button" class="secondary" id="logout">로그아웃</button><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 공개 체험</a></div></main>
+<footer>관리자 승인 전에는 LABDAM과 LabInsight를 이용할 수 없습니다. <a href="/membership-privacy.html">가입 개인정보 안내</a> · <button type="button" id="withdraw" class="secondary">가입 신청 철회·정보 삭제</button> <span id="withdrawMessage" role="status"></span></footer>
+<script>(async function(){
+const msg=document.getElementById("message"),detail=document.getElementById("detail");
+const form=document.getElementById("purposeForm"),refresh=document.getElementById("refreshStatus");
+const save=document.getElementById("savePurpose"),withdraw=document.getElementById("withdraw"),logout=document.getElementById("logout");
+let csrf="",checking=false,mutating=false,canEdit=false;
+function clearHealthReport(){
+ let ok=true;
+ for(const store of [sessionStorage,localStorage]){
+  try{
+   store.removeItem("labinsight-latest-report");
+   store.removeItem("labinsight-carepath-session-v1");
+   store.removeItem("labinsight-demo-bookings-v2");
+   store.removeItem("labinsight-bookings");
+  }catch(_){ok=false;}
+ }
+ return ok;
+}
+function syncControls(){
+ refresh.disabled=checking||mutating;
+ save.disabled=checking||mutating||!csrf||!canEdit;
+ withdraw.disabled=checking||mutating||!csrf;
+ logout.disabled=checking||mutating||!csrf;
+}
+async function checkStatus(){
+ if(checking||mutating)return;
+ checking=true;csrf="";canEdit=false;detail.hidden=true;syncControls();
+ try{
+  const res=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});
+  if(res.status===401){location.replace("/login.html");return;}
+  if(!res.ok)throw new Error("status_failed");
+  const me=await res.json();csrf=me.csrf;
+  if(me.status==="approved"){location.replace("/");return;}
+  detail.hidden=false;document.getElementById("email").textContent=me.email;
+  const pending=me.status==="pending";canEdit=pending;
+  document.getElementById("status").textContent=pending?"관리자 승인 대기":"승인되지 않음";
+  msg.textContent=pending?"가입 신청이 접수됐습니다. 관리자가 승인하면 LABDAM과 LabInsight를 이용할 수 있습니다.":"현재 계정은 승인되지 않았습니다. 관리자에게 문의해 주세요.";
+  document.getElementById("purposeWrap").hidden=!pending;
+  document.getElementById("purpose").value=me.purpose||"";
+ }catch(_){msg.textContent="로그인 상태를 확인하지 못했습니다. 승인 상태 다시 확인을 눌러 주세요.";}
+ finally{checking=false;syncControls();}
+}
+refresh.addEventListener("click",checkStatus);
+syncControls();
+await checkStatus();
+form.addEventListener("submit",async e=>{
+ e.preventDefault();
+ if(!csrf||!canEdit||checking||mutating)return;
+ const target=document.getElementById("formMessage");
+ mutating=true;syncControls();target.textContent="가입 목적을 저장하고 있습니다.";
+ try{
+  const r=await fetch("/api/application",{method:"POST",credentials:"same-origin",headers:{"Content-Type":"application/json","X-CSRF-Token":csrf},body:JSON.stringify({purpose:document.getElementById("purpose").value})});
+  target.textContent=r.ok?"가입 목적이 저장되었습니다.":"저장하지 못했습니다. 다시 확인해 주세요.";
+ }catch(_){target.textContent="네트워크 연결을 확인해 주세요.";}
+ finally{mutating=false;syncControls();}
+});
+withdraw.addEventListener("click",async()=>{
+ if(!csrf||checking||mutating)return;
+ if(!confirm("가입 신청과 Google 계정 연결 정보를 삭제할까요? 다시 이용하려면 새 가입 신청부터 시작해야 합니다."))return;
+ const status=document.getElementById("withdrawMessage");
+ mutating=true;syncControls();status.textContent="가입 신청을 철회하고 있습니다.";
+ try{
+  const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
+  if(!r.ok){status.textContent="가입 철회 처리에 실패했습니다.";return;}
+  if(!clearHealthReport()){status.textContent="가입 정보는 삭제됐지만 이 기기의 임시 검사 결과 삭제에 실패했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
+  location.replace("/login.html");
+ }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
+ finally{mutating=false;syncControls();}
+});
+logout.addEventListener("click",async()=>{
+ if(!csrf||checking||mutating)return;
+ mutating=true;syncControls();msg.textContent="로그아웃하고 있습니다.";
+ try{
+  const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
+  if(r.ok||r.status===303){
+   if(!clearHealthReport()){msg.textContent="로그아웃됐지만 이 기기의 임시 검사 결과를 지우지 못했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
+   location.replace("/login.html");
+  }
+  else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
+ }catch(_){msg.textContent="네트워크 연결을 확인한 뒤 로그아웃을 다시 시도해 주세요.";}
+ finally{mutating=false;syncControls();}
+});
+})();</script></body></html>

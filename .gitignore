@@ -1,0 +1,9 @@
+node_modules/
+labinsight-source/
+test-results/
+playwright-report/
+free-auth-browser-results/
+free-auth-browser-report/
+__pycache__/
+.local-review/
+.wrangler/

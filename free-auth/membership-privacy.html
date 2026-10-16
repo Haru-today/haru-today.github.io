@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#102b50">
+<meta name="policy-status" content="draft">
+<title>회원가입 개인정보 처리 안내 | LABDAM</title>
+<style>
+:root{font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",sans-serif;color:#1b334c;background:#f3f6fb;line-height:1.75}
+*{box-sizing:border-box}body{margin:0}header{background:#102b50;color:white;padding:18px max(20px,calc((100% - 940px)/2))}
+header a{color:inherit;text-decoration:none;font-weight:800;letter-spacing:.04em}
+main{max-width:940px;margin:auto;padding:36px 20px 72px}
+h1{font-size:clamp(1.6rem,5vw,2.3rem);line-height:1.35}
+h2{font-size:1.15rem;margin:0 0 12px}
+h3{font-size:1rem;margin:14px 0 6px}
+p,li{font-size:.95rem}a{color:#205a96}a:focus-visible{outline:3px solid #205a96;outline-offset:3px}
+section{background:white;border:1px solid #d4dfeb;border-radius:12px;padding:20px 24px;margin:16px 0}
+.notice{border-left:4px solid #976a2e;background:#fff8ed;padding:16px 19px;margin:20px 0}
+.note{color:#4c637b;font-size:.89rem}
+table{width:100%;border-collapse:collapse}th,td{text-align:left;vertical-align:top;padding:10px;border-bottom:1px solid #e1e8f0;font-size:.91rem}
+th{background:#f4f7fb}th:first-child{width:34%}
+.table-wrap{overflow-x:auto}
+@media(max-width:650px){section{padding:15px}th:first-child{width:40%}table{min-width:530px}}
+</style>
+</head>
+<body>
+<header><a href="/login.html">LABDAM · 회원가입</a></header>
+<main>
+<p class="note">적용 범위: LABDAM · LabInsight 회원가입 및 승인제 로그인 | 개정안: 2026년 10월 16일</p>
+<h1>회원가입 개인정보 처리 안내</h1>
+<p>이 안내는 LABDAM 및 LabInsight에서 Google 계정으로 가입을 신청하고 관리자 승인을 받는 과정의 개인정보 처리를 설명합니다. 실제 건강검진 입력값과 Caffeine Atlas의 데이터 처리는 별도 정책과 기능에서 다룹니다.</p>
+<div class="notice" role="note"><strong>정식 개인정보처리방침 확정 전 안내</strong>
+<p>운영자 법적 성명(또는 사업자 명칭), 개인정보 보호책임자·비공개 문의처, 회원기록의 구체적인 자동 보유기간 및 Google·Cloudflare의 국외 처리·위탁 관련 사항은 최종 확인이 필요합니다. 확인되지 않은 연락처나 자동 삭제기간을 임의로 표시하지 않습니다. 일반 공개 전 이 항목을 확정해야 합니다.</p>
+</div>
+<section aria-labelledby="operator"><h2 id="operator">1. 개인정보처리자 및 문의처</h2>
+<div class="table-wrap"><table><tbody>
+<tr><th scope="row">운영 서비스 명칭</th><td>LABDAM (LabInsight 공통 가입 시스템)</td></tr>
+<tr><th scope="row">법적 개인정보처리자</th><td><strong>운영자 실명 또는 공식 사업자 명칭 확인 대기</strong> — 서비스 브랜드명을 법적 명칭으로 대신하지 않습니다.</td></tr>
+<tr><th scope="row">개인정보 보호책임자·담당 부서</th><td><strong>운영 책임자 지정·연락처 확인 대기</strong></td></tr>
+<tr><th scope="row">비공개 개인정보 문의처</th><td><strong>개설·확인 대기</strong> — 공개 GitHub Issue에 이메일 주소, 신원 증빙, 검사 수치 등을 올리지 마세요.</td></tr>
+</tbody></table></div>
+<p>회원은 <a href="/account.html">내 계정</a> 또는 <a href="/pending.html">가입 승인 대기 화면</a>에서 가입 철회 및 계정 삭제를 직접 요청할 수 있습니다. 열람·정정·처리정지 및 별도 민원 접수를 위한 안전한 연락 채널은 정식 공개 전에 안내합니다.</p>
+</section>
+<section aria-labelledby="collect"><h2 id="collect">2. 처리 목적 및 항목</h2>
+<div class="table-wrap"><table><thead><tr><th scope="col">목적</th><th scope="col">처리 항목</th></tr></thead><tbody>
+<tr><td>Google 인증·계정 연결</td><td>Google 고유 식별자(sub), 인증된 이메일, 표시 이름</td></tr>
+<tr><td>가입 심사·권한 관리</td><td>가입 상태(pending·approved·rejected), 역할(member·admin), 선택 입력 가입 목적(최대 240자), 생성·갱신·심사 시각, 승인 처리자의 식별자</td></tr>
+<tr><td>로그인 세션·위조 요청 차단</td><td>해시된 세션 식별자, CSRF 토큰, 세션 생성·만료시각, 단회 OAuth 인증 상태·PKCE 검증값·nonce</td></tr>
+<tr><td>로그인 남용 제한</td><td>접속 IP와 서버 비밀값으로 생성한 해시 식별자, 요청 횟수·시간 구간. D1에 IP 원문은 저장하지 않음</td></tr>
+</tbody></table></div>
+<p>Google 비밀번호, Google access/refresh token, 실제 건강검진 수치 및 유전자형은 <strong>회원 승인용 D1 데이터베이스에 저장하지 않습니다.</strong> LabInsight 리포트, CarePath 기록 및 가상 예약 체험 기록은 이용 중 브라우저 탭의 임시 저장소에 남을 수 있으며 서버 승인 기록과 분리됩니다.</p>
+</section>
+<section aria-labelledby="period"><h2 id="period">3. 보유기간 및 실제 삭제 시점</h2>
+<p>아래 기간은 <strong>현재 Worker·D1 구현에 근거한 실제 동작</strong>입니다. 법정 의무에 따라 별도 보존할 항목이 생기면 사유·기간을 검토하여 변경 안내해야 합니다.</p>
+<div class="table-wrap"><table><thead><tr><th scope="col">정보 구분</th><th scope="col">현재 보유·삭제 기준</th></tr></thead><tbody>
+<tr><td>가입 회원정보 및 심사 이력</td><td><strong>회원의 계정 삭제 요청 시 삭제</strong>. 승인 대기·거절·승인 상태 모두 현재 자동 만료·삭제 기능이 없어 계정 삭제 전까지 보관될 수 있습니다. 임의 30일/1년 자동 삭제를 보장하지 않습니다.</td></tr>
+<tr><td>일반 로그인 세션</td><td>발급 후 최대 <strong>7일</strong> 유효. 로그아웃·탈퇴·관리자 승인 철회 시 서버의 관련 세션을 무효화/삭제. 만료 세션은 매일 정기 정리(정리 지연 시 저장 잔존 가능).</td></tr>
+<tr><td>단회 Google OAuth 상태</td><td>최대 <strong>10분</strong> 유효. 성공·실패 처리 과정에서 일회성 상태 소비, 만료 상태는 매일 정리.</td></tr>
+<tr><td>로그인 횟수 제한용 해시 기록</td><td>기준 시간 구간에서 <strong>24시간을 초과한 기록</strong>을 하루 한 번 정리. 정상 정리 기준 실제 저장은 약 48시간까지 이어질 수 있고 장애 시 더 길어질 수 있습니다.</td></tr>
+<tr><td>LabInsight / CarePath·가상 예약 체험 기록</td><td>현재 탭의 sessionStorage에 임시 저장. 사용자 삭제·로그아웃·탈퇴·계정 변경 시 해당 서비스 저장 키 삭제를 시도. 이전 버전의 localStorage 사본도 대상 키에 한하여 정리합니다. 세션 복원·오래된 오프라인 복사본 및 기기에 내려받은 PDF는 별도 정리 필요.</td></tr>
+</tbody></table></div>
+<p class="note">장기간 미처리된 가입 대기·거절 회원정보의 자동 보존 한도는 아직 미설정입니다. 구체적인 삭제 주기를 정하고 실제 서버 정리 코드와 테스트를 적용하기 전에는 자동 파기를 약속하지 않습니다.</p>
+</section>
+<section aria-labelledby="rights"><h2 id="rights">4. 정보주체의 권리와 파기 방법</h2>
+<p>일반 회원은 내 계정·가입 승인 대기 화면에서 직접 탈퇴를 요청할 수 있습니다. 성공 시 회원 행과 연결된 서버 로그인 세션이 삭제됩니다. 관리자는 유일한 관리자 계정 보호를 위해 화면에서 직접 탈퇴할 수 없도록 제한됩니다.</p>
+<p>브라우저에 남은 검사·CarePath·가상 예약 체험 기록은 로그아웃·탈퇴·계정 전환 과정에서 해당 저장 키 삭제를 시도하지만 저장소 접근 제한 등으로 실패할 수 있습니다. 이 경우 브라우저의 사이트 데이터를 직접 삭제하세요. 이미 내려받은 문서·스크린샷·PDF는 각 기기에서 별도로 삭제해야 합니다.</p>
+<p>회원 계정 삭제 외 개인정보 열람·정정·처리정지 요청에 대한 안전한 접수/본인 확인 절차는 운영자 확인 후 안내 예정입니다. 민원 상담은 <a href="https://www.privacy.go.kr/">개인정보 포털</a> 및 개인정보침해 신고 118도 참고할 수 있으나, 이 채널이 LABDAM 운영자에게 직접 요청을 전달하는 것은 아닙니다.</p>
+</section>
+<section aria-labelledby="external"><h2 id="external">5. 외부 서비스 및 국외 처리 검토</h2>
+<p>Google 계정 인증과 Cloudflare Workers·D1 무료 시험 인프라를 사용합니다. 가입 데이터 처리의 계약상 위탁·제3자 제공·국외 이전 여부, 이전 국가·시점·방법·항목·보유기간과 이용자 권리 안내는 실제 계정 설정·계약 조건을 확인한 후 최종 확정해야 합니다. 확인되지 않은 국가나 국외 이전이 전혀 없다는 주장은 하지 않습니다.</p>
+<p>별도 공개 서비스인 <a href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas</a>의 유전자형·선택적 Google Sheets 저장은 이 공통 회원가입 DB와 관계없으며, 기존 공개 링크와 QR은 변경하지 않습니다.</p>
+</section>
+<section aria-labelledby="safeguard"><h2 id="safeguard">6. 개인정보 보호조치 및 변경 안내</h2>
+<p>Google 로그인 후 관리자 승인, 세션 무효화, CSRF 검증, 비로그인 정적 자원 접근 차단, 임시 건강정보의 브라우저 내 저장을 사용합니다. 외부 제공사의 접속 로그·백업·운영 보관 기간은 별도 확인이 필요합니다. 안내 내용이 확정 또는 변경되면 게시일과 변경 내용을 함께 공지하겠습니다.</p>
+<p class="note">참고: <a href="https://www.law.go.kr/lsLinkCommonInfo.do?chrClsCd=010202&amp;lsJoLnkSeq=1034265579">개인정보 보호법 제30조</a>, <a href="https://pipc.go.kr/np/cop/bbs/selectBoardList.do?bbsId=BS217&amp;mCode=D010030020">개인정보보호위원회 개인정보 처리방침 작성지침(2026.4.)</a></p>
+</section>
+<p><a href="/login.html">로그인·가입 신청으로 돌아가기</a> · <a href="https://haru-today.github.io/caffeine-atlas/privacy.html">Caffeine Atlas 공개 개인정보 안내</a></p>
+</main>
+</body></html>
