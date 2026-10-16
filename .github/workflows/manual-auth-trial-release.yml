@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 66beae691426b96a67fa76610e3430deda2aa945
+          ref: 1654bf1aa6a4542a9a5e9ab1f6e5561d11622fee
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
@@ -141,6 +141,8 @@ jobs:
                printf '%s' "$login_html" | grep -Fq 'class="caffeine-card"' &&
                printf '%s' "$login_html" | grep -Fq '로그인 불필요' &&
                printf '%s' "$login_html" | grep -Fq 'href="https://haru-today.github.io/caffeine-atlas/"' &&
+               printf '%s' "$login_html" | grep -Fq '.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}' &&
+               printf '%s' "$login_html" | grep -Fq '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}' &&
                printf '%s' "$login_html" | grep -Fq 'href="/auth/start"'; then
               ui_ready=1
               break
@@ -148,7 +150,7 @@ jobs:
             if [ "$attempt" -lt 5 ]; then sleep 4; fi
           done
           if [ "$ui_ready" -ne 1 ]; then
-            echo "::error title=Trial login UI mismatch::Deployed login.html does not contain the reviewed two-line welcome heading, Google OAuth link and public Caffeine Atlas card."
+            echo "::error title=Trial login UI mismatch::Deployed login.html does not contain the reviewed two-line welcome heading, improved text contrast, Google OAuth link and public Caffeine Atlas card."
             exit 1
           fi
           echo "Verified new LABDAM login markup on the live trial origin; OAuth and Caffeine Atlas links unchanged."
