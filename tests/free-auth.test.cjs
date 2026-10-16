@@ -88,6 +88,13 @@ function fakeDb() {
           } else if (sql.startsWith("INSERT INTO sessions")) {
             const [token_hash, google_sub, csrf_token, expires_at, created_at] = args;
             sessions.set(token_hash, { token_hash, google_sub, csrf_token, expires_at, created_at });
+          } else if (sql.startsWith("UPDATE members SET status='approved',role='admin'")) {
+            const [updated_at, google_sub] = args;
+            const m = members.get(google_sub);
+            const hasAdmin = [...members.values()].some(x => x.role === "admin" && x.status === "approved");
+            if (m && !hasAdmin && m.role === "member" && m.status === "pending") {
+              Object.assign(m, { status: "approved", role: "admin", updated_at });
+            }
           } else if (sql.startsWith("UPDATE members SET purpose")) {
             const [purpose, updated_at, google_sub] = args;
             const m = members.get(google_sub);
@@ -149,7 +156,8 @@ function fakeDb() {
           throw Error("Unhandled D1 first statement: " + sql);
         },
         async all() {
-          if (sql.startsWith("DELETE FROM sessions") || sql.startsWith("INSERT INTO")) {
+          if (sql.startsWith("DELETE FROM sessions") || sql.startsWith("INSERT INTO") ||
+              sql.startsWith("UPDATE members SET status='approved',role='admin'")) {
             await this.run(); return { success: true, results: [] };
           }
           if (sql.startsWith("UPDATE members SET status") || sql.startsWith("SELECT google_sub,email,display_name,status,role FROM members")) {
@@ -408,6 +416,38 @@ test("bootstrap requires Google authority, while external email applicants remai
   assert.equal(f.DB.members.get("123456789012345678901").role, "admin");
 });
 
+test("pending operator is recoverable after bootstrap secret is configured, without changing a rejected member", async () => {
+  const f = fixture();
+  const sub = "123456789012345678901";
+  f.env.BOOTSTRAP_ADMIN_EMAIL = "";
+  const initial = await googleExchange(f, { email: "owner@gmail.com" })();
+  assert.equal(initial.result.status, 303);
+  assert.equal(f.DB.members.get(sub).status, "pending");
+  f.env.BOOTSTRAP_ADMIN_EMAIL = "owner@gmail.com";
+  const recovered = await googleExchange(f, { email: "owner@gmail.com" })();
+  assert.equal(recovered.result.status, 303);
+  assert.equal(recovered.result.headers.get("location"), ORIGIN + "/labinsight/");
+  assert.equal(f.DB.members.get(sub).role, "admin");
+  assert.equal(f.DB.members.get(sub).status, "approved");
+
+  const rejected = fixture();
+  rejected.env.BOOTSTRAP_ADMIN_EMAIL = "owner@gmail.com";
+  seedMember(rejected, { email: "owner@gmail.com", status: "rejected" });
+  const denied = await googleExchange(rejected, { email: "owner@gmail.com" })();
+  assert.equal(denied.result.status, 303);
+  assert.equal(rejected.DB.members.get(sub).role, "member");
+  assert.equal(rejected.DB.members.get(sub).status, "rejected");
+});
+
+test("first-admin recovery cannot create a second admin when one already exists", async () => {
+  const f = fixture(), sub = "123456789012345678901";
+  f.env.BOOTSTRAP_ADMIN_EMAIL = "owner@gmail.com";
+  seedMember(f, { sub: "888888888888888888888", status: "approved", role: "admin" });
+  const login = await googleExchange(f, { email: "owner@gmail.com" })();
+  assert.equal(login.result.status, 303);
+  assert.equal(f.DB.members.get(sub).status, "pending");
+  assert.equal(f.DB.members.get(sub).role, "member");
+});
 test("mutation endpoints reject JSON primitives and arrays as client errors", async () => {
   const f = fixture(), user = seedMember(f, { status: "pending" });
   for (const body of [null, [], "purpose", 42, true]) {
