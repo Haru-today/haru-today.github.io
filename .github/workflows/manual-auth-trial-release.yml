@@ -84,6 +84,7 @@ jobs:
           # Compile against all required tables and fields; LIMIT 0 returns no member data.
           npx --yes wrangler@4.151.0 d1 execute labdam-membership --config free-auth/wrangler.jsonc --remote --command "SELECT m.status, s.token_hash, o.nonce, t.attempts FROM members m, sessions s, oauth_states o, login_throttle t WHERE 0 LIMIT 0"
       - name: Deploy to named free test Worker only (never Pages or production routes)
+        id: deploy_trial
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
@@ -93,18 +94,35 @@ jobs:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
         run: |
           set -eu
-          health=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/healthz")
-          login=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/login.html")
-          gate=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/app.js")
-          redirect=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/")
+          ready=0
+          # CDN propagation may briefly serve a previous Worker immediately
+          # after Wrangler reports a successful deploy. Retry only GET checks.
+          for attempt in 1 2 3 4 5; do
+            health=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
+            login=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 12 "$TRIAL_ORIGIN/login.html" || true)
+            gate=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 12 "$TRIAL_ORIGIN/labinsight/app.js" || true)
+            redirect=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 12 "$TRIAL_ORIGIN/labinsight/" || true)
+            echo "Attempt $attempt/5: health=$health login=$login protected_js=$gate private_html=$redirect"
+            if [ "$health" = 200 ] && [ "$login" = 200 ] && [ "$gate" = 401 ] && [ "$redirect" = 303 ]; then
+              # A prior Worker with always-200 healthz must not pass the release.
+              if curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" | grep -q '"readiness":"bindings-present"'; then
+                ready=1
+                break
+              fi
+            fi
+            if [ "$attempt" -lt 5 ]; then sleep 4; fi
+          done
           test "$health" = 200
-          # A prior Worker with an always-200 healthz must not pass this release.
-          curl --fail --silent --show-error --max-time 20 "$TRIAL_ORIGIN/healthz" | grep -q '"readiness":"bindings-present"'
           test "$login" = 200
           test "$gate" = 401
           test "$redirect" = 303
-          echo "Basic anonymous trial gate passed."
+          if [ "$ready" -ne 1 ]; then
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz did not report required readiness. Check its OAuth secrets and Cloudflare D1/static bindings."
+            exit 1
+          fi
+          echo "Anonymous trial HTTP gate passed after bounded readiness checks."
       - name: Audit all protected pages and existing public Caffeine Atlas URLs
+        if: ${{ !cancelled() && steps.deploy_trial.outcome == 'success' }}
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
         run: node free-auth/scripts/probe-trial-worker.mjs --origin "$TRIAL_ORIGIN"
