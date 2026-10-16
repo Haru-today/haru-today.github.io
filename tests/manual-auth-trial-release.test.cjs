@@ -15,7 +15,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 86f1bc5cd7ac4ed45ebba50fbe58b4b8d4ff5c97/);
+  assert.match(yaml, /ref: 66beae691426b96a67fa76610e3430deda2aa945/);
   assert.match(yaml, /ref: 5ed1b25a24ca0718d23483606c4961037172edac/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -76,7 +76,7 @@ test("release clearly names missing secrets without disclosing their contents", 
 
 test("post-deploy smoke checks tolerate short propagation and report safe HTTP statuses", () => {
   const begin = yaml.indexOf("      - name: Read-only anonymous HTTP checks");
-  const finish = yaml.indexOf("      - name: Audit all protected pages", begin);
+  const finish = yaml.indexOf("      - name: Verify new compact login UI", begin);
   const block = yaml.slice(begin, finish);
   assert.ok(block.includes("for attempt in 1 2 3 4 5; do"));
   assert.ok(block.includes('echo "Attempt $attempt/5: health=$health login=$login protected_js=$gate private_html=$redirect"'));
@@ -85,6 +85,22 @@ test("post-deploy smoke checks tolerate short propagation and report safe HTTP s
   assert.ok(block.includes('test "$redirect" = 303'));
   assert.ok(block.includes('if [ "$ready" -ne 1 ]; then'));
   assert.doesNotMatch(block, /wrangler.*deploy|d1 execute|auth\/start|auth\/callback/);
+});
+
+test("new compact login markup is checked after live deployment, not only in bundled files", () => {
+  const deploy = yaml.indexOf("      - name: Deploy to named free test Worker");
+  const live = yaml.indexOf("      - name: Verify new compact login UI");
+  const gated = yaml.indexOf("      - name: Confirm new CarePath endpoints");
+  assert.ok(deploy !== -1 && live > deploy && gated > live);
+  const block = yaml.slice(live, gated);
+  for (const fragment of [
+    'welcome-line', 'LABDAM에 오신 것을', '환영합니다.',
+    'class="caffeine-card"', '로그인 불필요',
+    'https://haru-today.github.io/caffeine-atlas/', 'href="/auth/start"'
+  ]) assert.ok(block.includes(fragment), "live UI audit missing " + fragment);
+  assert.match(block, /curl --fail --silent --show-error/);
+  assert.match(block, /for attempt in 1 2 3 4 5; do/);
+  assert.doesNotMatch(block, /wrangler.*deploy|d1 execute|curl .*--data/);
 });
 
 test("read-only 21-route audit runs after deployment even when the basic HTTP probe fails", () => {

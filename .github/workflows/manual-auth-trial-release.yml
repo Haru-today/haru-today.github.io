@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 86f1bc5cd7ac4ed45ebba50fbe58b4b8d4ff5c97
+          ref: 66beae691426b96a67fa76610e3430deda2aa945
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
@@ -126,6 +126,32 @@ jobs:
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
+      - name: Verify new compact login UI and public Caffeine Atlas link on live trial origin
+        env:
+          TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
+        run: |
+          set -eu
+          # The Worker health marker is unchanged by this UI-only release.
+          # Validate the actual HTML to reject a successful but stale r3 deployment.
+          ui_ready=0
+          for attempt in 1 2 3 4 5; do
+            login_html=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/login.html" || true)
+            if printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">LABDAM에 오신 것을</span>' &&
+               printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">환영합니다.</span>' &&
+               printf '%s' "$login_html" | grep -Fq 'class="caffeine-card"' &&
+               printf '%s' "$login_html" | grep -Fq '로그인 불필요' &&
+               printf '%s' "$login_html" | grep -Fq 'href="https://haru-today.github.io/caffeine-atlas/"' &&
+               printf '%s' "$login_html" | grep -Fq 'href="/auth/start"'; then
+              ui_ready=1
+              break
+            fi
+            if [ "$attempt" -lt 5 ]; then sleep 4; fi
+          done
+          if [ "$ui_ready" -ne 1 ]; then
+            echo "::error title=Trial login UI mismatch::Deployed login.html does not contain the reviewed two-line welcome heading, Google OAuth link and public Caffeine Atlas card."
+            exit 1
+          fi
+          echo "Verified new LABDAM login markup on the live trial origin; OAuth and Caffeine Atlas links unchanged."
       - name: Confirm new CarePath endpoints are gated (anonymous, read-only)
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
