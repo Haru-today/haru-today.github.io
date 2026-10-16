@@ -1,0 +1,84 @@
+name: LABDAM trial Worker release (manual only)
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirmation:
+        description: "Type DEPLOY-LABDAM-TRIAL to authorize changes only to the isolated trial Worker"
+        type: string
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: labdam-trial-worker-release
+  cancel-in-progress: false
+
+jobs:
+  trial-release:
+    if: ${{ github.event.inputs.confirmation == 'DEPLOY-LABDAM-TRIAL' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment: labdam-trial
+    steps:
+      - name: Fetch fully reviewed login branch snapshot (immutable)
+        uses: actions/checkout@v4
+        with:
+          ref: 038278b355166ce0c6e93d8b6ff33aa754bc5193
+          persist-credentials: false
+      - name: Fetch fully reviewed LabInsight snapshot (immutable)
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/labinsight
+          ref: 7388d1a3884e06c7765d01260f5645c2f3e20b58
+          path: sources/labinsight
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Verify OAuth security and bootstrap using synthetic identities
+        run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
+      - name: Build trial-only private LABDAM and LabInsight bundle
+        env:
+          LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+        run: node free-auth/build.mjs
+      - name: Fail closed if trial origin, D1 binding, asset policy or files differ
+        run: |
+          node free-auth/scripts/preflight-static.mjs --require-real-d1
+          test ! -e free-auth/dist/caffeine-atlas
+          test ! -e free-auth/dist/free-auth
+          ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
+      - name: Verify protected static assets and local workerd + D1 approval flows
+        env:
+          LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+        run: |
+          node --test free-auth/tests/bundle.test.cjs
+          npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
+          npm test --prefix free-auth/tests/runtime
+      - name: Require separately configured Cloudflare trial secrets
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          test -n "$CLOUDFLARE_API_TOKEN"
+          test -n "$CLOUDFLARE_ACCOUNT_ID"
+      - name: Deploy to named free test Worker only (never Pages or production routes)
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --yes wrangler@4.151.0 deploy --config free-auth/wrangler.jsonc
+      - name: Read-only anonymous HTTP checks (no test users, OAuth writes, or PII)
+        env:
+          TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
+        run: |
+          set -eu
+          health=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/healthz")
+          login=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/login.html")
+          gate=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/app.js")
+          redirect=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/")
+          test "$health" = 200
+          test "$login" = 200
+          test "$gate" = 401
+          test "$redirect" = 303
+          echo "Anonymous trial Worker health/login and protected resource gate passed."
