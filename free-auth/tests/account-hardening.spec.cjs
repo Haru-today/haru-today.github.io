@@ -202,3 +202,93 @@ test("pending-member account withdrawal removes CarePath from both stores before
     localStorage.getItem("labinsight-carepath-session-v1")
   ])).toEqual([null, null]);
 });
+
+
+test("successful logout clears report, CarePath and demo bookings without touching unrelated preferences", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "approved", role: "member",
+    email: "member@example.invalid", csrf: "f".repeat(64)
+  }}));
+  await page.route("**/auth/logout", route => route.fulfill({ status: 200, body: "ok" }));
+  await page.goto("/account.html");
+  await expect(page.locator("#logout")).toBeEnabled();
+  await page.evaluate(() => {
+    const oldKeys = ["labinsight-latest-report", "labinsight-carepath-session-v1",
+      "labinsight-demo-bookings-v2", "labinsight-bookings"];
+    for (const store of [sessionStorage, localStorage]) {
+      for (const key of oldKeys) store.setItem(key, "synthetic-do-not-reuse");
+      store.setItem("unrelated-preference", "keep");
+    }
+  });
+  await page.locator("#logout").click();
+  await expect(page).toHaveURL(/\/login\.html$/);
+  const result = await page.evaluate(() => {
+    const oldKeys = ["labinsight-latest-report", "labinsight-carepath-session-v1",
+      "labinsight-demo-bookings-v2", "labinsight-bookings"];
+    return {
+      legacy: [sessionStorage, localStorage].flatMap(store => oldKeys.map(key => store.getItem(key))),
+      unrelated: [sessionStorage.getItem("unrelated-preference"), localStorage.getItem("unrelated-preference")]
+    };
+  });
+  expect(result).toEqual({ legacy: Array(8).fill(null), unrelated: ["keep", "keep"] });
+});
+
+test("pending applicant withdrawal clears simulated bookings before another account uses the tab", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "pending", role: "member",
+    email: "applicant@example.invalid", purpose: "", csrf: "e".repeat(64)
+  }}));
+  await page.route("**/api/account/delete", route => route.fulfill({
+    status: 200, json: { ok: true, code: "ACCOUNT_DELETED" }
+  }));
+  page.on("dialog", d => d.accept());
+  await page.goto("/pending.html");
+  await expect(page.locator("#withdraw")).toBeEnabled();
+  await page.evaluate(() => {
+    for (const store of [sessionStorage, localStorage]) {
+      store.setItem("labinsight-demo-bookings-v2", "synthetic-booking");
+      store.setItem("labinsight-bookings", "synthetic-legacy-booking");
+    }
+  });
+  await page.locator("#withdraw").click();
+  await expect(page).toHaveURL(/\/login\.html$/);
+  expect(await page.evaluate(() => [sessionStorage, localStorage].flatMap(store =>
+    ["labinsight-demo-bookings-v2", "labinsight-bookings"].map(key => store.getItem(key))
+  ))).toEqual([null, null, null, null]);
+});
+
+test("new Google login clears past simulated bookings before leaving the login page", async ({ page }) => {
+  await page.route("**/auth/start*", route => route.fulfill({
+    status: 200, contentType: "text/html", body: "<title>synthetic login handoff</title>"
+  }));
+  await page.goto("/login.html?next=%2Flabinsight%2F");
+  await page.evaluate(() => {
+    for (const store of [sessionStorage, localStorage]) {
+      store.setItem("labinsight-demo-bookings-v2", "old-sample");
+      store.setItem("labinsight-bookings", "old-legacy-sample");
+    }
+    sessionStorage.setItem("caffeine-atlas-preference", "keep");
+  });
+  await page.getByRole("link", { name: "Google 계정으로 계속하기" }).click();
+  await expect(page).toHaveURL(/\/auth\/start\?next=/);
+  expect(await page.evaluate(() => ({
+    bookings: [sessionStorage, localStorage].flatMap(store =>
+      ["labinsight-demo-bookings-v2", "labinsight-bookings"].map(key => store.getItem(key))),
+    caffeine: sessionStorage.getItem("caffeine-atlas-preference")
+  }))).toEqual({ bookings: [null, null, null, null], caffeine: "keep" });
+});
+
+test("failed logout preserves demo bookings while the member remains logged in", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "approved", role: "member",
+    email: "member@example.invalid", csrf: "d".repeat(64)
+  }}));
+  await page.route("**/auth/logout", route => route.fulfill({ status: 503, body: "offline" }));
+  await page.goto("/account.html");
+  await expect(page.locator("#logout")).toBeEnabled();
+  await page.evaluate(() => sessionStorage.setItem("labinsight-demo-bookings-v2", "synthetic-booking"));
+  await page.locator("#logout").click();
+  await expect(page.locator("#authState")).toHaveText(/로그아웃을 완료하지 못했습니다/);
+  expect(await page.evaluate(() => sessionStorage.getItem("labinsight-demo-bookings-v2")))
+    .toBe("synthetic-booking");
+});
