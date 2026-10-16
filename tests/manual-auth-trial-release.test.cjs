@@ -43,12 +43,12 @@ test("remote D1 schema is read-only checked before deployment and without access
   const schema = yaml.indexOf("Verify remote D1 has the expected schema");
   const deploy = yaml.indexOf("Deploy to named free test Worker");
   assert.ok(schema !== -1 && deploy !== -1 && schema < deploy);
-  assert.match(yaml, /wrangler@4\\.151\\.0 d1 execute labdam-membership/);
-  assert.match(yaml, /--config free-auth\\/wrangler\\.jsonc --remote/);
-  assert.match(yaml, /--command "SELECT m\\.status, s\\.token_hash, o\\.nonce, t\\.attempts FROM members m, sessions s, oauth_states o, login_throttle t WHERE 0 LIMIT 0"/);
+  assert.ok(yaml.includes("wrangler@4.151.0 d1 execute labdam-membership"));
+  assert.ok(yaml.includes("--config free-auth/wrangler.jsonc --remote"));
+  assert.ok(yaml.includes("--command \"SELECT m.status, s.token_hash, o.nonce, t.attempts FROM members m, sessions s, oauth_states o, login_throttle t WHERE 0 LIMIT 0\""));
   assert.doesNotMatch(yaml, /d1 migrations apply/);
 });
 
 test("full post-deploy read-only protected route and Caffeine QR probe is required", () => {
-  assert.match(yaml, /node free-auth\\/scripts\\/probe-trial-worker\\.mjs --origin "\\$TRIAL_ORIGIN"/);
+  assert.ok(yaml.includes('node free-auth/scripts/probe-trial-worker.mjs --origin "$TRIAL_ORIGIN"'));
 });
