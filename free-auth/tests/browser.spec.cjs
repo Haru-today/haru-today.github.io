@@ -21,6 +21,44 @@ test("free approval signup explains restrictions and exposes privacy before any 
   expect(dimensions.scroll, JSON.stringify(dimensions) + " " + info.project.name).toBeLessThanOrEqual(dimensions.width + 1);
 });
 
+test("refined LABDAM login stays compact, readable and usable across screen widths", async ({ page }, info) => {
+  await page.goto("/login.html");
+  const panel = page.locator(".login-panel");
+  const cta = page.locator("#googleStart");
+  await expect(page.getByRole("heading", { name: /LABDAM에 오신 것을 환영합니다/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Google 계정으로 가입 신청" })).toBeVisible();
+  await expect(cta).toBeVisible();
+  await expect(cta).toHaveAttribute("href", "/auth/start");
+  await expect(page.locator('input[type="password"]')).toHaveCount(0);
+  await expect(page.getByRole("link", { name: "회원가입 개인정보 처리 안내" })).toBeVisible();
+  const sizes = await page.evaluate(() => {
+    const panel = document.querySelector(".login-panel").getBoundingClientRect();
+    const cta = document.getElementById("googleStart").getBoundingClientRect();
+    return {
+      viewport: document.documentElement.clientWidth,
+      scroll: document.documentElement.scrollWidth,
+      panelX: panel.x, panelRight: panel.right, panelWidth: panel.width,
+      buttonHeight: cta.height, buttonWidth: cta.width
+    };
+  });
+  expect(sizes.scroll, info.project.name + " horizontal overflow").toBeLessThanOrEqual(sizes.viewport + 1);
+  expect(sizes.panelX).toBeGreaterThanOrEqual(0);
+  expect(sizes.panelRight).toBeLessThanOrEqual(sizes.viewport + 1);
+  expect(sizes.panelWidth).toBeLessThanOrEqual(460.5);
+  expect(sizes.buttonHeight).toBeGreaterThanOrEqual(48);
+  expect(sizes.buttonWidth).toBeGreaterThanOrEqual(sizes.panelWidth * 0.7);
+});
+
+test("redesigned Google CTA preserves protected destination and rejects external login redirect", async ({ page }) => {
+  await page.goto("/login.html?next=%2Flabinsight%2Fcarepath.html");
+  await expect(page.locator("#googleStart")).toHaveAttribute("href",
+    "/auth/start?next=%2Flabinsight%2Fcarepath.html");
+  await page.goto("/login.html?next=%2F%2Fevil.example%2Ffake-login");
+  await expect(page.locator("#googleStart")).toHaveAttribute("href", "/auth/start");
+  await expect(page.getByRole("link", { name: "Caffeine Atlas 공개 체험 열기" }))
+    .toHaveAttribute("href", "https://haru-today.github.io/caffeine-atlas/");
+});
+
 test("pending applicant sees status, can edit purpose and withdraw membership", async ({ page }) => {
   let applicationCount = 0, withdrawn = false;
   await page.route("**/api/me", route => route.fulfill({
