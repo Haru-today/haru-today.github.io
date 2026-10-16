@@ -181,6 +181,10 @@ h1{font-size:clamp(24px,4vw,29px);line-height:1.35;margin-bottom:11px}
    sessionStorage.removeItem("labinsight-carepath-session-v1");
    localStorage.removeItem("labinsight-latest-report");
    localStorage.removeItem("labinsight-carepath-session-v1");
+   sessionStorage.removeItem("labinsight-demo-bookings-v2");
+   sessionStorage.removeItem("labinsight-bookings");
+   localStorage.removeItem("labinsight-demo-bookings-v2");
+   localStorage.removeItem("labinsight-bookings");
   }catch(_){
    event.preventDefault();
    document.getElementById("localDataStatus").textContent="이 기기의 이전 임시 검사 결과를 지우지 못했습니다. 브라우저 사이트 데이터를 삭제한 뒤 다시 시도해 주세요.";
