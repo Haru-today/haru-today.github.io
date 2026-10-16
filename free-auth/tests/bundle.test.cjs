@@ -143,3 +143,23 @@ test("CarePath timeline is fully inside private assets and never saves a health 
     assert.match(read(type), /labinsight-carepath-session-v1/, type);
   }
 });
+
+
+test("reviewed CarePath validation blocks mismatched imported units and ambiguous same-day trends", () => {
+  const vm = require("node:vm");
+  const win = {};
+  vm.runInNewContext(read("labinsight/carepath-data.js"), { window: win, Date });
+  const api = win.LABINSIGHT_CAREPATH;
+  assert.ok(api, "CarePath model must be in protected Worker assets");
+  const date = "2025-01-02", today = "2026-10-16";
+  assert.throws(() => api.createRecord({
+    glucose: 5.2, referenceRanges: { glucose: { min: 3.9, max: 6.1, unit: "mmol/L" } }
+  }, date, "합성 검사기관", "", true, today), /원본 단위|단위가 입력 단위/);
+  const first = api.createRecord({ ast: 24 }, date, "가상 기관 A", "", true, today);
+  const second = api.createRecord({ ast: 36 }, date, "가상 기관 B", "", true, today);
+  const comparison = api.compare([first, second], "ast");
+  assert.equal(comparison.status, "ambiguous-dates");
+  assert.equal(comparison.difference, undefined);
+  assert.equal(api.createRecord({ ast: 24 }, date, "가상 기관 A", "", true, today).values.ast.range, null);
+  assert.throws(() => api.createRecord({ ast: 24, provenance: "sample" }, date, "가상 기관 A", "", true, today), /가상 예시/);
+});
