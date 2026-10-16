@@ -49,6 +49,37 @@ test("refined LABDAM login stays compact, readable and usable across screen widt
   expect(sizes.buttonWidth).toBeGreaterThanOrEqual(sizes.panelWidth * 0.7);
 });
 
+test("Korean welcome message keeps complete words on narrow 320px phones", async ({ page }) => {
+  for (const width of [320, 375, 430, 1280]) {
+    await page.setViewportSize({ width, height: 800 });
+    await page.goto("/login.html");
+    const layout = await page.locator("#welcome-title").evaluate(heading => {
+      const spans = [...heading.querySelectorAll(".welcome-line")];
+      const wraps = spans.map(el => {
+        const range = document.createRange();
+        range.selectNodeContents(el);
+        const rects = [...range.getClientRects()];
+        return {
+          rows: new Set(rects.map(r => Math.round(r.top))).size,
+          width: el.getBoundingClientRect().width,
+          contentRight: Math.max(...rects.map(r => r.right)),
+          containerRight: heading.getBoundingClientRect().right
+        };
+      });
+      return {
+        text: spans.map(el => el.textContent.trim()).join(" "),
+        wraps, overflow: document.documentElement.scrollWidth > window.innerWidth + 1
+      };
+    });
+    expect(layout.text).toBe("LABDAM에 오신 것을 환영합니다.");
+    expect(layout.wraps).toHaveLength(2);
+    expect(layout.wraps[0].rows, "first line split at " + width).toBe(1);
+    expect(layout.wraps[1].rows, "word '환영합니다.' split at " + width).toBe(1);
+    expect(layout.wraps.every(item => item.contentRight <= item.containerRight + 1), "text overflow at " + width).toBe(true);
+    expect(layout.overflow, "horizontal scroll at " + width).toBe(false);
+  }
+});
+
 test("redesigned Google CTA preserves protected destination and rejects external login redirect", async ({ page }) => {
   await page.goto("/login.html?next=%2Flabinsight%2Fcarepath.html");
   await expect(page.locator("#googleStart")).toHaveAttribute("href",
