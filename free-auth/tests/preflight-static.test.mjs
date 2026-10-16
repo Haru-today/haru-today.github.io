@@ -109,14 +109,36 @@ test('release-only privacy gate blocks unfinished notice but leaves development 
   assert.equal(release.ok,false);
   assert.match(release.errors.join(' '),/Membership privacy notice/);
 }));
-test('strict policy check detects missing private contact and recognizes synthetic updated text',async()=>fixture(async({root,dist})=>{
+test('final policy gate requires explicit owner, private contact, retention and provider review',async()=>fixture(async({root,dist})=>{
   const location=join(dist,'membership-privacy.html');
-  await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간');
+  const base = '회원가입 개인정보 처리 안내 Google Cloudflare 가입 회원 보유기간';
+  const header = '<meta name="policy-status" content="final"><meta name="policy-controller" content="가상운영기관">';
+  const review = '<meta name="policy-providers-reviewed" content="yes"><meta name="policy-retention-reviewed" content="yes">';
+  await writeFile(location,base);
   assert.equal((await inspectStatic(root,{requireFinalPolicy:true})).ok,false);
-  // Synthetic fixtures test validation only; this does not certify legal completeness.
-  await writeFile(location,'회원가입 개인정보 처리 안내 Google Cloudflare 보관기간: 검토된 기간. <a href="mailto:privacy@example.invalid">전용 문의</a>');
+  // A contact-like string alone, or reserved invalid test address, does not
+  // establish a reviewed and valid final policy.
+  await writeFile(location,base+' <a href="mailto:privacy@example.invalid">문의</a>');
+  assert.equal((await inspectStatic(root,{requireFinalPolicy:true})).ok,false);
+  await writeFile(location,base+header+review+' <a href="mailto:privacy@example.invalid">문의</a>');
+  assert.equal((await inspectStatic(root,{requireFinalPolicy:true})).ok,false);
+  await writeFile(location,base+header+review+' <a href="mailto:privacy@synthetic-fixture.kr">문의</a>');
   const result=await inspectStatic(root,{requireFinalPolicy:true});
+  // Synthetic fixtures only prove gate behavior, not real service operator
+  // ownership, receipt of email or legal compliance.
   assert.equal(result.ok,true,result.errors.join('; '));
+}));
+test('draft policy with correctly disclosed indefinite member retention is not release-ready',async()=>fixture(async({root,dist})=>{
+  const location=join(dist,'membership-privacy.html');
+  await writeFile(location,
+    '<meta name="policy-status" content="draft">회원 보유기간: 탈퇴 전까지. ' +
+    'Google Cloudflare 운영자 확인 대기 비공개 문의처 개설·확인 대기');
+  const dev=await inspectStatic(root);
+  assert.equal(dev.ok,true);
+  assert.match(dev.warnings.join(' '),/Membership privacy notice/);
+  const prod=await inspectStatic(root,{requireFinalPolicy:true});
+  assert.equal(prod.ok,false);
+  assert.match(prod.errors.join(' '),/Membership privacy notice/);
 }));
 
 test('trial host is exact and public vars cannot accidentally include credentials',async()=>fixture(async({root,writeConfig})=>{
