@@ -1,5 +1,8 @@
 # LABDAM · LabInsight 무료 승인제 로그인 설정서
 
+
+> **2026-10-16 최신 운영·실계정 검증:** [RELEASE-ACCEPTANCE-20261016.md](RELEASE-ACCEPTANCE-20261016.md)를 우선 확인하세요. 아래 내용은 작성 당시의 준비/검증 기록이며, 신규 r3 시험 Worker 배포와 현장 관리자·회원 승인·철회 시험 완료 상태를 반영하지 않은 문장이 포함됩니다.
+
 상태(2026-10-16 오후, GitHub 실제 기록): **로컬 OAuth/workerd·D1·브라우저 보안 테스트는 성공했고, 시험 Worker는 배포 이력이 있습니다.** 마지막 수동 Worker 배포 잡은 사후 준비 검사 실패로 종료했으나, 이후 익명 접근 검사에서는 Worker 로그인/보호 경로(303/401)와 Pages 이전 주소의 공개 앱 제거(404), Caffeine Atlas 공개 경로가 통과했습니다. **실제 Google 로그인·첫 관리자 가입/승인·권한 철회의 성공은 아직 입증하지 못했습니다.** 최근 읽기 전용 검사: [LABDAM](https://github.com/Haru-today/haru-today.github.io/actions/runs/38871727517) · [LabInsight](https://github.com/Haru-today/labinsight/actions/runs/38869913283). 아래 2026-10-15/16 항목은 작성 당시의 문제 기록이며 현재 상태를 뜻하지 않습니다.
 
 ## 운영 원칙
