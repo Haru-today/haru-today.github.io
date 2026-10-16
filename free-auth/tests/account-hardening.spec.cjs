@@ -123,3 +123,38 @@ test("starting a different Google login clears the previous same-origin report b
     pref: localStorage.getItem("non-health-preference")
   }))).toEqual({ current: null, old: null, pref: "keep" });
 });
+
+test("CarePath session history is purged on successful account logout", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "approved", role: "member",
+    email: "member@example.invalid", csrf: "c".repeat(64)
+  }}));
+  await page.route("**/auth/logout", route => route.fulfill({ status: 200, body: "ok" }));
+  await page.goto("/account.html");
+  await expect(page.locator("#logout")).toBeEnabled();
+  await page.evaluate(() => {
+    sessionStorage.setItem("labinsight-carepath-session-v1", "synthetic-yearly-health");
+    localStorage.setItem("labinsight-carepath-session-v1", "synthetic-old-data");
+  });
+  await page.locator("#logout").click();
+  await expect(page).toHaveURL(/\/login\.html$/);
+  expect(await page.evaluate(() => [
+    sessionStorage.getItem("labinsight-carepath-session-v1"),
+    localStorage.getItem("labinsight-carepath-session-v1")
+  ])).toEqual([null, null]);
+});
+
+test("failed account logout retains CarePath data while member remains authenticated", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "approved", role: "member",
+    email: "member@example.invalid", csrf: "c".repeat(64)
+  }}));
+  await page.route("**/auth/logout", route => route.fulfill({ status: 503, body: "failed" }));
+  await page.goto("/account.html");
+  await expect(page.locator("#logout")).toBeEnabled();
+  await page.evaluate(() => sessionStorage.setItem("labinsight-carepath-session-v1", "synthetic-yearly-health"));
+  await page.locator("#logout").click();
+  await expect(page.locator("#authState")).toHaveText(/로그아웃을 완료하지 못했습니다/);
+  expect(await page.evaluate(() => sessionStorage.getItem("labinsight-carepath-session-v1")))
+    .toBe("synthetic-yearly-health");
+});
