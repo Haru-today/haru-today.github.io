@@ -1,0 +1,29 @@
+name: LABDAM trial HTTP diagnostics (read-only)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/trial-worker-http-diagnostics.yml'
+      - 'scripts/trial-worker-http-diagnostics.mjs'
+      - 'tests/trial-worker-http-diagnostics.test.cjs'
+
+permissions:
+  contents: read
+
+jobs:
+  anonymous-trial-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test diagnostics against synthetic responses (no network)
+        run: node --test tests/trial-worker-http-diagnostics.test.cjs
+      - name: Check live trial Worker and public poster URLs without credentials
+        run: node scripts/trial-worker-http-diagnostics.mjs
