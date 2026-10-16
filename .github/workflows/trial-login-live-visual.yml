@@ -1,0 +1,38 @@
+name: LABDAM deployed login visual audit (read-only)
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/trial-login-live-visual.yml'
+      - 'tests/trial-live/login.spec.cjs'
+      - 'playwright.trial-live.config.cjs'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  live-login:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install pinned browser and accessibility dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium and WebKit
+        run: npx playwright install --with-deps chromium webkit
+      - name: Verify deployed trial login using read-only browser visits
+        run: npx playwright test tests/trial-live/login.spec.cjs --config=playwright.trial-live.config.cjs
+      - name: Upload deployed screenshots and accessibility observations
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trial-login-visual-review
+          path: |
+            test-results-trial-live/
+            playwright-report-trial-live/
+          retention-days: 14
+          if-no-files-found: ignore
