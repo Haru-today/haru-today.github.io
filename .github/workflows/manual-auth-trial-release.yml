@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 1654bf1aa6a4542a9a5e9ab1f6e5561d11622fee
+          ref: e23891fd83fcdb07739f3a755e0959e3f9e38b08
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
@@ -143,6 +143,8 @@ jobs:
                printf '%s' "$login_html" | grep -Fq 'href="https://haru-today.github.io/caffeine-atlas/"' &&
                printf '%s' "$login_html" | grep -Fq '.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}' &&
                printf '%s' "$login_html" | grep -Fq '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}' &&
+               printf '%s' "$login_html" | grep -Fq '"labinsight-demo-bookings-v2"' &&
+               printf '%s' "$login_html" | grep -Fq '"labinsight-bookings"' &&
                printf '%s' "$login_html" | grep -Fq 'href="/auth/start"'; then
               ui_ready=1
               break
@@ -150,10 +152,10 @@ jobs:
             if [ "$attempt" -lt 5 ]; then sleep 4; fi
           done
           if [ "$ui_ready" -ne 1 ]; then
-            echo "::error title=Trial login UI mismatch::Deployed login.html does not contain the reviewed two-line welcome heading, improved text contrast, Google OAuth link and public Caffeine Atlas card."
+            echo "::error title=Trial login UI mismatch::Deployed login.html does not contain the reviewed two-line welcome heading, improved text contrast, scoped demo-booking cleanup, Google OAuth link and public Caffeine Atlas card."
             exit 1
           fi
-          echo "Verified new LABDAM login markup on the live trial origin; OAuth and Caffeine Atlas links unchanged."
+          echo "Verified LABDAM login markup and account-switch booking cleanup on the live trial origin; OAuth and Caffeine Atlas links unchanged."
       - name: Confirm new CarePath endpoints are gated (anonymous, read-only)
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
