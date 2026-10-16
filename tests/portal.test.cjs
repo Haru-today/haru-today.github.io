@@ -13,10 +13,10 @@ test("LABDAM and Personal Health Atlas are one integrated portal", () => {
 });
 
 test("exactly two downstream service sites are linked from the sole portal", () => {
-  assert.match(html, /href="https:\/\/haru-today\.github\.io\/labinsight\/">LabInsight 이용하기/);
+  assert.match(html, /href="https:\/\/labdam-free-approval\.jleegenomics\.workers\.dev\/labinsight\/">LabInsight 이용하기/);
   assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/">Caffeine Atlas 이용하기/);
   const links = [...html.matchAll(/href="(https:\/\/haru-today\.github\.io\/[^"]+)"/g)].map(x => x[1]);
-  assert.ok(links.every(href => href === "https://haru-today.github.io/labinsight/" ||
+  assert.ok(links.every(href => href === "https://labdam-free-approval.jleegenomics.workers.dev/labinsight/" ||
     href === "https://haru-today.github.io/caffeine-atlas/"));
 });
 
@@ -61,13 +61,20 @@ test("mobile and keyboard navigation remain accessible", () => {
   assert.match(html, /건강검진 수치 입력·해석/);
 });
 
-test("sitemap lists exactly three canonical service endpoints, excluding redirect and private screens", () => {
+test("sitemap lists only two public canonical endpoints, excluding login-gated or redirect screens", () => {
   const map = fs.readFileSync("sitemap.xml", "utf8");
   const entries = [...map.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
   assert.deepEqual(entries, [
     "https://haru-today.github.io/",
-    "https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html",
-    "https://haru-today.github.io/labinsight/"
+    "https://haru-today.github.io/caffeine-atlas/caffeine-sensitivity-app/index.html"
   ]);
   assert.doesNotMatch(map, /\/privacy\.html|\/report\.html|\/checkup\.html/);
+});
+
+test("public portal links directly to approved Worker but never changes public Caffeine destination", () => {
+  const privateEntry = "https://labdam-free-approval.jleegenomics.workers.dev/labinsight/";
+  assert.equal(html.split('href="' + privateEntry + '"').length - 1, 2);
+  assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
+  assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
+  assert.doesNotMatch(fs.readFileSync("sitemap.xml", "utf8"), /labinsight|workers\.dev/);
 });

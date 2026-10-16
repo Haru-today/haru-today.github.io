@@ -11,7 +11,7 @@ test("redesign preserves LABDAM single portal and exactly two products", () => {
   assert.equal((html.match(/class="service-card"/g)||[]).length, 2);
   assert.match(html, /LabInsight 이용하기/);
   assert.match(html, /Caffeine Atlas 이용하기/);
-  assert.match(html, /href="https:\/\/haru-today.github.io\/labinsight\/"/);
+  assert.match(html, /href="https:\/\/labdam-free-approval\.jleegenomics\.workers\.dev\/labinsight\/"/);
   assert.match(html, /href="https:\/\/haru-today.github.io\/caffeine-atlas\/"/);
 });
 test("redesign remains accessible and responsive", () => {
@@ -43,7 +43,7 @@ test("redesign retains SEO, privacy and feedback routes", () => {
 test("home offers two clear service starts while keeping symposium demo public", () => {
   assert.match(html, /aria-label="두 서비스 바로 시작"/);
   const start = html.slice(html.indexOf('<nav class="hero-quick-entry"'), html.indexOf('</nav>', html.indexOf('<nav class="hero-quick-entry"')));
-  assert.match(start, /href="https:\/\/haru-today\.github\.io\/labinsight\/"/);
+  assert.match(start, /href="https:\/\/labdam-free-approval\.jleegenomics\.workers\.dev\/labinsight\/"/);
   assert.match(start, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/"/);
   assert.match(start, /건강검진 결과 입력/);
   assert.match(start, /로그인 없이 공개 체험/);

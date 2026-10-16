@@ -22,7 +22,7 @@ test('portal loads redesigned sections, stylesheet and exactly two services', as
 test('service links, privacy and disclaimers are preserved', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('link', { name: /LabInsight 이용하기/ }))
-    .toHaveAttribute('href', 'https://haru-today.github.io/labinsight/');
+    .toHaveAttribute('href', 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/');
   await expect(page.getByRole('link', { name: /Caffeine Atlas 이용하기/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
   await expect(page.getByRole('link', { name: '개인정보 처리 안내' }))
@@ -132,7 +132,7 @@ test('first-time visitors can reach both products directly without changing post
   await page.goto('/');
   const shortcuts = page.locator('.hero-quick-entry a');
   await expect(shortcuts).toHaveCount(2);
-  await expect(shortcuts.nth(0)).toHaveAttribute('href', 'https://haru-today.github.io/labinsight/');
+  await expect(shortcuts.nth(0)).toHaveAttribute('href', 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/');
   await expect(shortcuts.nth(1)).toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
   await expect(shortcuts.nth(0)).toBeVisible();
   await expect(shortcuts.nth(1)).toBeVisible();
