@@ -15,8 +15,8 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 863b02e8a045a9ff3c566227bf54a5a6ee2d2a2a/);
-  assert.match(yaml, /ref: 350aee397af7b47459a037ba8bbfe9bf4d563e6f/);
+  assert.match(yaml, /ref: 86f1bc5cd7ac4ed45ebba50fbe58b4b8d4ff5c97/);
+  assert.match(yaml, /ref: 5ed1b25a24ca0718d23483606c4961037172edac/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
@@ -55,7 +55,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261016-r2"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261016-r3-carepath29"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
