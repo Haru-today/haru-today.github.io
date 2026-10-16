@@ -83,6 +83,31 @@ async function review(admin, status, candidate = sub) {
   const me = await (await request("/api/me", admin.cookie)).json();
   return request("/api/admin/review", admin.cookie, "POST", { google_sub: candidate, status }, me.csrf);
 }
+test("real D1 recovers a previously pending verified bootstrap operator", async () => {
+  await db.prepare(
+    "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) VALUES(?,?,?,?,?,?,?)"
+  ).bind(adminSub, "labdam.synthetic.admin@gmail.com", "Operator awaiting setup",
+    "pending", "member", now()-100, now()-100).run();
+  const admin = await login(true);
+  assert.equal(admin.response.status, 303);
+  assert.equal(new URL(admin.response.headers.get("location")).pathname, "/labinsight/");
+  const member = await db.prepare("SELECT status,role FROM members WHERE google_sub=?").bind(adminSub).first();
+  assert.deepEqual({ status: member.status, role: member.role }, { status: "approved", role: "admin" });
+  assert.equal((await request("/admin.html", admin.cookie)).status, 200);
+});
+
+test("real D1 prevents bootstrap promotion of a rejected account", async () => {
+  await db.prepare(
+    "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) VALUES(?,?,?,?,?,?,?)"
+  ).bind(adminSub, "labdam.synthetic.admin@gmail.com", "Rejected synthetic operator",
+    "rejected", "member", now()-100, now()-100).run();
+  const loginResult = await login(true);
+  assert.equal(loginResult.response.status, 303);
+  assert.equal(new URL(loginResult.response.headers.get("location")).pathname, "/pending.html");
+  const member = await db.prepare("SELECT status,role FROM members WHERE google_sub=?").bind(adminSub).first();
+  assert.deepEqual({ status: member.status, role: member.role }, { status: "rejected", role: "member" });
+});
+
 test("workerd OAuth + D1: pending, shared approval, revocation, rejection and fresh login", async () => {
   const admin = await login(true);
   assert.equal(admin.response.status, 303);
