@@ -6,7 +6,7 @@
 <section><h2>가입 정보</h2><p class="status" id="authState" role="status" aria-live="polite">로그인 상태 확인 중</p><button type="button" id="retryStatus" class="secondary" disabled>로그인 상태 다시 확인</button>
 <dl><dt>이름</dt><dd id="name"></dd><dt>이메일</dt><dd id="email"></dd><dt>승인 상태</dt><dd id="status"></dd><dt>권한</dt><dd id="role"></dd></dl>
 <div class="actions"><a class="button" href="/">LABDAM 홈</a><a class="button secondary" href="/labinsight/">LabInsight 이용</a><a class="button secondary" href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas</a><a id="adminLink" class="button secondary" href="/admin.html" hidden>회원 승인 관리</a><button id="logout" class="secondary" type="button" disabled>로그아웃</button></div>
-<p class="muted">로그아웃은 이미 기기에 내려받은 리포트 및 이전에 저장한 브라우저 입력 데이터를 자동으로 지우지 않습니다.</p>
+<p class="muted">로그아웃하거나 회원 탈퇴하면 이 사이트의 LabInsight 임시 건강검진 결과를 브라우저 저장소에서도 삭제합니다. 이미 내려받은 PDF 및 인쇄물은 자동 삭제되지 않습니다.</p>
 <p class="muted"><a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a></p>
 <div id="withdrawWrap" hidden><h2>회원 탈퇴</h2><p class="muted">본인 가입 신청 기록과 서버 로그인 세션을 삭제합니다. 기기에 내려받은 PDF와 브라우저 검사값은 자동 삭제되지 않습니다. 관리자는 관리자 계정 유실 방지를 위해 이 화면에서 탈퇴할 수 없습니다.</p><button type="button" id="withdraw" class="secondary" disabled>회원가입 철회 및 계정 삭제</button><p id="withdrawStatus" class="status" role="status"></p></div></section></main><footer>LABDAM 회원 관리</footer>
 <script>(async function(){
@@ -14,6 +14,13 @@ const state=document.getElementById("authState"),retry=document.getElementById("
  logout=document.getElementById("logout"),withdraw=document.getElementById("withdraw"),
  adminLink=document.getElementById("adminLink"),wrap=document.getElementById("withdrawWrap");
 let csrf="",verified=false,role="",busy=false,loading=false;
+function clearHealthReport(){
+ let ok=true;
+ for(const store of [sessionStorage,localStorage]){
+  try{store.removeItem("labinsight-latest-report");}catch(_){ok=false;}
+ }
+ return ok;
+}
 function controls(){
  retry.disabled=busy||loading;
  logout.disabled=!verified||busy||loading;
@@ -52,6 +59,7 @@ withdraw.addEventListener("click",async()=>{
  try{
   const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(!r.ok){message.textContent="계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.";return;}
+  if(!clearHealthReport()){message.textContent="계정은 삭제됐지만 이 브라우저의 건강검진 임시 결과를 지우지 못했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
   location.replace("/login.html");
  }catch(_){message.textContent="연결 상태를 확인해 주세요.";}
  finally{busy=false;controls();}
@@ -61,7 +69,10 @@ logout.addEventListener("click",async()=>{
  busy=true;controls();
  try{
   const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf},redirect:"manual"});
-  if(r.status===0||r.status===303||r.ok){location.replace("/login.html");return;}
+  if(r.status===0||r.status===303||r.ok){
+   if(!clearHealthReport()){state.textContent="로그아웃됐지만 건강검진 임시 결과를 지우지 못했습니다. 브라우저 사이트 데이터를 직접 삭제하세요.";return;}
+   location.replace("/login.html");return;
+  }
   state.textContent="로그아웃을 완료하지 못했습니다. 다시 시도해 주세요.";
  }catch(_){state.textContent="연결 오류로 로그아웃을 완료하지 못했습니다. 다시 시도해 주세요.";}
  finally{busy=false;controls();}
