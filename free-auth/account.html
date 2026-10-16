@@ -20,6 +20,8 @@ function clearHealthReport(){
   try{
    store.removeItem("labinsight-latest-report");
    store.removeItem("labinsight-carepath-session-v1");
+   store.removeItem("labinsight-demo-bookings-v2");
+   store.removeItem("labinsight-bookings");
   }catch(_){ok=false;}
  }
  return ok;
