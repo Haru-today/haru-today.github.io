@@ -285,19 +285,30 @@ async function oauthCallback(request, env, origin, opts) {
   // Profile refresh and session issuance share one D1 transaction. A concurrent
   // review cannot split them; a failed session insert leaves no partial signup.
   const rawSession = tokenRandom(32), csrf = tokenRandom(32);
-  const issued = await env.DB.batch([env.DB.prepare(
+  const statements = [env.DB.prepare(
     "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) " +
     "VALUES (?,?,?,?,?,?,?) ON CONFLICT(google_sub) DO UPDATE SET " +
     "email=excluded.email,display_name=excluded.display_name,updated_at=excluded.updated_at"
-  ).bind(identity.sub, identity.email, identity.name,
-    bootstrap ? "approved" : "pending", bootstrap ? "admin" : "member", now, now),
-  env.DB.prepare(
+  ).bind(identity.sub, identity.email, identity.name, "pending", "member", now, now)];
+  if (bootstrap) {
+    // Recover the operator if they signed in before BOOTSTRAP_ADMIN_EMAIL was set.
+    // Only the verified designated Google account can promote an existing PENDING
+    // member, and only when no approved administrator already exists.
+    // Rejected users and a second bootstrap account can never self-promote.
+    statements.push(env.DB.prepare(
+      "UPDATE members SET status='approved',role='admin',updated_at=? " +
+      "WHERE google_sub=? AND status='pending' AND role='member' " +
+      "AND NOT EXISTS (SELECT 1 FROM members WHERE role='admin' AND status='approved')"
+    ).bind(now, identity.sub));
+  }
+  statements.push(env.DB.prepare(
     "INSERT INTO sessions(token_hash,google_sub,csrf_token,expires_at,created_at) VALUES (?,?,?,?,?)"
-  ).bind(await digest(rawSession), identity.sub, csrf, now + SESSION_SECONDS, now),
-  env.DB.prepare(
+  ).bind(await digest(rawSession), identity.sub, csrf, now + SESSION_SECONDS, now));
+  statements.push(env.DB.prepare(
     "SELECT google_sub,email,display_name,status,role FROM members WHERE google_sub=?"
-  ).bind(identity.sub)]);
-  const member = issued[2].results?.[0];
+  ).bind(identity.sub));
+  const issued = await env.DB.batch(statements);
+  const member = issued[issued.length - 1].results?.[0];
   if (!member) throw new LoginError(503, "가입 신청 상태를 저장할 수 없습니다.");
   const destination = member.status === "approved" ? safeNext(stored.next_path) : "/pending.html";
   let out = redirect(destination, origin);
