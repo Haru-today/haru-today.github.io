@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 863b02e8a045a9ff3c566227bf54a5a6ee2d2a2a
+          ref: 86f1bc5cd7ac4ed45ebba50fbe58b4b8d4ff5c97
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 350aee397af7b47459a037ba8bbfe9bf4d563e6f
+          ref: 5ed1b25a24ca0718d23483606c4961037172edac
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -110,7 +110,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261016-r2"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261016-r3-carepath29"'; then
                 ready=1
                 break
               fi
@@ -122,7 +122,7 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261016-r2 with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261016-r3-carepath29 with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
