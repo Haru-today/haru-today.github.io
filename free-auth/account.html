@@ -17,7 +17,10 @@ let csrf="",verified=false,role="",busy=false,loading=false;
 function clearHealthReport(){
  let ok=true;
  for(const store of [sessionStorage,localStorage]){
-  try{store.removeItem("labinsight-latest-report");}catch(_){ok=false;}
+  try{
+   store.removeItem("labinsight-latest-report");
+   store.removeItem("labinsight-carepath-session-v1");
+  }catch(_){ok=false;}
  }
  return ok;
 }
