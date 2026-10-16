@@ -89,11 +89,22 @@ export async function inspectStatic(root, { requireRealD1 = false, requireFinalP
   if (files.includes('membership-privacy.html')) {
     try {
       const notice = await readFile(join(dist, 'membership-privacy.html'), 'utf8');
-      const incompleteWording = /정식 개인정보처리방침 최종 확정 전 안내|운영 담당자의 법적 명칭|공식 개인정보 담당자와 비공개 접수 방법|운영 보관기간은 정식 정책에서 확정해야/;
+      // Static QA cannot verify legal ownership or a provider contract. To
+      // fail closed, require explicit review flags AND actual contact details.
+      // A placeholder or "draft" notice is never release-ready.
+      const incompleteWording = /정식 개인정보처리방침(?: 최종)? 확정 전|운영 담당자의 법적 명칭|공식 개인정보 담당자와 비공개 접수 방법|운영 보관기간은 정식 정책에서 확정해야|확인 대기|개설·확인 대기|미설정/;
       const providerNames = /Google/.test(notice) && /Cloudflare/.test(notice);
-      const retentionField = /보관기간|보유기간/.test(notice);
-      const privateContact = /mailto:[^"'<>\\s]+|href=["']https:\/\/[^"']+\/contact(?:[/?#][^"']*)?["']/i.test(notice);
-      if (incompleteWording.test(notice) || !providerNames || !retentionField || !privateContact) {
+      const retentionField = /보관기간|보유기간/.test(notice) && /가입|회원/.test(notice);
+      const finalFlag = /<meta\\s+name="policy-status"\\s+content="final"\\s*\\/?>/i.test(notice);
+      const controller = notice.match(/<meta\\s+name="policy-controller"\\s+content="([^"]{2,120})"\\s*\\/?>/i)?.[1] || "";
+      const validController = Boolean(controller) && !/예시|미정|pending|example|sample|test|확인/i.test(controller);
+      const providerReview = /<meta\\s+name="policy-providers-reviewed"\\s+content="yes"\\s*\\/?>/i.test(notice);
+      const retentionReview = /<meta\\s+name="policy-retention-reviewed"\\s+content="yes"\\s*\\/?>/i.test(notice);
+      const privateContact = /mailto:([^"'<>\\s]+)/i.exec(notice)?.[1] || "";
+      const validPrivateContact = /^[^@\\s]+@[^@\\s]+\\.[a-z]{2,}$/i.test(privateContact) &&
+        !/example\\.(?:com|org|net|invalid)|\\.invalid$|noreply|no-reply|placeholder/i.test(privateContact);
+      if (incompleteWording.test(notice) || !providerNames || !retentionField ||
+          !finalFlag || !validController || !providerReview || !retentionReview || !validPrivateContact) {
         const message = 'Membership privacy notice needs final operator/contact, retention and provider review before launch';
         if (requireFinalPolicy) errors.push(message); else warnings.push(message);
       }
