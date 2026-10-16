@@ -20,7 +20,9 @@
   // before starting Google OAuth, not while merely reading the login page.
   try{
    sessionStorage.removeItem("labinsight-latest-report");
+   sessionStorage.removeItem("labinsight-carepath-session-v1");
    localStorage.removeItem("labinsight-latest-report");
+   localStorage.removeItem("labinsight-carepath-session-v1");
   }catch(_){
    event.preventDefault();
    document.getElementById("localDataStatus").textContent="이 기기의 이전 임시 검사 결과를 지우지 못했습니다. 브라우저 사이트 데이터를 삭제한 뒤 다시 시도해 주세요.";
