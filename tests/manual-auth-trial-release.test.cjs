@@ -56,3 +56,17 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 test("trial release checks the healthy bound-service response, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -q '"readiness":"bindings-present"'`));
 });
+
+test("release clearly names missing secrets without disclosing their contents", () => {
+  const start = yaml.indexOf("      - name: Require separately configured Cloudflare trial secrets");
+  const end = yaml.indexOf("      - name: Verify remote D1 has the expected schema", start);
+  assert.ok(start !== -1 && end > start, "secret preflight runs before D1 and deployment");
+  const block = yaml.slice(start, end);
+  for (const name of ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"]) {
+    assert.ok(block.includes('if [ -z "${' + name + ':-}" ]; then'), "check must identify " + name);
+    assert.ok(block.includes("::error title=Missing GitHub Secret::" + name), "missing value must show its name");
+  }
+  assert.match(block, /if \[ "\$missing" -ne 0 \]; then\s+exit 1/);
+  assert.doesNotMatch(block, /echo\s+["']?\$(?:CLOUDFLARE_API_TOKEN|CLOUDFLARE_ACCOUNT_ID)/);
+  assert.ok(block.includes("labdam-trial"));
+});
