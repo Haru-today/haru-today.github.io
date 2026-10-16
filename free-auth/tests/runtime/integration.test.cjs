@@ -182,6 +182,43 @@ test("two independent member sessions cannot regain protected CarePath access af
   assert.equal((await request("/api/admin/applications", fresh.cookie)).status, 403);
 });
 
+test("approved member cannot access administrator routes through GET, HEAD or approval API", async () => {
+  const operator = await login(true);
+  const applicant = await login();
+  assert.equal((await review(operator, "approved")).status, 200);
+  assert.equal((await request("/labinsight/", applicant.cookie)).status, 200,
+    "approved members should still have access to the requested health-check service");
+
+  for (const target of ["/admin", "/admin.html"]) {
+    for (const method of ["GET", "HEAD"]) {
+      const result = await request(target, applicant.cookie, method);
+      assert.equal(result.status, 403, method + " " + target);
+      if (method === "GET") {
+        const body = await result.json();
+        assert.equal(body.code, "ADMIN_ONLY");
+        assert.equal(body.ok, false);
+        assert.equal(JSON.stringify(body).includes("members"), false);
+      }
+    }
+  }
+
+  const applications = await request("/api/admin/applications", applicant.cookie);
+  assert.equal(applications.status, 403);
+  assert.deepEqual(await applications.json(), { ok: false, code: "ADMIN_ONLY" });
+
+  const profile = await (await request("/api/me", applicant.cookie)).json();
+  assert.equal(profile.role, "member");
+  const forgedReview = await request("/api/admin/review", applicant.cookie, "POST",
+    { google_sub: sub, status: "approved" }, profile.csrf);
+  assert.equal(forgedReview.status, 403);
+  assert.deepEqual(await forgedReview.json(), { ok: false, code: "ADMIN_ONLY" });
+
+  // The approved operator retains access, proving the denial is role-specific,
+  // not an outage or a blanket removal of administrator functionality.
+  assert.equal((await request("/admin.html", operator.cookie)).status, 200);
+  assert.equal((await request("/api/admin/applications", operator.cookie)).status, 200);
+});
+
 test("real D1 rolls back session deletion when the membership update fails", async () => {
   const admin = await login(true), applicant = await login();
   await review(admin, "approved");
