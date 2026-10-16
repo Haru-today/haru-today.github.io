@@ -71,7 +71,7 @@ test("admin dashboard offers approval, denial and revocation without hidden fake
 });
 
 test("private LabInsight HTML retains all original medical functionality and one account UI", () => {
-  for (const file of ["index.html", "checkup.html", "report.html", "hospitals.html"]) {
+  for (const file of ["index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html"]) {
     const html = read("labinsight/" + file);
     assert.match(html, /href="\.\/account.html"/);
     assert.match(html, /name="robots" content="noindex,nofollow"/);
@@ -113,7 +113,7 @@ test("protected build preserves reviewed interpretation, OCR and PDF scripts", (
     path.resolve(__dirname, "../../../labinsight")
   ].find(p => fs.existsSync(path.join(p, "app.js")));
   assert.ok(source, "Reviewed LabInsight checkout is required");
-  for (const file of ["ocr-review.js", "reference-ranges.js", "hospital-data.js", "runtime-config.js", "app.js"]) {
+  for (const file of ["ocr-review.js", "reference-ranges.js", "hospital-data.js", "runtime-config.js", "app.js", "carepath-data.js", "carepath.js"]) {
     let expected = fs.readFileSync(path.join(source, file), "utf8")
       .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")
       .replace(/https:\/\/haru-today\.github\.io\/(?!caffeine-atlas\/)/g, "/")
@@ -125,5 +125,21 @@ test("protected build preserves reviewed interpretation, OCR and PDF scripts", (
       .replace('if (cache) cache.textContent = "오프라인 캐시 대기";',
         'if (cache) cache.textContent = "온라인 연결 상태를 확인해 주세요";');
     assert.equal(read("labinsight/" + file), expected, file);
+  }
+});
+
+test("CarePath timeline is fully inside private assets and never saves a health record to a server", () => {
+  const page = read("labinsight/carepath.html");
+  const client = read("labinsight/carepath.js");
+  const data = read("labinsight/carepath-data.js");
+  assert.match(page, /name="robots" content="noindex,nofollow"/);
+  assert.match(page, /href="\.\/account\.html"/);
+  assert.match(page, /sessionStorage/);
+  assert.match(client, /sessionStorage/);
+  assert.match(data, /labinsight-carepath-session-v1/);
+  assert.doesNotMatch(client + data, /localStorage|\bfetch\s*\(|XMLHttpRequest|sendBeacon/);
+  assert.doesNotMatch(page, /https:\/\/haru-today\.github\.io\/labinsight\//);
+  for (const type of ["account.html","login.html","pending.html"]) {
+    assert.match(read(type), /labinsight-carepath-session-v1/, type);
   }
 });
