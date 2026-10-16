@@ -21,7 +21,7 @@ jobs:
         with:
           node-version: '22'
       - name: Install pinned browser and accessibility dependencies
-        run: npm ci --no-audit --no-fund
+        run: npm install --no-audit --no-fund
       - name: Install Chromium and WebKit
         run: npx playwright install --with-deps chromium webkit
       - name: Verify deployed trial login using read-only browser visits
