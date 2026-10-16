@@ -136,6 +136,52 @@ test("workerd OAuth + D1: pending, shared approval, revocation, rejection and fr
   assert.equal((await review(admin, "rejected", adminSub)).status, 404);
   assert.equal((await request("/admin.html", admin.cookie)).status, 200);
 });
+test("two independent member sessions cannot regain protected CarePath access after revoke and re-approval", async () => {
+  const admin = await login(true);
+  const first = await login();
+  const second = await login();
+  assert.ok(first.cookie && second.cookie && first.cookie !== second.cookie,
+    "each OAuth login must issue an independent session");
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sessions WHERE google_sub=?").bind(sub).first()).n, 2);
+
+  for (const cookie of [first.cookie, second.cookie]) {
+    assert.equal((await request("/labinsight/carepath.html", cookie)).status, 303);
+    assert.equal((await request("/labinsight/carepath.js", cookie)).status, 403);
+    assert.equal((await request("/api/admin/applications", cookie)).status, 403);
+  }
+  assert.equal((await review(admin, "approved")).status, 200);
+
+  for (const cookie of [first.cookie, second.cookie]) {
+    assert.equal((await request("/labinsight/carepath.html", cookie)).status, 200);
+    assert.equal((await request("/labinsight/carepath-data.js", cookie)).status, 200);
+    assert.equal((await request("/admin.html", cookie)).status, 403);
+    assert.equal((await request("/api/admin/applications", cookie)).status, 403);
+    const me = await (await request("/api/me", cookie)).json();
+    assert.equal(me.role, "member");
+    assert.equal((await request("/api/admin/review", cookie, "POST",
+      { google_sub: sub, status: "approved" }, me.csrf)).status, 403);
+  }
+  // This is the key safety condition: revocation invalidates every outstanding
+  // cookie, not just the single tab used for the user's real-account QA.
+  assert.equal((await review(admin, "pending")).status, 200);
+  assert.equal((await db.prepare("SELECT count(*) AS n FROM sessions WHERE google_sub=?").bind(sub).first()).n, 0);
+  for (const cookie of [first.cookie, second.cookie]) {
+    assert.equal((await request("/api/me", cookie)).status, 401);
+    assert.equal((await request("/labinsight/carepath.html", cookie)).status, 303);
+    assert.equal((await request("/labinsight/carepath.js", cookie)).status, 401);
+  }
+  // Re-approval must not resurrect a server session deleted by revocation.
+  assert.equal((await review(admin, "approved")).status, 200);
+  for (const cookie of [first.cookie, second.cookie]) {
+    assert.equal((await request("/api/me", cookie)).status, 401);
+    assert.equal((await request("/labinsight/carepath-data.js", cookie)).status, 401);
+  }
+  const fresh = await login();
+  assert.ok(fresh.cookie && ![first.cookie, second.cookie].includes(fresh.cookie));
+  assert.equal((await request("/labinsight/carepath.html", fresh.cookie)).status, 200);
+  assert.equal((await request("/api/admin/applications", fresh.cookie)).status, 403);
+});
+
 test("real D1 rolls back session deletion when the membership update fails", async () => {
   const admin = await login(true), applicant = await login();
   await review(admin, "approved");
