@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: b7f6847e38bb6695299182652f67abd59713e6ca
+          ref: 0e3b7c404fedcc6c0515dc4ebf41c1d1bfb219e8
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
@@ -104,8 +104,10 @@ jobs:
             redirect=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 12 "$TRIAL_ORIGIN/labinsight/" || true)
             echo "Attempt $attempt/5: health=$health login=$login protected_js=$gate private_html=$redirect"
             if [ "$health" = 200 ] && [ "$login" = 200 ] && [ "$gate" = 401 ] && [ "$redirect" = 303 ]; then
-              # A prior Worker with always-200 healthz must not pass the release.
-              if curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" | grep -q '"readiness":"bindings-present"'; then
+              # An older Worker can be healthy but must NOT pass this exact-release check.
+              health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
+              if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
+                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261016-r2"'; then
                 ready=1
                 break
               fi
@@ -117,7 +119,7 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz did not report required readiness. Check its OAuth secrets and Cloudflare D1/static bindings."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261016-r2 with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
