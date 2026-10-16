@@ -4,6 +4,8 @@
  * Caffeine Atlas stays an independent public GitHub Pages service.
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
+// Public build identifier for release verification; not a secret or credential.
+const RELEASE_ID = "labdam-auth-20261016-r2";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
@@ -474,7 +476,7 @@ async function handleRequest(request, env, opts = {}) {
       // code exchange, remote table contents or member approval.
       configured(env);
       privateAssets(env);
-      return json(200, { service: "labdam-free-auth", readiness: "bindings-present" });
+      return json(200, { service: "labdam-free-auth", readiness: "bindings-present", release: RELEASE_ID });
     }
     if (path === "/login" && method === "GET") return redirect("/login.html", origin);
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
