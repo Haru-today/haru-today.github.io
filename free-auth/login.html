@@ -64,6 +64,45 @@ h1{font-size:clamp(26px,4vw,31px);letter-spacing:-.065em;line-height:1.33;margin
 .public-service a{font-size:12px;white-space:nowrap;font-weight:700}
 #localDataStatus{font-size:11px;color:#6c7e95;line-height:1.65;margin:13px 0 0}
 .site-footer{text-align:center;color:#8696a8;font-size:11px;padding:0 18px 27px;line-height:1.65}
+/* Compact, action-first login and independently accessible public service. */
+.login-panel{padding-top:36px;padding-bottom:25px}
+.eyebrow{margin-bottom:9px}
+h1{font-size:clamp(24px,4vw,29px);line-height:1.35;margin-bottom:11px}
+.description{margin:0 0 23px;font-size:13px;line-height:1.65}
+.login-box{padding:14px 16px 16px}
+.login-box h2{margin:0 0 11px;font-size:13px}
+.google-button{margin-top:0;min-height:52px}
+.notice{margin-top:15px;font-size:12px;line-height:1.55}
+.privacy-copy{margin-top:11px;font-size:11px;line-height:1.65}
+#localDataStatus{margin-top:9px;font-size:11px}
+.divider{margin:20px 0 17px}
+.public-service{display:block}
+.caffeine-card{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:76px;padding:15px 16px;border:1px solid #cadbf6;
+  border-radius:12px;background:#f1f6ff;color:#183f84;text-decoration:none;
+  transition:border-color .15s,background .15s
+}
+.caffeine-card:hover{background:#eaf2ff;border-color:#8fb5f4;text-decoration:none}
+.caffeine-card-info{display:flex;flex-direction:column;gap:6px;min-width:0}
+.caffeine-card-info strong{font-size:14px;font-weight:780;line-height:1.35}
+.caffeine-card-info small{font-size:12px;line-height:1.5;color:#456381}
+.public-badge{
+  display:inline-block;vertical-align:middle;margin-left:6px;border-radius:99px;
+  padding:3px 7px;background:#d9e8ff;color:#194b99;font-size:10px;font-weight:760
+}
+.caffeine-arrow{font-size:20px;font-weight:700;flex:none}
+@media(max-width:540px){
+  .login-panel{padding:28px 22px 23px}
+  .description{margin-bottom:19px}
+  .login-box{padding:13px 14px 14px}
+  .caffeine-card{min-height:74px;padding:13px 14px}
+  .caffeine-card-info strong{font-size:13px}
+}
+@media(max-width:350px){
+  .login-panel{padding:27px 16px 22px}
+  .public-badge{margin-left:3px;font-size:9px}
+}
 @media(max-width:540px){
   .site-header{padding:22px 21px}
   .brand-name{font-size:19px}
@@ -88,12 +127,11 @@ h1{font-size:clamp(26px,4vw,31px);letter-spacing:-.065em;line-height:1.33;margin
 <main>
   <article class="login-panel" aria-labelledby="welcome-title">
     <p class="eyebrow">LABDAM ACCOUNT</p>
-    <h1 id="welcome-title">연구에서 일상으로,<br>LABDAM에 오신 것을 환영합니다.</h1>
-    <p class="description">하나의 계정으로 LABDAM과 LabInsight를 이용하세요.<br>Google 로그인 후 관리자의 승인을 받아 시작할 수 있습니다.</p>
+    <h1 id="welcome-title">LABDAM에 오신 것을 환영합니다.</h1>
+    <p class="description">Google 계정 하나로 LABDAM과 LabInsight를 시작하세요.</p>
 
     <section class="login-box" aria-labelledby="login-heading">
       <h2 id="login-heading">Google 계정으로 가입 신청</h2>
-      <p>별도 아이디나 비밀번호 등록 없이 Google 인증으로 시작합니다.</p>
       <a id="googleStart" class="google-button" href="/auth/start">
         <span class="google-logo" aria-hidden="true">
           <svg viewBox="0 0 48 48" focusable="false" aria-hidden="true">
@@ -108,15 +146,20 @@ h1{font-size:clamp(26px,4vw,31px);letter-spacing:-.065em;line-height:1.33;margin
     </section>
 
     <p class="notice"><svg width="15" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.4 13.5 3.6v4.2c0 3.3-2.1 5.5-5.5 6.8C4.6 13.3 2.5 11.1 2.5 7.8V3.6L8 1.4Z" stroke="#4A6A98" stroke-width="1.25"/><path d="m5.5 7.8 1.7 1.7 3.4-3.5" stroke="#4A6A98" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span><strong>관리자가 승인한 회원만 이용</strong>할 수 있습니다. 처음 로그인하면 가입 신청이 등록되며, 승인 전에는 건강검진 결과 조회 페이지에 접근할 수 없습니다.</span>
+      <span><strong>관리자가 승인한 회원만 이용</strong>할 수 있습니다.</span>
     </p>
-    <p class="privacy-copy">Google 비밀번호는 LABDAM이 받거나 저장하지 않습니다. 계속하면 로그인 인증 후 가입 신청 내역이 등록됩니다. 신청 전 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인해 주세요. 계정 정보 삭제는 승인 대기 또는 내 계정에서 요청할 수 있습니다.</p>
-    <p id="localDataStatus" role="status" aria-live="polite">다른 Google 계정으로 로그인하면 이전 임시 건강검진 결과를 지웁니다. 내려받은 파일은 직접 관리해 주세요.</p>
+    <p class="privacy-copy">로그인 전 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인해 주세요. LABDAM은 Google 비밀번호를 저장하지 않습니다.</p>
+    <p id="localDataStatus" role="status" aria-live="polite">계정을 전환하면 이 기기의 이전 임시 검사 결과를 삭제합니다.</p>
 
     <div class="divider" role="presentation"></div>
     <section class="public-service" aria-label="별도 공개 서비스">
-      <div><h3>별도 공개 서비스</h3><p>Caffeine Atlas는 로그인 없이 이용할 수 있습니다.</p></div>
-      <a href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 공개 체험 열기 <span aria-hidden="true">↗</span></a>
+      <a class="caffeine-card" href="https://haru-today.github.io/caffeine-atlas/" aria-label="Caffeine Atlas 공개 체험 열기">
+        <span class="caffeine-card-info">
+          <strong>Caffeine Atlas <span class="public-badge">로그인 불필요</span></strong>
+          <small>회원가입 없이 카페인 유전자형 체험</small>
+        </span>
+        <span class="caffeine-arrow" aria-hidden="true">↗</span>
+      </a>
     </section>
   </article>
 </main>
