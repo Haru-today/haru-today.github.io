@@ -14,6 +14,13 @@ const msg=document.getElementById("message"),detail=document.getElementById("det
 const form=document.getElementById("purposeForm"),refresh=document.getElementById("refreshStatus");
 const save=document.getElementById("savePurpose"),withdraw=document.getElementById("withdraw"),logout=document.getElementById("logout");
 let csrf="",checking=false,mutating=false,canEdit=false;
+function clearHealthReport(){
+ let ok=true;
+ for(const store of [sessionStorage,localStorage]){
+  try{store.removeItem("labinsight-latest-report");}catch(_){ok=false;}
+ }
+ return ok;
+}
 function syncControls(){
  refresh.disabled=checking||mutating;
  save.disabled=checking||mutating||!csrf||!canEdit;
@@ -60,6 +67,7 @@ withdraw.addEventListener("click",async()=>{
  try{
   const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(!r.ok){status.textContent="가입 철회 처리에 실패했습니다.";return;}
+  if(!clearHealthReport()){status.textContent="가입 정보는 삭제됐지만 이 기기의 임시 검사 결과 삭제에 실패했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
   location.replace("/login.html");
  }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
  finally{mutating=false;syncControls();}
@@ -69,7 +77,10 @@ logout.addEventListener("click",async()=>{
  mutating=true;syncControls();msg.textContent="로그아웃하고 있습니다.";
  try{
   const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
-  if(r.ok||r.status===303){location.replace("/login.html");}
+  if(r.ok||r.status===303){
+   if(!clearHealthReport()){msg.textContent="로그아웃됐지만 이 기기의 임시 검사 결과를 지우지 못했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
+   location.replace("/login.html");
+  }
   else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
  }catch(_){msg.textContent="네트워크 연결을 확인한 뒤 로그아웃을 다시 시도해 주세요.";}
  finally{mutating=false;syncControls();}
