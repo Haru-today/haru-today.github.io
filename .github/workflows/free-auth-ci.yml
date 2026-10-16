@@ -61,7 +61,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 350aee397af7b47459a037ba8bbfe9bf4d563e6f
+          ref: 5ed1b25a24ca0718d23483606c4961037172edac
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4
