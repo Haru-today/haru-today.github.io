@@ -15,7 +15,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: b7f6847e38bb6695299182652f67abd59713e6ca/);
+  assert.match(yaml, /ref: 2014fdb550014256e20d7a406d69bc014eb597e9/);
   assert.match(yaml, /ref: 7388d1a3884e06c7765d01260f5645c2f3e20b58/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -53,8 +53,11 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
   assert.ok(yaml.includes('node free-auth/scripts/probe-trial-worker.mjs --origin "$TRIAL_ORIGIN"'));
 });
 
-test("trial release checks the healthy bound-service response, not just HTTP 200", () => {
-  assert.ok(yaml.includes(`grep -q '"readiness":"bindings-present"'`));
+test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
+  assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261016-r2"'`));
+  assert.match(yaml, /health_body=\$\(curl --fail --silent/);
+  assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
 
 test("release clearly names missing secrets without disclosing their contents", () => {
