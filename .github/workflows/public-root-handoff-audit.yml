@@ -2,6 +2,10 @@ name: LABDAM public search entry protection audit
 
 on:
   workflow_dispatch:
+  # One low-volume anonymous GET audit each morning (08:17 Asia/Seoul).
+  # Scheduled Actions may start later; no Cloudflare deployments or D1 writes.
+  schedule:
+    - cron: '17 23 * * *'
   push:
     branches: [main]
     paths:

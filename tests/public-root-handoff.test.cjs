@@ -57,3 +57,14 @@ test("private file exposure and Caffeine QR regression fail independently", asyn
   assert.equal(a.results.filter(x => !x.ok).length, 2);
   assert.doesNotMatch(JSON.stringify(a), /leak/);
 });
+
+
+test("scheduled public-root guard runs daily without credentials, writes or deployments", () => {
+  const fs = require("node:fs");
+  const src = fs.readFileSync(".github/workflows/public-root-handoff-audit.yml", "utf8");
+  assert.match(src, /schedule:\s*\n\s*- cron: '17 23 \* \* \*'/);
+  assert.match(src, /workflow_dispatch:/);
+  assert.match(src, /contents: read/);
+  assert.match(src, /run: node scripts\/check-public-root-handoff\.mjs/);
+  assert.doesNotMatch(src, /wrangler|CLOUDFLARE_API_TOKEN|secrets\.|(?:POST|PUT|DELETE) /);
+});
