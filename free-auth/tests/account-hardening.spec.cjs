@@ -158,3 +158,47 @@ test("failed account logout retains CarePath data while member remains authentic
   expect(await page.evaluate(() => sessionStorage.getItem("labinsight-carepath-session-v1")))
     .toBe("synthetic-yearly-health");
 });
+
+test("a new Google login clears both latest report and CarePath timeline across both stores", async ({ page }) => {
+  await page.route("**/auth/start*", route => route.fulfill({
+    status: 200, contentType: "text/html", body: "<title>synthetic Google OAuth transition</title>"
+  }));
+  await page.goto("/login.html?next=%2Flabinsight%2Fcarepath.html");
+  await page.evaluate(() => {
+    for (const store of [sessionStorage, localStorage]) {
+      store.setItem("labinsight-latest-report", "synthetic-report-do-not-reuse");
+      store.setItem("labinsight-carepath-session-v1", "synthetic-CarePath-do-not-reuse");
+    }
+    sessionStorage.setItem("unrelated-preference", "preserve");
+  });
+  await page.getByRole("link", { name: "Google 계정으로 계속하기" }).click();
+  await expect(page).toHaveURL(/\/auth\/start\?next=/);
+  expect(await page.evaluate(() => ({
+    protectedKeys: ["labinsight-latest-report", "labinsight-carepath-session-v1"].flatMap(key =>
+      [sessionStorage.getItem(key), localStorage.getItem(key)]),
+    unrelated: sessionStorage.getItem("unrelated-preference")
+  }))).toEqual({ protectedKeys: [null, null, null, null], unrelated: "preserve" });
+});
+
+test("pending-member account withdrawal removes CarePath from both stores before allowing another login", async ({ page }) => {
+  await page.route("**/api/me", route => route.fulfill({ json: {
+    authenticated: true, status: "pending", role: "member",
+    email: "applicant@example.invalid", purpose: "", csrf: "b".repeat(64)
+  }}));
+  await page.route("**/api/account/delete", route => route.fulfill({
+    status: 200, json: { ok: true, code: "ACCOUNT_DELETED" }
+  }));
+  page.on("dialog", dialog => dialog.accept());
+  await page.goto("/pending.html");
+  await expect(page.locator("#withdraw")).toBeEnabled();
+  await page.evaluate(() => {
+    sessionStorage.setItem("labinsight-carepath-session-v1", "synthetic-CarePath-before-withdrawal");
+    localStorage.setItem("labinsight-carepath-session-v1", "synthetic-legacy-history");
+  });
+  await page.locator("#withdraw").click();
+  await expect(page).toHaveURL(/\/login\.html$/);
+  expect(await page.evaluate(() => [
+    sessionStorage.getItem("labinsight-carepath-session-v1"),
+    localStorage.getItem("labinsight-carepath-session-v1")
+  ])).toEqual([null, null]);
+});
