@@ -15,7 +15,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 038278b355166ce0c6e93d8b6ff33aa754bc5193/);
+  assert.match(yaml, /ref: b7f6847e38bb6695299182652f67abd59713e6ca/);
   assert.match(yaml, /ref: 7388d1a3884e06c7765d01260f5645c2f3e20b58/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -51,4 +51,8 @@ test("remote D1 schema is read-only checked before deployment and without access
 
 test("full post-deploy read-only protected route and Caffeine QR probe is required", () => {
   assert.ok(yaml.includes('node free-auth/scripts/probe-trial-worker.mjs --origin "$TRIAL_ORIGIN"'));
+});
+
+test("trial release checks the healthy bound-service response, not just HTTP 200", () => {
+  assert.ok(yaml.includes(`grep -q '"readiness":"bindings-present"'`));
 });

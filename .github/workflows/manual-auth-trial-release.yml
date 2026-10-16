@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v4
         with:
-          ref: 038278b355166ce0c6e93d8b6ff33aa754bc5193
+          ref: b7f6847e38bb6695299182652f67abd59713e6ca
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v4
@@ -86,6 +86,8 @@ jobs:
           gate=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/app.js")
           redirect=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/")
           test "$health" = 200
+          # A prior Worker with an always-200 healthz must not pass this release.
+          curl --fail --silent --show-error --max-time 20 "$TRIAL_ORIGIN/healthz" | grep -q '"readiness":"bindings-present"'
           test "$login" = 200
           test "$gate" = 401
           test "$redirect" = 303
