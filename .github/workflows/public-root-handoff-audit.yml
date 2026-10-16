@@ -1,0 +1,31 @@
+name: LABDAM public search entry protection audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'index.html'
+      - 'sitemap.xml'
+      - 'scripts/check-public-root-handoff.mjs'
+      - 'tests/public-root-handoff.test.cjs'
+      - '.github/workflows/public-root-handoff-audit.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  anonymous-route-check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Test safe external audit with synthetic responses
+        run: node --test tests/public-root-handoff.test.cjs
+      - name: Probe live public root and approved Worker without credentials
+        run: node scripts/check-public-root-handoff.mjs
