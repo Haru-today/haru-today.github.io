@@ -28,3 +28,12 @@ LABDAM 및 LabInsight의 실제 서비스 주소는 Cloudflare Worker `https://l
 **기존 `https://haru-today.github.io/labinsight/` 주소는 GitHub Pages에서 `main /docs`로 게시 폴더를 전환해야** 검사 입력 화면이 더 이상 정적으로 공개되지 않습니다. 설정 후 해당 주소는 승인제 Worker 안내만 제공합니다. LabInsight 설정: https://github.com/Haru-today/labinsight/settings/pages
 
 기존 Caffeine Atlas 학회 포스터 QR 및 `https://haru-today.github.io/caffeine-atlas/` 공개 이용은 유지합니다. GitHub Pages는 서버 인증을 수행하지 못하므로 공개 저장소 코드의 변경만으로 운영자 승인제가 적용되었다고 주장하지 않습니다.
+
+## 2026-10-16 공개 루트 로그인 안내 전환
+
+- `https://haru-today.github.io/`는 Google 검색/직접 접근 모두 **로그인·관리자 승인제가 적용된 Worker**(`https://labdam-free-approval.jleegenomics.workers.dev/`)로 자동 안내합니다. 공개 Pages의 기존 상세 브랜드 소개 화면을 계속 제공하지 않습니다.
+- 실제 LABDAM 통합 브랜드 홈페이지와 승인된 LabInsight는 Worker 내부에서 유지합니다. 이미 승인된 브라우저는 세션 쿠키로 바로 들어갈 수 있습니다. 비로그인 시에는 로그인 페이지로 이동하며, 신규 가입은 관리자 승인이 필요합니다.
+- 기존 공개 LabInsight Pages는 `main /docs`에서 안내 페이지만 제공하며, 검사 프로그램 정적 자산은 더 이상 제공하지 않습니다.
+- Caffeine Atlas 프로젝트 Pages와 학회 포스터 QR은 그대로 공개됩니다. root `robots.txt`는 Caffeine Atlas의 크롤링까지 막지 않도록 유지합니다.
+- 검색엔진 결과/스니펫 캐시는 즉시 사라지지 않을 수 있습니다. 로그인 차단의 근거는 검색 결과가 아니라 **Worker 서버의 세션 검증**입니다.
+- GitHub 공개 저장소 과거 코드와 사용자 기기에서 이미 캐시된 페이지는 URL 이동이나 Google 검색 비노출만으로 삭제되지 않습니다.

@@ -1,145 +1,57 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
+const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 
-test('portal loads redesigned sections, stylesheet and exactly two services', async ({ page }, testInfo) => {
-  await page.goto('/');
-  await expect(page).toHaveTitle(/LABDAM/);
-  await expect(page.locator('#main-title')).toBeVisible();
-  if (['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name)) {
-    await expect(page.locator('.atlas-board')).toBeHidden();
-  } else {
-    await expect(page.locator('.atlas-board')).toBeVisible();
-  }
-  await expect(page.locator('.service-card')).toHaveCount(2);
-  await expect(page.locator('#about')).toHaveCount(1);
-  await expect(page.locator('#technology')).toHaveCount(1);
-  await expect(page.locator('#contact')).toHaveCount(1);
-  const style = await page.request.get('/assets/portal-redesign.css');
-  expect(style.status()).toBe(200);
-  expect(await style.text()).toContain('.hero-grid');
+test('Google or direct visitors are forwarded to the approved Worker, never to public private apps', async ({ page }) => {
+  await page.route('https://labdam-free-approval.jleegenomics.workers.dev/**', async route => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'text/html',
+      body: '<!doctype html><html lang="ko"><head><title>LABDAM 승인제 Worker 테스트</title></head>' +
+        '<body><main id="worker-stub">승인제 Worker로 정상 이동</main></body></html>'
+    });
+  });
+  await page.goto('/', { waitUntil: 'domcontentloaded' });
+  await expect(page).toHaveURL(WORKER, { timeout: 10000 });
+  await expect(page.locator('#worker-stub')).toBeVisible();
 });
 
-test('service links, privacy and disclaimers are preserved', async ({ page }) => {
-  await page.goto('/');
-  await expect(page.getByRole('link', { name: /LabInsight 이용하기/ }))
-    .toHaveAttribute('href', 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/');
-  await expect(page.getByRole('link', { name: /Caffeine Atlas 이용하기/ }))
+test('public root HTML is a safe handoff with no app forms, and Caffeine stays public', async ({ request }) => {
+  const res = await request.get('/');
+  expect(res.status()).toBe(200);
+  const body = await res.text();
+  expect(body).toContain('http-equiv="refresh" content="0;url=' + WORKER + '"');
+  expect(body).toContain('href="' + WORKER + 'labinsight/"');
+  expect(body).toContain('href="https://haru-today.github.io/caffeine-atlas/"');
+  expect(body).toContain('name="robots" content="noindex,nofollow"');
+  expect(body).not.toMatch(/<(?:form|input|script)\b/i);
+  expect((await request.get('/privacy.html')).status()).toBe(200);
+  expect((await request.get('/terms.html')).status()).toBe(200);
+});
+
+test('fallback gateway layout is keyboard accessible and has no horizontal scroll', async ({ page }) => {
+  const body = await (await page.request.get('/')).text();
+  await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
+  await expect(page.getByRole('link', { name: /LABDAM 로그인·입장/ }))
+    .toHaveAttribute('href', WORKER);
+  await expect(page.getByRole('link', { name: 'LabInsight 바로가기' }))
+    .toHaveAttribute('href', WORKER + 'labinsight/');
+  await expect(page.getByRole('link', { name: /로그인 없이 공개 이용/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
-  await expect(page.getByRole('link', { name: '개인정보 처리 안내' }))
-    .toHaveAttribute('href', '/privacy.html');
-  await expect(page.getByRole('link', { name: '서비스 이용 안내' }))
-    .toHaveAttribute('href', '/terms.html');
-  await expect(page.getByText('본 포털 및 연결 서비스는 연구·교육과 참고 정보 제공을 목적으로 하며', { exact: false })).toBeVisible();
-  expect((await page.request.get('/privacy.html')).status()).toBe(200);
-  expect((await page.request.get('/terms.html')).status()).toBe(200);
-});
-
-test('header navigation reaches service section', async ({ page }) => {
-  await page.goto('/');
-  await page.locator('nav a[href="#services"]').click();
-  await expect(page).toHaveURL(/#services$/);
-  await expect(page.locator('#services-title')).toBeVisible();
-});
-
-test('no horizontal page overflow and primary actions remain on screen', async ({ page }, testInfo) => {
-  await page.goto('/');
+  await expect(page.locator('main h1')).toBeVisible();
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
-    page: document.documentElement.scrollWidth,
-    body: document.body.scrollWidth,
+    page: document.documentElement.scrollWidth
   }));
-  expect(dimensions.page, JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.viewport + 1);
-  expect(dimensions.body, JSON.stringify(dimensions)).toBeLessThanOrEqual(dimensions.viewport + 1);
-  const cta = page.getByRole('link', { name: /두 서비스 알아보기/ });
-  await expect(cta).toBeVisible();
-  const box = await cta.boundingBox();
-  expect(box).toBeTruthy();
-  expect(box.x).toBeGreaterThanOrEqual(-1);
-  expect(box.x + box.width).toBeLessThanOrEqual(dimensions.viewport + 1);
-  await page.evaluate(() => document.fonts.ready);
-  await page.screenshot({ path: testInfo.outputPath('labdam-home-fullpage.png'), fullPage: true, animations: 'disabled' });
+  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('keyboard users can skip header to main content', async ({ page }, testInfo) => {
-  test.skip(testInfo.project.name === 'iphone-webkit', 'iPhone touch browser uses a different native keyboard focus model');
-  await page.goto('/');
-  await page.keyboard.press('Tab');
-  await expect(page.locator('a.skip')).toBeFocused();
-  await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#main$/);
-});
-
-test('fixed header does not conceal section headings after navigation', async ({ page }, testInfo) => {
-  await page.emulateMedia({ reducedMotion: 'reduce' });
-  await page.goto('/');
-  const sections = ['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name)
-    ? ['services', 'contact']
-    : ['services', 'about', 'technology', 'contact'];
-  for (const section of sections) {
-    await page.locator('nav a[href="#' + section + '"]').click();
-    await expect(page).toHaveURL(new RegExp('#' + section + '$'));
-    const location = await page.evaluate((id) => {
-      const header = document.querySelector('header').getBoundingClientRect();
-      const heading = document.querySelector('#' + id + ' h2').getBoundingClientRect();
-      return { headerBottom: header.bottom, headingTop: heading.top };
-    }, section);
-    expect(location.headingTop, section + ': ' + JSON.stringify(location))
-      .toBeGreaterThanOrEqual(location.headerBottom - 2);
-  }
-});
-
-test('no serious or critical automated WCAG failures', async ({ page }) => {
-  await page.goto('/');
+test('fallback gateway has no serious or critical WCAG violations', async ({ page }) => {
+  const body = await (await page.request.get('/')).text();
+  await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
   const results = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();
-  const violations = results.violations.filter(v => ['critical', 'serious'].includes(v.impact));
-  expect(violations.map(v => ({
-    id: v.id,
-    impact: v.impact,
-    nodes: v.nodes.slice(0, 5).map(n => ({ target: n.target, summary: n.failureSummary }))
-  }))).toEqual([]);
-});
-
-test('navy brand colors and device-specific concise landing presentation', async ({ page }, testInfo) => {
-  await page.goto('/');
-  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content', '#102B50');
-  const board = await page.locator('.atlas-board').evaluate(el => getComputedStyle(el).backgroundColor);
-  expect(board).toBe('rgb(16, 43, 80)');
-  const mobile = ['android-chromium', 'iphone-webkit', 'narrow-320'].includes(testInfo.project.name);
-  if (mobile) {
-    await expect(page.locator('.mobile-intro')).toBeVisible();
-    await expect(page.locator('.desktop-intro')).toBeHidden();
-    await expect(page.locator('.signal-strip')).toBeHidden();
-    await expect(page.locator('.service-content .desktop-only').first()).toBeHidden();
-    await expect(page.locator('.service-content .mobile-card-copy')).toHaveCount(2);
-    await expect(page.locator('.service-content .mobile-card-copy').first()).toBeVisible();
-    await expect(page.locator('.topnav a[href="#technology"]')).toBeHidden();
-    await expect(page.locator('.service-content .service-meta').first()).toBeHidden();
-    await expect(page.locator('.mobile-rules details')).toHaveCount(3);
-    await page.locator('.mobile-rules summary').first().click();
-    await expect(page.locator('.mobile-rules details').first()).toHaveAttribute('open', '');
-    const visibleNav = await page.locator('.topnav a:visible').count();
-    expect(visibleNav).toBe(2);
-  } else {
-    await expect(page.locator('.mobile-intro')).toBeHidden();
-    await expect(page.locator('.desktop-intro')).toBeVisible();
-    await expect(page.locator('.mobile-rules')).toBeHidden();
-  }
-});
-
-test('first-time visitors can reach both products directly without changing poster QR', async ({ page }) => {
-  await page.goto('/');
-  const shortcuts = page.locator('.hero-quick-entry a');
-  await expect(shortcuts).toHaveCount(2);
-  await expect(shortcuts.nth(0)).toHaveAttribute('href', 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/');
-  await expect(shortcuts.nth(1)).toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
-  await expect(shortcuts.nth(0)).toBeVisible();
-  await expect(shortcuts.nth(1)).toBeVisible();
-  await expect(page.locator('.service-entry-detail')).toHaveCount(2);
-  const sizes = await page.evaluate(() => ({
-    width: document.documentElement.clientWidth,
-    contentWidth: document.documentElement.scrollWidth
-  }));
-  expect(sizes.contentWidth).toBeLessThanOrEqual(sizes.width + 1);
+  const issues = results.violations.filter(x => ['critical', 'serious'].includes(x.impact));
+  expect(issues.map(x => ({ id: x.id, impact: x.impact }))).toEqual([]);
 });
