@@ -104,3 +104,22 @@ test("pending applicant withdrawal clears an older same-origin report", async ({
   await expect(page).toHaveURL(/\/login\.html$/);
   expect(await page.evaluate(() => sessionStorage.getItem("labinsight-latest-report"))).toBeNull();
 });
+
+test("starting a different Google login clears the previous same-origin report before OAuth", async ({ page }) => {
+  await page.route("**/auth/start*", route => route.fulfill({
+    status: 200, contentType: "text/html", body: "<title>synthetic OAuth boundary</title>"
+  }));
+  await page.goto("/login.html?next=%2Flabinsight%2F");
+  await page.evaluate(() => {
+    sessionStorage.setItem("labinsight-latest-report", "synthetic-old-member-report");
+    localStorage.setItem("labinsight-latest-report", "synthetic-old-legacy-report");
+    localStorage.setItem("non-health-preference", "keep");
+  });
+  await page.getByRole("link", { name: "Google 계정으로 계속하기" }).click();
+  await expect(page).toHaveURL(/\/auth\/start\?next=/);
+  expect(await page.evaluate(() => ({
+    current: sessionStorage.getItem("labinsight-latest-report"),
+    old: localStorage.getItem("labinsight-latest-report"),
+    pref: localStorage.getItem("non-health-preference")
+  }))).toEqual({ current: null, old: null, pref: "keep" });
+});
