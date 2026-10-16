@@ -48,6 +48,15 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
+      # PR merge previews now contain the public Pages handoff rather than the
+      # full LABDAM portal. Preserve the reviewed private portal snapshot.
+      - name: Fetch reviewed LABDAM portal before public Pages handoff
+        uses: actions/checkout@v4
+        with:
+          repository: Haru-today/haru-today.github.io
+          ref: d7fd176de02bcc45652348161a58e2823d3ed980
+          path: sources/labdam
+          persist-credentials: false
       - name: Fetch only reviewed LabInsight static website
         uses: actions/checkout@v4
         with:
@@ -60,6 +69,7 @@ jobs:
           node-version: '22'
       - name: Build only LABDAM + LabInsight protected assets without deployment
         env:
+          LABDAM_SOURCE: ${{ github.workspace }}/sources/labdam
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Check reviewed static Worker config and built assets
