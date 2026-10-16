@@ -61,8 +61,20 @@ jobs:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
         run: |
-          test -n "$CLOUDFLARE_API_TOKEN"
-          test -n "$CLOUDFLARE_ACCOUNT_ID"
+          # No token, account ID or provider response is printed in this check.
+          missing=0
+          if [ -z "${CLOUDFLARE_API_TOKEN:-}" ]; then
+            echo "::error title=Missing GitHub Secret::CLOUDFLARE_API_TOKEN is unavailable to the labdam-trial job. Configure the secret in Settings > Environments > labdam-trial, or as a repository Actions secret."
+            missing=1
+          fi
+          if [ -z "${CLOUDFLARE_ACCOUNT_ID:-}" ]; then
+            echo "::error title=Missing GitHub Secret::CLOUDFLARE_ACCOUNT_ID is unavailable to the labdam-trial job. Configure the secret in Settings > Environments > labdam-trial, or as a repository Actions secret."
+            missing=1
+          fi
+          if [ "$missing" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Cloudflare credential variables are set; permission and D1 readiness checks follow."
       - name: Verify remote D1 has the expected schema (read-only, no member rows)
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
