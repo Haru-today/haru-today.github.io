@@ -489,6 +489,27 @@ test("unverified Google claims and forged ID token fail without creating a membe
     assert.equal(f.DB.sessions.size, 0);
   }
 });
+test("healthz reports readiness only when auth configuration and private assets are bound", async () => {
+  const f = fixture();
+  const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
+  assert.equal(healthy.status, 200);
+  assert.match(healthy.headers.get("Cache-Control"), /no-store/);
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present" });
+  for (const overrides of [
+    { GOOGLE_CLIENT_SECRET: undefined },
+    { GOOGLE_CLIENT_ID: "" },
+    { RATE_LIMIT_SECRET: "weak" },
+    { DB: undefined },
+    { ASSETS: undefined },
+    { AUTH_ORIGIN: "http://not-https.example" }
+  ]) {
+    const reply = await handleRequest(req("/healthz"), { ...f.env, ...overrides }, f.opts);
+    assert.equal(reply.status, 503, JSON.stringify(Object.keys(overrides)));
+    const body = await reply.text();
+    assert.doesNotMatch(body, /fake-long-secret|a-long-secret|owner@example.com/);
+  }
+});
+
 test("missing config, malicious paths and credential-bearing unsupported routes fail closed", async () => {
   const f = fixture();
   assert.equal((await handleRequest(req("/auth/start"), { ...f.env, DB: undefined }, f.opts)).status, 503);
