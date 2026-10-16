@@ -15,8 +15,8 @@ const lab = resolve(process.env.LABINSIGHT_SOURCE || join(here, "../../labinsigh
 const labOutput = join(output, "labinsight");
 
 const labFiles = [
-  "index.html", "checkup.html", "report.html", "hospitals.html",
-  "styles.css", "app.js", "ocr-review.js", "reference-ranges.js",
+  "index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html",
+  "styles.css", "app.js", "carepath.js", "carepath-data.js", "ocr-review.js", "reference-ranges.js",
   "hospital-data.js", "runtime-config.js", "manifest.webmanifest"
 ];
 const authPages = ["login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html"];
@@ -141,7 +141,8 @@ async function build() {
     "index.html", "login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html",
     "privacy.html", "terms.html", "favicon.svg", "robots.txt",
     "assets/portal-redesign.css", "labinsight/index.html",
-    "labinsight/checkup.html", "labinsight/report.html",
+    "labinsight/checkup.html", "labinsight/report.html", "labinsight/carepath.html",
+    "labinsight/carepath.js", "labinsight/carepath-data.js",
     "labinsight/account.html", "labinsight/reference-ranges.js"
   ];
   for (const file of expected) {
