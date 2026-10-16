@@ -58,9 +58,10 @@ test("live LABDAM login remains legible at the deployed trial origin", async ({ 
   expect(layout.caffeineHeight).toBeGreaterThanOrEqual(44);
   await testInfo.attach("layout.json", { body: JSON.stringify({ project: testInfo.project.name, layout }, null, 2), contentType: "application/json" });
 
-  // Accessibility findings are captured for review; this audit introduces no production changes.
+  // Fail the read-only CI audit if the deployed login has WCAG A/AA violations.
   const a11y = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"]).analyze();
   const findings = a11y.violations.map(v => ({ id: v.id, impact: v.impact, description: v.description, nodes: v.nodes.map(n => n.target) }));
   await testInfo.attach("accessibility.json", { body: JSON.stringify(findings, null, 2), contentType: "application/json" });
   console.log("Read-only live login review:", testInfo.project.name, JSON.stringify(layout), "accessibility findings:", findings.length);
+  expect(findings, "Deployed login must have no axe WCAG A/AA violations; see accessibility.json attachment").toEqual([]);
 });
