@@ -278,6 +278,22 @@ test("real D1 session expiry, CSRF and account deletion block protected assets",
   assert.equal((await db.prepare("SELECT count(*) AS n FROM sessions WHERE google_sub=?").bind(sub).first()).n, 0);
   assert.equal((await request("/labinsight/app.js", finalLogin.cookie)).status, 401);
 });
+test("supplement evidence script requires approval and stays blocked after session revocation", async () => {
+  const path = "/labinsight/supplement-guidance.js";
+  assert.equal((await request(path)).status, 401);
+  const admin = await login(true), applicant = await login();
+  assert.equal((await request(path, applicant.cookie)).status, 403);
+  assert.equal((await review(admin, "approved")).status, 200);
+  const response = await request(path, applicant.cookie);
+  assert.equal(response.status, 200);
+  assert.match(response.headers.get("cache-control"), /no-store/);
+  assert.match(await response.text(), /LABINSIGHT_SUPPLEMENTS/);
+  assert.equal((await review(admin, "pending")).status, 200);
+  assert.equal((await request(path, applicant.cookie)).status, 401);
+  assert.equal((await review(admin, "approved")).status, 200);
+  assert.equal((await request(path, applicant.cookie)).status, 401);
+});
+
 test("actual asset binding stays behind the anonymous gate and Caffeine Atlas is excluded", async () => {
   for (const path of ["/", "/labinsight/", "/labinsight/report.html", "/labinsight/carepath.html"]) assert.equal((await request(path)).status, 303);
   for (const path of ["/labinsight/app.js", "/labinsight/carepath.js", "/labinsight/carepath-data.js", "/labinsight/service-worker.js", "/assets/portal-redesign.css"]) assert.equal((await request(path)).status, 401);

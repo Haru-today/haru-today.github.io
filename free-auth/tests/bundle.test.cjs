@@ -85,6 +85,21 @@ test("private LabInsight HTML retains all original medical functionality and one
   assert.equal(read("labinsight/account.html"), read("account.html"));
 });
 
+test("every local script referenced by protected LabInsight pages is bundled", () => {
+  for (const file of ["index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html"]) {
+    const page = path.join("labinsight", file);
+    for (const match of read(page).matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)) {
+      const src = match[1].split(/[?#]/)[0];
+      if (/^(?:https?:)?\/\//i.test(src)) continue;
+      const target = src.startsWith("/")
+        ? path.resolve(root, "." + src)
+        : path.resolve(root, path.dirname(page), src);
+      assert.ok(target.startsWith(root + path.sep), `${page}: unsafe script path`);
+      assert.ok(fs.existsSync(target) && fs.statSync(target).isFile(), `${page}: missing ${src}`);
+    }
+  }
+});
+
 test("private legal documents preserve accessible public Caffeine Atlas destination", () => {
   for (const file of ["privacy.html", "terms.html"]) {
     const s = read(file);

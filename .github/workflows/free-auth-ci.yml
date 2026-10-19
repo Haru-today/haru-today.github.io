@@ -61,11 +61,12 @@ jobs:
           ref: d7fd176de02bcc45652348161a58e2823d3ed980
           path: sources/labdam
           persist-credentials: false
-      - name: Fetch only reviewed LabInsight static website
+      # CI preview only; manual Worker release source pins remain unchanged.
+      - name: Fetch CI-verified LabInsight supplement review snapshot
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 5ed1b25a24ca0718d23483606c4961037172edac
+          ref: f48370743e3f7d648cb31fad2c4c38af5b453f37
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4

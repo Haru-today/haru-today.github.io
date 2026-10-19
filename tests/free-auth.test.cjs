@@ -259,7 +259,8 @@ test("anonymous visitor sees Google request page but not protected homepage, CSS
     assert.equal(res.status, 303);
     assert.match(res.headers.get("location"), /\/login\.html\?next=/);
   }
-  for (const path of ["/assets/portal-redesign.css", "/labinsight/app.js", "/account.html?file=x"]) {
+  for (const path of ["/assets/portal-redesign.css", "/labinsight/app.js",
+    "/labinsight/supplement-guidance.js", "/account.html?file=x"]) {
     const res = await handleRequest(req(path), f.env, f.opts);
     if (path.startsWith("/account")) assert.equal(res.status, 303);
     else assert.equal(res.status, 401);
@@ -272,7 +273,7 @@ test("anonymous visitor sees Google request page but not protected homepage, CSS
 });
 test("approved Google member can open LABDAM homepage and LabInsight without signing in twice", async () => {
   const f = fixture(), member = seedMember(f);
-  for (const path of ["/", "/index.html", "/labinsight/", "/labinsight/app.js",
+  for (const path of ["/", "/index.html", "/labinsight/", "/labinsight/app.js", "/labinsight/supplement-guidance.js",
     "/labinsight/report.html", "/assets/portal-redesign.css"]) {
     const res = await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts);
     assert.equal(res.status, 200, path);
@@ -291,6 +292,7 @@ test("pending and rejected applicants never receive protected content, even with
     const f = fixture(), user = seedMember(f, { status });
     assert.equal((await handleRequest(req("/", { cookie: user.cookie }), f.env, f.opts)).status, 303);
     assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
+    assert.equal((await handleRequest(req("/labinsight/supplement-guidance.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
     assert.equal((await handleRequest(req("/labinsight/report.html", { cookie: user.cookie }), f.env, f.opts)).status, 303);
     assert.equal((await handleRequest(req("/api/admin/applications", { cookie: user.cookie }), f.env, f.opts)).status, 403);
   }

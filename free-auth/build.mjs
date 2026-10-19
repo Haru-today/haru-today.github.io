@@ -19,6 +19,11 @@ const labFiles = [
   "styles.css", "app.js", "carepath.js", "carepath-data.js", "ocr-review.js", "reference-ranges.js",
   "hospital-data.js", "runtime-config.js", "manifest.webmanifest"
 ];
+// Older reviewed snapshots predate this optional module. New reports must
+// carry the module inside the same approval-protected static bundle.
+if (existsSync(join(lab, "supplement-guidance.js"))) {
+  labFiles.push("supplement-guidance.js");
+}
 const authPages = ["login.html", "pending.html", "account.html", "admin.html", "membership-privacy.html"];
 
 function guarded(root, rel) {

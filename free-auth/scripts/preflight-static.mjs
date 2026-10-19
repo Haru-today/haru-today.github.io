@@ -4,6 +4,7 @@
  * Run AFTER the reviewed LABDAM + LabInsight protected bundle build.
  */
 import { readFile, lstat, readdir } from 'node:fs/promises';
+import { realpathSync } from 'node:fs';
 import { resolve, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -129,6 +130,9 @@ async function main() {
   }
   if (!result.ok) process.exitCode = 1;
 }
-if (process.argv[1] && fileURLToPath(import.meta.url) === resolve(process.argv[1])) {
+// Node resolves module symlinks; canonicalize argv too (macOS /var -> /private/var).
+let entryPath;
+try { entryPath = process.argv[1] && realpathSync(resolve(process.argv[1])); } catch (_) {}
+if (entryPath && fileURLToPath(import.meta.url) === entryPath) {
   main().catch(() => { process.stderr.write('Static preflight failed.\n'); process.exitCode = 2; });
 }
