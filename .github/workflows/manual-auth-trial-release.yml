@@ -18,25 +18,26 @@ concurrency:
 jobs:
   trial-release:
     if: ${{ github.event.inputs.confirmation == 'DEPLOY-LABDAM-TRIAL' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: labdam-trial
     steps:
       - name: Fetch fully reviewed login branch snapshot (immutable)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           ref: ea137eee3080854146c298651ca9ce23c70d381d
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
           ref: 5654b024c708ab18aa762d0bf4dc36591c7ad33b
           path: sources/labinsight
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Verify OAuth security and bootstrap using synthetic identities
         run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
       - name: Build trial-only private LABDAM and LabInsight bundle
