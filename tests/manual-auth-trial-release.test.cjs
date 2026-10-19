@@ -15,8 +15,8 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: e23891fd83fcdb07739f3a755e0959e3f9e38b08/);
-  assert.match(yaml, /ref: 5ed1b25a24ca0718d23483606c4961037172edac/);
+  assert.match(yaml, /ref: ea137eee3080854146c298651ca9ce23c70d381d/);
+  assert.match(yaml, /ref: 5654b024c708ab18aa762d0bf4dc36591c7ad33b/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
@@ -55,7 +55,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261016-r3-carepath29"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261020-r4-supplement"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
@@ -119,4 +119,15 @@ test("CarePath deployment stays explicitly gated and only checks anonymous HTTP 
   assert.match(src, /test "\$script_code" = 401/);
   assert.match(src, /test "\$model_code" = 401/);
   assert.doesNotMatch(src, /wrangler d1 migrations apply|wrangler d1 execute .*UPDATE|curl .*--data/);
+});
+
+test("supplement release requires the private module and checks its anonymous denial", () => {
+  assert.ok(yaml.includes("test -f free-auth/dist/labinsight/supplement-guidance.js"));
+  const start = yaml.indexOf("      - name: Confirm supplement evidence is gated");
+  const end = yaml.indexOf("      - name: Confirm new CarePath endpoints", start);
+  assert.ok(start > yaml.indexOf("      - name: Deploy to named free test Worker") && end > start);
+  const block = yaml.slice(start, end);
+  assert.ok(block.includes("$TRIAL_ORIGIN/labinsight/supplement-guidance.js"));
+  assert.ok(block.includes('test "$code" = 401'));
+  assert.doesNotMatch(block, /auth\/start|auth\/callback|curl .*--data|d1 execute/);
 });
