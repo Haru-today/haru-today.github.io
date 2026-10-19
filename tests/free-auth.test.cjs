@@ -496,7 +496,7 @@ test("healthz reports readiness only when auth configuration and private assets 
   const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
   assert.equal(healthy.status, 200);
   assert.match(healthy.headers.get("Cache-Control"), /no-store/);
-  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "labdam-auth-20261016-r3-carepath29" });
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "labdam-auth-20261020-r4-supplement" });
   for (const overrides of [
     { GOOGLE_CLIENT_SECRET: undefined },
     { GOOGLE_CLIENT_ID: "" },

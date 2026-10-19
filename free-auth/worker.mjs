@@ -5,7 +5,7 @@
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
 // Public build identifier for release verification; not a secret or credential.
-const RELEASE_ID = "labdam-auth-20261016-r3-carepath29";
+const RELEASE_ID = "labdam-auth-20261020-r4-supplement";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
