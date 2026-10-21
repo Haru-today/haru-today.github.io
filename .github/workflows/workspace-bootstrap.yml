@@ -1,0 +1,36 @@
+name: LABDAM workspace bootstrap
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'developer/**'
+      - 'tests/workspace-bootstrap.test.cjs'
+      - '.github/workflows/workspace-bootstrap.yml'
+  push:
+    branches: [main]
+    paths:
+      - 'developer/**'
+      - 'tests/workspace-bootstrap.test.cjs'
+      - '.github/workflows/workspace-bootstrap.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  bootstrap:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-14, windows-2022]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - run: node --test tests/workspace-bootstrap.test.cjs
