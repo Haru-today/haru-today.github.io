@@ -18,25 +18,26 @@ concurrency:
 jobs:
   trial-release:
     if: ${{ github.event.inputs.confirmation == 'DEPLOY-LABDAM-TRIAL' }}
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
     environment: labdam-trial
     steps:
       - name: Fetch fully reviewed login branch snapshot (immutable)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
-          ref: e23891fd83fcdb07739f3a755e0959e3f9e38b08
+          ref: ea137eee3080854146c298651ca9ce23c70d381d
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
-          ref: 5ed1b25a24ca0718d23483606c4961037172edac
+          ref: 5654b024c708ab18aa762d0bf4dc36591c7ad33b
           path: sources/labinsight
           persist-credentials: false
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
+          package-manager-cache: false
       - name: Verify OAuth security and bootstrap using synthetic identities
         run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
       - name: Build trial-only private LABDAM and LabInsight bundle
@@ -51,6 +52,7 @@ jobs:
           test -f free-auth/dist/labinsight/carepath.html
           test -f free-auth/dist/labinsight/carepath.js
           test -f free-auth/dist/labinsight/carepath-data.js
+          test -f free-auth/dist/labinsight/supplement-guidance.js
           ! grep -R -i 'GOOGLE_CLIENT_SECRET\|BOOTSTRAP_ADMIN_EMAIL\|RATE_LIMIT_SECRET' free-auth/dist/
       - name: Verify protected static assets and local workerd + D1 approval flows
         env:
@@ -110,7 +112,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261016-r3-carepath29"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261020-r4-supplement"'; then
                 ready=1
                 break
               fi
@@ -122,7 +124,7 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261016-r3-carepath29 with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261020-r4-supplement with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
@@ -156,6 +158,14 @@ jobs:
             exit 1
           fi
           echo "Verified LABDAM login markup and account-switch booking cleanup on the live trial origin; OAuth and Caffeine Atlas links unchanged."
+      - name: Confirm supplement evidence is gated (anonymous, read-only)
+        env:
+          TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
+        run: |
+          set -eu
+          code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/supplement-guidance.js")
+          test "$code" = 401
+
       - name: Confirm new CarePath endpoints are gated (anonymous, read-only)
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
