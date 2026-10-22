@@ -14,7 +14,11 @@ test("free approval signup explains restrictions and exposes privacy before any 
   await expect(page.getByRole("heading", { name: "회원가입 개인정보 처리 안내" })).toBeVisible();
   await expect(page.getByText("실제 건강검진 수치 및 유전자형은", { exact: false })).toBeVisible();
   await expect(page.getByText("가입 회원정보 및 심사 이력", { exact: false })).toBeVisible();
-  await expect(page.getByText("운영자 실명 또는 공식 사업자 명칭 확인 대기", { exact: false })).toBeVisible();
+  const operator = page.locator('section[aria-labelledby="operator"]');
+  await expect(operator.getByText("이정민", { exact: true })).toBeVisible();
+  await expect(operator.getByRole("link", { name: "jleegenomics@gmail.com", exact: true }))
+    .toHaveAttribute("href", "mailto:jleegenomics@gmail.com");
+  await expect(page.locator('meta[name="policy-status"]')).toHaveAttribute("content", "draft");
   const dimensions = await page.evaluate(() => ({
     width: document.documentElement.clientWidth, scroll: document.documentElement.scrollWidth
   }));
