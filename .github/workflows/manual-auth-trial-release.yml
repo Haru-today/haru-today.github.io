@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v7
         with:
-          ref: ea137eee3080854146c298651ca9ce23c70d381d
+          ref: 9ddcfd98b81fc1eeef82e811db23382b569d098e
           persist-credentials: false
       - name: Fetch fully reviewed LabInsight snapshot (immutable)
         uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
-          ref: 5654b024c708ab18aa762d0bf4dc36591c7ad33b
+          ref: 2df3a509730e6be36ebaac46d3e91b56c8255f32
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -44,6 +44,24 @@ jobs:
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
+      - name: Stamp non-sensitive reviewed source identity in the public membership notice
+        env:
+          LABINSIGHT_RELEASE_SHA: 2df3a509730e6be36ebaac46d3e91b56c8255f32
+          LABDAM_AUTH_RELEASE_SHA: 9ddcfd98b81fc1eeef82e811db23382b569d098e
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs');
+          const { createHash } = require('node:crypto');
+          const app = process.env.LABINSIGHT_RELEASE_SHA, auth = process.env.LABDAM_AUTH_RELEASE_SHA;
+          if (![app, auth].every(value => /^[0-9a-f]{40}$/.test(value || ''))) throw Error('Invalid reviewed source identity');
+          const digest = file => createHash('sha256').update(fs.readFileSync('free-auth/dist/labinsight/' + file)).digest('hex');
+          const metadata = [['labinsight-source-sha', app], ['labdam-auth-source-sha', auth], ['labinsight-app-sha256', digest('app.js')], ['labinsight-html-sha256', digest('index.html')]];
+          const file = 'free-auth/dist/membership-privacy.html';
+          const html = fs.readFileSync(file, 'utf8');
+          if (!html.includes('<head>') || !html.includes('content="draft"')) throw Error('Expected reviewed draft membership notice');
+          fs.writeFileSync(file, html.replace('<head>', '<head>\n' + metadata.map(([name, value]) => '<meta name="' + name + '" content="' + value + '">').join('\n')));
+          console.log('Stamped public commit identities and static SHA256 values only; no credentials or member data.');
+          NODE
       - name: Fail closed if trial origin, D1 binding, asset policy or files differ
         run: |
           node free-auth/scripts/preflight-static.mjs --require-real-d1
@@ -128,6 +146,24 @@ jobs:
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
+      - name: Verify exact app source and confirmed public privacy contact after deployment
+        env:
+          LABINSIGHT_RELEASE_SHA: 2df3a509730e6be36ebaac46d3e91b56c8255f32
+          LABDAM_AUTH_RELEASE_SHA: 9ddcfd98b81fc1eeef82e811db23382b569d098e
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const response = await fetch('https://labdam-free-approval.jleegenomics.workers.dev/membership-privacy.html', { redirect: 'error', signal: AbortSignal.timeout(20000) });
+          assert.equal(response.status, 200);
+          assert.match(response.headers.get('cache-control') || '', /no-store/);
+          const html = await response.text();
+          for (const [name, value] of [['labinsight-source-sha', process.env.LABINSIGHT_RELEASE_SHA], ['labdam-auth-source-sha', process.env.LABDAM_AUTH_RELEASE_SHA]]) assert.ok(html.includes('<meta name="' + name + '" content="' + value + '">'), 'Source identity mismatch');
+          assert.match(html, /name="labinsight-app-sha256" content="[0-9a-f]{64}"/);
+          assert.match(html, /name="labinsight-html-sha256" content="[0-9a-f]{64}"/);
+          assert.ok(html.includes('이정민') && html.includes('mailto:jleegenomics@gmail.com'));
+          assert.ok(html.includes('name="policy-status" content="draft"'));
+          console.log('Verified exact reviewed source identities, contact and honest draft status on the live Worker.');
+          NODE
       - name: Verify new compact login UI and public Caffeine Atlas link on live trial origin
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
