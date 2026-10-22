@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
-          ref: 5954944834c5995e1a0e42355d58a10cf9e2988e
+          ref: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -46,7 +46,7 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: 5954944834c5995e1a0e42355d58a10cf9e2988e
+          LABINSIGHT_RELEASE_SHA: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
           LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
         run: |
           node <<'NODE'
@@ -55,7 +55,7 @@ jobs:
           const app = process.env.LABINSIGHT_RELEASE_SHA, auth = process.env.LABDAM_AUTH_RELEASE_SHA;
           if (![app, auth].every(value => /^[0-9a-f]{40}$/.test(value || ''))) throw Error('Invalid reviewed source identity');
           const digest = file => createHash('sha256').update(fs.readFileSync('free-auth/dist/labinsight/' + file)).digest('hex');
-          const metadata = [['labinsight-source-sha', app], ['labdam-auth-source-sha', auth], ['labinsight-app-sha256', digest('app.js')], ['labinsight-html-sha256', digest('index.html')]];
+          const metadata = [['labinsight-source-sha', app], ['labdam-auth-source-sha', auth], ['labinsight-app-sha256', digest('app.js')], ['labinsight-html-sha256', digest('index.html')], ['labinsight-css-sha256', digest('styles.css')], ['labinsight-carepath-sha256', digest('carepath.js')]];
           const file = 'free-auth/dist/membership-privacy.html';
           const html = fs.readFileSync(file, 'utf8');
           if (!html.includes('<head>') || !html.includes('content="draft"')) throw Error('Expected reviewed draft membership notice');
@@ -148,7 +148,7 @@ jobs:
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: 5954944834c5995e1a0e42355d58a10cf9e2988e
+          LABINSIGHT_RELEASE_SHA: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
           LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
         run: |
           node --input-type=module <<'NODE'
@@ -160,6 +160,8 @@ jobs:
           for (const [name, value] of [['labinsight-source-sha', process.env.LABINSIGHT_RELEASE_SHA], ['labdam-auth-source-sha', process.env.LABDAM_AUTH_RELEASE_SHA]]) assert.ok(html.includes('<meta name="' + name + '" content="' + value + '">'), 'Source identity mismatch');
           assert.match(html, /name="labinsight-app-sha256" content="[0-9a-f]{64}"/);
           assert.match(html, /name="labinsight-html-sha256" content="[0-9a-f]{64}"/);
+          assert.match(html, /name="labinsight-css-sha256" content="[0-9a-f]{64}"/);
+          assert.match(html, /name="labinsight-carepath-sha256" content="[0-9a-f]{64}"/);
           assert.ok(html.includes('REPODAM') && !html.includes('LabInsight') && !html.includes('랩인사이트'));
           assert.ok(html.includes('이정민') && html.includes('mailto:jleegenomics@gmail.com'));
           assert.ok(html.includes('name="policy-status" content="draft"'));
