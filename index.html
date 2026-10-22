@@ -93,7 +93,7 @@
     @media(max-width:780px){.story-grid,.contact-grid{grid-template-columns:1fr;gap:22px}.principles{grid-template-columns:1fr}.expanded-section{padding:54px 0}}
     @media(max-width:660px){header .bar{flex-wrap:wrap;padding-block:12px;gap:6px}.topnav{flex-wrap:wrap;gap:12px;font-size:.78rem}.brand{font-size:1.3rem}}
   </style>
-  <link rel="stylesheet" href="/assets/portal-redesign.css?v=service-paths-20261014">
+  <link rel="stylesheet" href="/assets/portal-redesign.css?v=brand-login-20261023">
 </head>
 <body>
   <a class="skip" href="#main">본문으로 바로가기</a>
@@ -104,6 +104,7 @@
         <a href="#about">소개</a>
         <a href="#services">서비스</a>
         <a href="#technology">연구·원칙</a>
+        <a class="portal-account-link" id="portalAccountLink" href="#login">로그인</a>
         <a class="nav-cta" href="#contact">문의 ↗</a>
       </nav>
     </div>
@@ -261,7 +262,24 @@
       </div>
     </section>
     <section class="note" aria-label="이용 안내"><div class="container"><p>본 포털 및 연결 서비스는 연구·교육과 참고 정보 제공을 목적으로 하며 의료적 진단·치료 또는 개인별 안전 섭취량 결정을 대신하지 않습니다.</p></div></section>
-  </main>
+  
+  <section class="portal-login-section" id="login" aria-labelledby="portalLoginTitle">
+    <div class="container portal-login-grid">
+      <div><p class="eyebrow">LABDAM ACCOUNT</p><h2 id="portalLoginTitle">둘러보기는 자유롭게,<br>내 검사결과는 로그인 후에.</h2>
+        <p class="section-copy">랩담의 소개와 서비스 안내는 누구나 볼 수 있어요.<br>리포담은 Google 로그인과 관리자 승인 후 이용할 수 있습니다.</p></div>
+      <div class="portal-login-card">
+        <strong id="portalSessionTitle">랩담 계정으로 로그인</strong>
+        <p id="portalSessionText">로그인한 뒤 리포담에서 검사결과를 정리해 보세요.</p>
+        <a class="button primary portal-google-button" id="portalGoogleStart" href="/auth/start?next=%2F">Google 계정으로 로그인 <span aria-hidden="true">→</span></a>
+        <a class="button primary" id="portalMemberAction" href="/account.html" hidden>내 계정 보기</a>
+        <p class="portal-session-status" id="portalSessionStatus" role="status" aria-live="polite"></p>
+        <p class="portal-login-privacy">비밀번호는 랩담에 저장하지 않습니다. 계정을 바꾸기 위해 로그인을 시작하면 이 기기의 기존 임시 검사결과를 지웁니다.</p>
+        <a class="portal-policy-link" href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>
+      </div>
+    </div>
+  </section>
+
+</main>
   <footer>
     <div class="container bottom">
       <div><div class="footer-wordmark">LABDAM.</div><div class="footer-sub">PERSONAL HEALTH ATLAS</div></div>
@@ -271,5 +289,6 @@
       </div>
     </div>
   </footer>
+<script src="/assets/portal-session.js?v=brand-login-20261023" defer></script>
 </body>
 </html>

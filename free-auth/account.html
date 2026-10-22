@@ -40,7 +40,7 @@ async function check(){
  controls();state.textContent="로그인 상태 확인 중";
  try{
   const r=await fetch("/api/me",{cache:"no-store",credentials:"same-origin"});
-  if(r.status===401){location.replace("/login.html");return;}
+  if(r.status===401){location.replace("/#login");return;}
   if(!r.ok)throw Error("unavailable");
   const data=await r.json();
   if(data.status!=="approved"){location.replace("/pending.html");return;}
@@ -65,7 +65,7 @@ withdraw.addEventListener("click",async()=>{
   const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(!r.ok){message.textContent="계정 삭제에 실패했습니다. 잠시 후 다시 시도해 주세요.";return;}
   if(!clearHealthReport()){message.textContent="계정은 삭제됐지만 이 브라우저의 건강검진 임시 결과를 지우지 못했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
-  location.replace("/login.html");
+  location.replace("/#login");
  }catch(_){message.textContent="연결 상태를 확인해 주세요.";}
  finally{busy=false;controls();}
 });
@@ -76,7 +76,7 @@ logout.addEventListener("click",async()=>{
   const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf},redirect:"manual"});
   if(r.status===0||r.status===303||r.ok){
    if(!clearHealthReport()){state.textContent="로그아웃됐지만 건강검진 임시 결과를 지우지 못했습니다. 브라우저 사이트 데이터를 직접 삭제하세요.";return;}
-   location.replace("/login.html");return;
+   location.replace("/#login");return;
   }
   state.textContent="로그아웃을 완료하지 못했습니다. 다시 시도해 주세요.";
  }catch(_){state.textContent="연결 오류로 로그아웃을 완료하지 못했습니다. 다시 시도해 주세요.";}

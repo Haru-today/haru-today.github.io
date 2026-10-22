@@ -12,7 +12,7 @@ const DEFAULT_ROOT = resolve(fileURLToPath(new URL('../../', import.meta.url)));
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const PROHIBITED = /(^|\/)(?:\.dev\.vars(?:\..*)?|\.env(?:\..*)?|node_modules|\.git|\.github|auth-gateway|google-apps-script|caffeine-atlas|secrets?)(?:\/|$)/i;
 const REQUIRE = Object.freeze([
-  'index.html', 'account.html', 'admin.html', 'login.html', 'pending.html',
+  'assets/portal-session.js', 'index.html', 'account.html', 'admin.html', 'login.html', 'pending.html',
   'membership-privacy.html', 'labinsight/index.html',
   'labinsight/checkup.html', 'labinsight/report.html', 'labinsight/hospitals.html',
   'labinsight/account.html', 'labinsight/styles.css', 'labinsight/manifest.webmanifest',

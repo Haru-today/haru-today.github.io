@@ -18,10 +18,13 @@ test("free Workers bundle contains only LABDAM and REPODAM protected assets", ()
   }
 });
 
-test("protected LABDAM portal links into REPODAM but not to a protected Caffeine Atlas copy", () => {
+test("public LABDAM portal links into protected REPODAM but not to a protected Caffeine Atlas copy", () => {
   const portal = read("index.html");
   assert.match(portal, /href="\/labinsight\/"/);
-  assert.match(portal, /href="\/account.html"/);
+  assert.match(portal, /id="portalAccountLink" href="#login"/);
+  assert.match(portal, /id="portalGoogleStart"/);
+  assert.match(read("assets/portal-session.js"), /\/api\/session-status/);
+  assert.doesNotMatch(portal, /id="healthForm"|<input\b|labinsight\/app\.js/);
   assert.match(portal, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
   assert.match(portal, /name="robots" content="noindex,nofollow"/);
   assert.doesNotMatch(portal, /href="\/caffeine-atlas\//);

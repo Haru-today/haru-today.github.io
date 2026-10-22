@@ -1,5 +1,48 @@
 const { test, expect } = require("@playwright/test");
 
+test("public brand browsing preserves reports and the in-page login clears only service data before safe return", async ({ page }) => {
+  await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated: false } }));
+  await page.goto('/');
+  await expect(page.locator('#portalAccountLink')).toHaveText('로그인');
+  await expect(page.locator('#portalAccountLink')).toHaveAttribute('href', '#login');
+  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href', '/auth/start?next=%2F');
+  await page.evaluate(() => {
+    sessionStorage.setItem('labinsight-latest-report', 'SYNTHETIC-REPORT');
+    localStorage.setItem('labinsight-carepath-session-v1', 'SYNTHETIC-HISTORY');
+    localStorage.setItem('unrelated-setting', 'keep');
+  });
+  await page.goto('/?next=%2Flabinsight%2Freport.html%3Fview%3Dsample#login');
+  expect(await page.evaluate(() => sessionStorage.getItem('labinsight-latest-report'))).toBe('SYNTHETIC-REPORT');
+  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href', '/auth/start?next=%2Flabinsight%2Freport.html%3Fview%3Dsample');
+  await page.route('**/auth/start?**', route => route.fulfill({ contentType:'text/html', body:'<h1>Synthetic OAuth destination</h1>' }));
+  await page.locator('#portalGoogleStart').click();
+  await expect(page.getByRole('heading', { name:'Synthetic OAuth destination' })).toBeVisible();
+  const stored = await page.evaluate(() => ({ report:sessionStorage.getItem('labinsight-latest-report'), history:localStorage.getItem('labinsight-carepath-session-v1'), other:localStorage.getItem('unrelated-setting') }));
+  expect(stored).toEqual({ report:null, history:null, other:'keep' });
+});
+
+for (const status of ['approved', 'pending', 'rejected']) {
+  test(`brand account controls reflect ${status} without another login or a false approval`, async ({ page }) => {
+    await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated:true, status } }));
+    await page.goto('/');
+    await expect(page.locator('#portalAccountLink')).toHaveText('내 계정');
+    await expect(page.locator('#portalAccountLink')).toHaveAttribute('href','/account.html');
+    await expect(page.locator('#portalGoogleStart')).toBeHidden();
+    await expect(page.locator('#portalMemberAction')).toHaveAttribute('href',status==='approved'?'/labinsight/':'/pending.html');
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
+  });
+}
+
+test("brand login rejects off-site return paths and does not navigate when old local data cannot be cleared", async ({ page }) => {
+  await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated:false } }));
+  await page.goto('/?next=https%3A%2F%2Fattacker.invalid%2F#login');
+  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href','/auth/start?next=%2F');
+  await page.evaluate(() => { Storage.prototype.removeItem = () => { throw new Error('synthetic storage failure'); }; });
+  await page.locator('#portalGoogleStart').click();
+  await expect(page.locator('#portalSessionStatus')).toContainText('기존 임시 검사결과를 지우지 못했습니다');
+  await expect(page).not.toHaveURL(/\/auth\/start/);
+});
+
 test("free approval signup explains restrictions and exposes privacy before any Google OAuth request", async ({ page }, info) => {
   await page.goto("/login.html");
   await expect(page).toHaveTitle(/LABDAM/);

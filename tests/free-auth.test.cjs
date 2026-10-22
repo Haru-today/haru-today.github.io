@@ -252,14 +252,14 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
     return { start, callback, browserCookie, result };
   };
 }
-test("anonymous visitor sees Google request page but not protected homepage, CSS or REPODAM", async () => {
+test("anonymous visitor can browse LABDAM but REPODAM and account data remain protected", async () => {
   const f = fixture();
-  for (const path of ["/", "/labinsight/", "/labinsight/report.html"]) {
+  for (const path of ["/labinsight/", "/labinsight/report.html"]) {
     const res = await handleRequest(req(path), f.env, f.opts);
     assert.equal(res.status, 303);
-    assert.match(res.headers.get("location"), /\/login\.html\?next=/);
+    assert.match(res.headers.get("location"), /\/\?next=.*#login$/);
   }
-  for (const path of ["/assets/portal-redesign.css", "/labinsight/app.js",
+  for (const path of ["/labinsight/app.js",
     "/labinsight/supplement-guidance.js", "/account.html?file=x"]) {
     const res = await handleRequest(req(path), f.env, f.opts);
     if (path.startsWith("/account")) assert.equal(res.status, 303);
@@ -270,6 +270,45 @@ test("anonymous visitor sees Google request page but not protected homepage, CSS
   assert.equal((await handleRequest(req("/membership-privacy.html"), f.env, f.opts)).status, 200);
   assert.equal((await handleRequest(req("/caffeine-atlas/"), f.env, f.opts)).status, 404);
   assert.equal((await handleRequest(req("/api/admin/applications"), f.env, f.opts)).status, 401);
+});
+
+test("the public brand exact allowlist works without OAuth or D1 and rejects writes or unrelated assets", async () => {
+  const f = fixture(), env = { ...f.env, DB: undefined, GOOGLE_CLIENT_SECRET: "" };
+  for (const path of ["/", "/index.html", "/favicon.svg", "/assets/portal-redesign.css",
+    "/assets/portal-session.js", "/privacy.html", "/terms.html"]) {
+    const response = await handleRequest(req(path), env, f.opts);
+    assert.equal(response.status, 200, path);
+    assert.match(response.headers.get("Cache-Control"), /no-store/);
+    assert.equal((await handleRequest(req(path, { method: "POST" }), env, f.opts)).status, 405);
+  }
+  for (const path of ["/assets/worker.mjs", "/assets/admin.html", "/free-auth/portal-session.js"])
+    assert.equal((await handleRequest(req(path), env, f.opts)).status, 404);
+  const status = await handleRequest(req("/api/session-status"), env, f.opts);
+  assert.deepEqual(await status.json(), { authenticated: false });
+});
+
+test("public session status reveals only the current session approval state, never profile or CSRF", async () => {
+  for (const status of ["approved", "pending", "rejected"]) {
+    const f = fixture(), member = seedMember(f, { status });
+    const response = await handleRequest(req("/api/session-status", { cookie: member.cookie }), f.env, f.opts);
+    assert.equal(response.status, 200);
+    assert.equal(response.headers.get("Vary"), "Cookie");
+    assert.deepEqual(await response.json(), { authenticated: true, status });
+    f.opts.now = NOW + 4000;
+    const expired = await handleRequest(req("/api/session-status", { cookie: member.cookie }), f.env, f.opts);
+    assert.deepEqual(await expired.json(), { authenticated: false });
+  }
+});
+
+test("anonymous service entry returns to the brand login section with the original safe destination", async () => {
+  const f = fixture();
+  const response = await handleRequest(req("/labinsight/report.html?view=sample"), f.env, f.opts);
+  assert.equal(response.status, 303);
+  const location = new URL(response.headers.get("Location"));
+  assert.equal(location.origin, ORIGIN);
+  assert.equal(location.pathname, "/");
+  assert.equal(location.hash, "#login");
+  assert.equal(location.searchParams.get("next"), "/labinsight/report.html?view=sample");
 });
 test("approved Google member can open LABDAM homepage and REPODAM without signing in twice", async () => {
   const f = fixture(), member = seedMember(f);
@@ -290,7 +329,7 @@ test("approved Google member can open LABDAM homepage and REPODAM without signin
 test("pending and rejected applicants never receive protected content, even with session", async () => {
   for (const status of ["pending", "rejected"]) {
     const f = fixture(), user = seedMember(f, { status });
-    assert.equal((await handleRequest(req("/", { cookie: user.cookie }), f.env, f.opts)).status, 303);
+    assert.equal((await handleRequest(req("/", { cookie: user.cookie }), f.env, f.opts)).status, 200);
     assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
     assert.equal((await handleRequest(req("/labinsight/supplement-guidance.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
     assert.equal((await handleRequest(req("/labinsight/report.html", { cookie: user.cookie }), f.env, f.opts)).status, 303);
@@ -496,7 +535,7 @@ test("healthz reports readiness only when auth configuration and private assets 
   const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
   assert.equal(healthy.status, 200);
   assert.match(healthy.headers.get("Cache-Control"), /no-store/);
-  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "labdam-auth-20261020-r4-supplement" });
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "labdam-auth-20261023-public-brand" });
   for (const overrides of [
     { GOOGLE_CLIENT_SECRET: undefined },
     { GOOGLE_CLIENT_ID: "" },

@@ -37,7 +37,7 @@ async function checkStatus(){
  checking=true;csrf="";canEdit=false;detail.hidden=true;syncControls();
  try{
   const res=await fetch("/api/me",{credentials:"same-origin",cache:"no-store"});
-  if(res.status===401){location.replace("/login.html");return;}
+  if(res.status===401){location.replace("/#login");return;}
   if(!res.ok)throw new Error("status_failed");
   const me=await res.json();csrf=me.csrf;
   if(me.status==="approved"){location.replace("/");return;}
@@ -73,7 +73,7 @@ withdraw.addEventListener("click",async()=>{
   const r=await fetch("/api/account/delete",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(!r.ok){status.textContent="가입 철회 처리에 실패했습니다.";return;}
   if(!clearHealthReport()){status.textContent="가입 정보는 삭제됐지만 이 기기의 임시 검사 결과 삭제에 실패했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
-  location.replace("/login.html");
+  location.replace("/#login");
  }catch(_){status.textContent="네트워크 연결을 확인해 주세요.";}
  finally{mutating=false;syncControls();}
 });
@@ -84,7 +84,7 @@ logout.addEventListener("click",async()=>{
   const r=await fetch("/auth/logout",{method:"POST",credentials:"same-origin",headers:{"X-CSRF-Token":csrf}});
   if(r.ok||r.status===303){
    if(!clearHealthReport()){msg.textContent="로그아웃됐지만 이 기기의 임시 검사 결과를 지우지 못했습니다. 사이트 데이터를 직접 삭제하세요.";return;}
-   location.replace("/login.html");
+   location.replace("/#login");
   }
   else{msg.textContent="로그아웃을 완료하지 못했습니다.";}
  }catch(_){msg.textContent="네트워크 연결을 확인한 뒤 로그아웃을 다시 시도해 주세요.";}
