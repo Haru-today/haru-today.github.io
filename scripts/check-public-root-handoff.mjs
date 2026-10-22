@@ -13,7 +13,8 @@ export const CHECKS = [
   { path: "/labinsight/app.js", origin: ROOT, status: 404, kind: "gone" },
   { path: "/caffeine-atlas/", origin: ROOT, status: 200, kind: "caffeine" },
   { path: "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html", origin: ROOT, status: 200, kind: "caffeine" },
-  { path: "/", origin: WORKER, status: 303, kind: "worker-login" },
+  { path: "/", origin: WORKER, status: 200, kind: "public-brand" },
+  { path: "/labinsight/", origin: WORKER, status: 303, kind: "worker-login" },
   { path: "/labinsight/app.js", origin: WORKER, status: 401, kind: "worker-deny" },
   { path: "/login.html", origin: WORKER, status: 200, kind: "public-login" }
 ];
@@ -46,17 +47,22 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
           html.includes('noindex,nofollow') &&
           !/<(?:form|input|script)\b/i.test(html);
         if (!ok) detail = "old-labinsight-app-still-exposed";
+      } else if (ok && x.kind === "public-brand") {
+        const html = await response.text();
+        ok = html.includes('id="portalAccountLink"') && html.includes('id="portalGoogleStart"') &&
+          !/<(?:form|input)\b/i.test(html) && !html.includes('/labinsight/app.js');
+        if (!ok) detail = "public-brand-login-missing";
       } else if (ok && x.kind === "worker-login") {
         let location = null;
         try { location = new URL(response.headers.get("Location"), WORKER); } catch (_) {}
-        ok = location?.origin === WORKER && location?.pathname === "/login.html" &&
+        ok = location?.origin === WORKER && location?.pathname === "/" && location?.hash === "#login" &&
           /no-store/i.test(response.headers.get("Cache-Control") || "");
         if (!ok) detail = "worker-login-redirect-mismatch";
       } else if (ok && x.kind === "worker-deny") {
         ok = /no-store/i.test(response.headers.get("Cache-Control") || "");
         if (!ok) detail = "worker-cache-policy-mismatch";
       }
-      if (!["root-handoff", "labinsight-handoff"].includes(x.kind)) {
+      if (!["root-handoff", "labinsight-handoff", "public-brand"].includes(x.kind)) {
         try { await response.body?.cancel(); } catch (_) { /* no body */ }
       }
       if (ok) detail = "ok";
@@ -75,7 +81,7 @@ async function main() {
         "expected", r.expected, r.ok ? "" : "[" + r.detail + "]");
     }
     if (audit.ok) {
-      console.log("PASS: Google/direct visitors reach protected LABDAM Worker; legacy REPODAM app inaccessible, Caffeine Atlas public.");
+      console.log("PASS: Google/direct visitors reach public LABDAM with protected REPODAM; legacy REPODAM app inaccessible, Caffeine Atlas public.");
       return;
     }
     if (attempt === 6) {

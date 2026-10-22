@@ -10,7 +10,7 @@ const CAFFEINE = "https://haru-today.github.io/caffeine-atlas/";
 
 test("public root only hands visitors to the actual approval-gated Worker", () => {
   assert.match(html, /LABDAM/);
-  assert.match(html, /Google 로그인 및 관리자 승인/);
+  assert.match(html, /로그인 없이 둘러볼/);
   assert.ok(html.includes('http-equiv="refresh" content="0;url=' + WORKER + '"'));
   assert.ok(html.includes('href="' + WORKER + '"'));
   assert.ok(html.includes('href="' + LAB + '"'));

@@ -23,8 +23,9 @@ function fakeFetch(changes = {}) {
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/app.js") return new Response(null, { status: 404 });
     if (u.origin === ROOT && u.pathname.startsWith("/caffeine-atlas/")) return new Response("", { status: 200 });
-    if (u.origin === WORKER && u.pathname === "/") return new Response(null, { status: 303,
-      headers: { Location: WORKER + "/login.html?next=%2F", "Cache-Control": "no-store" }
+    if (u.origin === WORKER && u.pathname === "/") return new Response('<a id="portalAccountLink" href="#login">로그인</a><a id="portalGoogleStart" href="/auth/start">Google</a>', {status:200});
+    if (u.origin === WORKER && u.pathname === "/labinsight/") return new Response(null, { status: 303,
+      headers: { Location: WORKER + "/?next=%2Flabinsight%2F#login", "Cache-Control": "no-store" }
     });
     if (u.origin === WORKER && u.pathname === "/labinsight/app.js") return new Response("", {
       status: 401, headers: { "Cache-Control": "private, no-store" }
@@ -35,7 +36,7 @@ function fakeFetch(changes = {}) {
 }
 test("root handoff, private Worker and Caffeine public demo all pass anonymous checks", async () => {
   const { inspectPublicEntry, CHECKS } = await load();
-  assert.equal(CHECKS.length, 8);
+  assert.equal(CHECKS.length, 9);
   const a = await inspectPublicEntry(fakeFetch());
   assert.equal(a.ok, true, JSON.stringify(a.results.filter(x => !x.ok)));
 });

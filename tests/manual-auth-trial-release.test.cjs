@@ -15,7 +15,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 2ad3ef9b5931323f7ef222d198972821e8ae00aa/);
+  assert.match(yaml, /ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24/);
   assert.match(yaml, /ref: 06a2c257e9f60715cf2d9334b836fbe334e9ae18/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -55,7 +55,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261020-r4-supplement"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261023-public-brand"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });

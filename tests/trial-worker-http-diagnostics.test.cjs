@@ -17,12 +17,12 @@ function responses(override = {}) {
     if (path === "/healthz") return new Response(JSON.stringify({
       service: "labdam-free-auth", readiness: "bindings-present"
     }), { status: 200, headers: { ...COOKIE_POLICY, "Content-Type": "application/json" } });
-    if (path.startsWith("/caffeine-atlas/") || ["/login.html", "/pending.html"].includes(path)) {
+    if (path.startsWith("/caffeine-atlas/") || ["/", "/login.html", "/pending.html"].includes(path)) {
       return new Response(null, { status: 200 });
     }
-    if (["/", "/labinsight/", "/labinsight/report.html"].includes(path)) {
+    if (["/labinsight/", "/labinsight/report.html"].includes(path)) {
       return new Response(null, { status: 303, headers: { ...COOKIE_POLICY,
-        "Location": "https://labdam-free-approval.jleegenomics.workers.dev/login.html?next=%2F" } });
+        "Location": "https://labdam-free-approval.jleegenomics.workers.dev/?next=%2Flabinsight%2F#login" } });
     }
     return new Response(null, { status: 401, headers: COOKIE_POLICY });
   };
