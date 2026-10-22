@@ -27,7 +27,7 @@ test("account refuses incomplete identity response", async ({ page }) => {
   await expect(page.locator("#retryStatus")).toBeEnabled();
 });
 
-test("successful logout clears only the LabInsight health report before allowing another login", async ({ page }) => {
+test("successful logout clears only the REPODAM health report before allowing another login", async ({ page }) => {
   await page.route("**/api/me", route => route.fulfill({ json: {
     authenticated: true, status: "approved", role: "member",
     email: "member@example.invalid", csrf: "a".repeat(64)

@@ -13,7 +13,7 @@ test("LABDAM and Personal Health Atlas are one integrated portal", () => {
 });
 
 test("exactly two downstream service sites are linked from the sole portal", () => {
-  assert.match(html, /href="https:\/\/haru-today\.github\.io\/labinsight\/">LabInsight 이용하기/);
+  assert.match(html, /href="https:\/\/haru-today\.github\.io\/labinsight\/">REPODAM 이용하기/);
   assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/">Caffeine Atlas 이용하기/);
   const links = [...html.matchAll(/href="(https:\/\/haru-today\.github\.io\/[^"]+)"/g)].map(x => x[1]);
   assert.ok(links.every(href => href === "https://haru-today.github.io/labinsight/" ||

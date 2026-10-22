@@ -34,7 +34,7 @@ test('no credentials, no redirects followed, no write methods or OAuth state cre
    assert.equal(new URL(url).pathname.startsWith('/auth/'),false);
  }
 });
-test('misconfigured public LabInsight JS or missing no-store fails gate',async()=>{
+test('misconfigured public REPODAM JS or missing no-store fails gate',async()=>{
  const exposed=await probeTrialWorker(ORIGIN,async url=>{
    const r=fakeReply(url);
    if(url.endsWith('/labinsight/app.js'))return new Response(null,{status:200});

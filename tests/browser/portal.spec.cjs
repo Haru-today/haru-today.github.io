@@ -21,7 +21,7 @@ test('portal loads redesigned sections, stylesheet and exactly two services', as
 
 test('service links, privacy and disclaimers are preserved', async ({ page }) => {
   await page.goto('/');
-  await expect(page.getByRole('link', { name: /LabInsight 이용하기/ }))
+  await expect(page.getByRole('link', { name: /REPODAM 이용하기/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/labinsight/');
   await expect(page.getByRole('link', { name: /Caffeine Atlas 이용하기/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');

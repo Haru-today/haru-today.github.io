@@ -1,7 +1,7 @@
 /**
  * LABDAM static deployment preflight, offline and read-only.
  * Does not access Google/Cloudflare, secrets, member data or GitHub.
- * Run AFTER the reviewed LABDAM + LabInsight protected bundle build.
+ * Run AFTER the reviewed LABDAM + REPODAM protected bundle build.
  */
 import { readFile, lstat, readdir } from 'node:fs/promises';
 import { realpathSync } from 'node:fs';
