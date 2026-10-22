@@ -14,12 +14,12 @@ function fakeFetch(changes = {}) {
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
         '<meta http-equiv="refresh" content="0;url=' + WORKER + '/">' +
-        '<a href="' + WORKER + '/labinsight/">LabInsight</a>' +
+        '<a href="' + WORKER + '/labinsight/">REPODAM</a>' +
         '<a href="' + ROOT + '/caffeine-atlas/">Caffeine</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
-        '<a href="' + WORKER + '/labinsight/">LabInsight</a>', { status: 200 });
+        '<a href="' + WORKER + '/labinsight/">REPODAM</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/app.js") return new Response(null, { status: 404 });
     if (u.origin === ROOT && u.pathname.startsWith("/caffeine-atlas/")) return new Response("", { status: 200 });

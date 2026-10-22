@@ -34,7 +34,7 @@ test('fallback gateway layout is keyboard accessible and has no horizontal scrol
   await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
   await expect(page.getByRole('link', { name: /LABDAM 로그인·입장/ }))
     .toHaveAttribute('href', WORKER);
-  await expect(page.getByRole('link', { name: 'LabInsight 바로가기' }))
+  await expect(page.getByRole('link', { name: 'REPODAM 바로가기' }))
     .toHaveAttribute('href', WORKER + 'labinsight/');
   await expect(page.getByRole('link', { name: /로그인 없이 공개 이용/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');

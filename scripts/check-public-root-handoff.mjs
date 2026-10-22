@@ -75,7 +75,7 @@ async function main() {
         "expected", r.expected, r.ok ? "" : "[" + r.detail + "]");
     }
     if (audit.ok) {
-      console.log("PASS: Google/direct visitors reach protected LABDAM Worker; legacy LabInsight app inaccessible, Caffeine Atlas public.");
+      console.log("PASS: Google/direct visitors reach protected LABDAM Worker; legacy REPODAM app inaccessible, Caffeine Atlas public.");
       return;
     }
     if (attempt === 6) {

@@ -22,7 +22,7 @@ test("public gateway visually supports small screens, accessible focus and reduc
 
 test("no login bypass is advertised and Caffeine remains an explicit public exception", () => {
   assert.match(html, /LABDAM 로그인·입장/);
-  assert.match(html, /LabInsight 바로가기/);
+  assert.match(html, /REPODAM 바로가기/);
   assert.match(html, /Caffeine Atlas는/);
   assert.match(html, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
   assert.doesNotMatch(html, /임상적 효능 입증 완료|법적 준수 인증 완료|FDA 인증 완료/);

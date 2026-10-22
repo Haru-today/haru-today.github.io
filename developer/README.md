@@ -38,7 +38,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 - 다른 PC로 이동할 때는 먼저 현재 PC에서 커밋·푸시하고, 다른 PC에서 저장소 상태를 확인한 뒤 pull합니다. 미커밋 변경이 있으면 덮어쓰지 마세요.
 - `labdam-auth`는 검증되지 않은 이름의 새 저장소를 만들거나 공개하지 않습니다. 인증 관련 비밀키·D1 데이터·OAuth 코드를 커밋하지 마세요.
 
-## LabInsight 개발 우선순위
+## REPODAM 개발 우선순위
 
 1. 인증 Worker의 최신 소스 버전과 해당 배포 콘텐츠를 확인합니다. 공개 Pages 리다이렉트와 인증 보호 앱을 구별합니다.
 2. 임상 안전성 PR #33과 성분 안내 PR #34는 병합 및 r4 배포 완료 상태입니다. 이후 변경도 원본 참고치와 판정 보류 경계를 유지합니다.
