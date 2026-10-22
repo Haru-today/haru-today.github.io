@@ -83,6 +83,37 @@ async function review(admin, status, candidate = sub) {
   const me = await (await request("/api/me", admin.cookie)).json();
   return request("/api/admin/review", admin.cookie, "POST", { google_sub: candidate, status }, me.csrf);
 }
+
+test("public LABDAM stays readable while the real Worker gates REPODAM and exposes no anonymous account data", async () => {
+  const home = await request("/");
+  assert.equal(home.status, 200);
+  const html = await home.text();
+  assert.match(html, /id="portalAccountLink"/);
+  assert.match(html, /id="portalGoogleStart"/);
+  assert.doesNotMatch(html, /id="healthForm"|labinsight\/app\.js/);
+  assert.equal((await request("/assets/portal-session.js")).status, 200);
+  assert.deepEqual(await (await request("/api/session-status")).json(), { authenticated: false });
+  for (const path of ["/labinsight/", "/labinsight/report.html", "/account.html"]) {
+    const response = await request(path);
+    assert.equal(response.status, 303, path);
+    const target = new URL(response.headers.get("location"));
+    assert.equal(target.pathname, "/");
+    assert.equal(target.hash, "#login");
+    assert.equal(target.searchParams.get("next"), path);
+  }
+  assert.equal((await request("/labinsight/app.js")).status, 401);
+  assert.equal((await request("/api/me")).status, 401);
+  const candidate = await login();
+  assert.equal((await request("/", candidate.cookie)).status, 200);
+  assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: true, status: "pending" });
+  const admin = await login(true);
+  await review(admin, "approved");
+  assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: true, status: "approved" });
+  assert.equal((await request("/labinsight/", candidate.cookie)).status, 200);
+  await review(admin, "pending");
+  assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: false });
+  assert.equal((await request("/labinsight/app.js", candidate.cookie)).status, 401);
+});
 test("real D1 recovers a previously pending verified bootstrap operator", async () => {
   await db.prepare(
     "INSERT INTO members(google_sub,email,display_name,status,role,created_at,updated_at) VALUES(?,?,?,?,?,?,?)"
@@ -267,7 +298,7 @@ test("real D1 session expiry, CSRF and account deletion block protected assets",
   assert.equal((await request("/api/account/delete", applicant.cookie, "POST", {}, "bad-csrf")).status, 403);
   await db.prepare("UPDATE sessions SET expires_at=? WHERE google_sub=?").bind(now() - 1, sub).run();
   assert.equal((await request("/api/me", applicant.cookie)).status, 401);
-  assert.equal((await request("/", applicant.cookie)).status, 303);
+  assert.equal((await request("/", applicant.cookie)).status, 200);
   const fresh = await login();
   const freshMe = await (await request("/api/me", fresh.cookie)).json();
   assert.equal((await request("/auth/logout", fresh.cookie, "POST", {}, freshMe.csrf)).status, 303);
@@ -295,8 +326,9 @@ test("supplement evidence script requires approval and stays blocked after sessi
 });
 
 test("actual asset binding stays behind the anonymous gate and Caffeine Atlas is excluded", async () => {
-  for (const path of ["/", "/labinsight/", "/labinsight/report.html", "/labinsight/carepath.html"]) assert.equal((await request(path)).status, 303);
-  for (const path of ["/labinsight/app.js", "/labinsight/carepath.js", "/labinsight/carepath-data.js", "/labinsight/service-worker.js", "/assets/portal-redesign.css"]) assert.equal((await request(path)).status, 401);
+  for (const path of ["/labinsight/", "/labinsight/report.html", "/labinsight/carepath.html"]) assert.equal((await request(path)).status, 303);
+  for (const path of ["/labinsight/app.js", "/labinsight/carepath.js", "/labinsight/carepath-data.js", "/labinsight/service-worker.js"]) assert.equal((await request(path)).status, 401);
+  assert.equal((await request("/assets/portal-redesign.css")).status, 200);
   for (const path of ["/login.html", "/pending.html", "/membership-privacy.html"]) assert.equal((await request(path)).status, 200);
   assert.equal((await request("/caffeine-atlas/")).status, 404);
 });

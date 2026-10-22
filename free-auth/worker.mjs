@@ -5,7 +5,7 @@
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
 // Public build identifier for release verification; not a secret or credential.
-const RELEASE_ID = "labdam-auth-20261020-r4-supplement";
+const RELEASE_ID = "labdam-auth-20261023-public-brand";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
@@ -343,10 +343,11 @@ function isHtmlRoute(path) {
     path === "/admin.html" || path === "/admin" || path === "/labinsight" ||
     path.endsWith(".html") || path.endsWith("/");
 }
+// Public branding is an exact read-only allowlist, never an assets prefix.
+const PUBLIC_BRAND_PATHS = new Set(["/", "/index.html", "/favicon.svg",
+  "/assets/portal-redesign.css", "/assets/portal-session.js", "/privacy.html", "/terms.html"]);
 function privatePath(path) {
-  if (path === "/" || path === "/index.html" || path === "/account.html" ||
-      path === "/privacy.html" || path === "/terms.html" || path === "/favicon.svg" ||
-      path === "/assets/portal-redesign.css" || path === "/admin.html" ||
+  if (path === "/account.html" || path === "/admin.html" ||
       path === "/admin" || path === "/labinsight" || path === "/api/me" ||
       path === "/api/admin/applications" || path === "/api/admin/review" ||
       path === "/api/application" || path === "/api/account/delete" || path === "/auth/logout") return true;
@@ -478,7 +479,18 @@ async function handleRequest(request, env, opts = {}) {
       privateAssets(env);
       return json(200, { service: "labdam-free-auth", readiness: "bindings-present", release: RELEASE_ID });
     }
-    if (path === "/login" && method === "GET") return redirect("/login.html", origin);
+    if (PUBLIC_BRAND_PATHS.has(path)) {
+      if (!["GET", "HEAD"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
+      // The public brand page must remain readable even during an auth outage.
+      return await assetFor(request, env, path === "/index.html" ? "/" : path);
+    }
+    if (path === "/api/session-status" && method === "GET") {
+      if (!cookieMap(request).get(COOKIE_SESSION)) return json(200, { authenticated: false });
+      configured(env);
+      const member = await currentSession(request, env, opts);
+      return json(200, member ? { authenticated: true, status: member.status } : { authenticated: false });
+    }
+    if (path === "/login" && method === "GET") return redirect("/#login", origin);
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
       return await assetFor(request, env, "/login.html");
     }
@@ -502,7 +514,7 @@ async function handleRequest(request, env, opts = {}) {
     const member = await currentSession(request, env, opts);
     if (!member) {
       if (method === "GET" && isHtmlRoute(path) && !path.startsWith("/api/")) {
-        return redirect("/login.html?next=" + encodeURIComponent(safeNext(path + url.search)), origin);
+        return redirect("/?next=" + encodeURIComponent(safeNext(path + url.search)) + "#login", origin);
       }
       return json(401, { ok: false, code: "LOGIN_REQUIRED" });
     }
@@ -518,7 +530,7 @@ async function handleRequest(request, env, opts = {}) {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
       const token = cookieMap(request).get(COOKIE_SESSION);
       await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await digest(token)).run();
-      return putCookie(redirect("/login.html", origin), COOKIE_SESSION, "", 0);
+      return putCookie(redirect("/#login", origin), COOKIE_SESSION, "", 0);
     }
     if (path === "/api/application" && method === "POST") {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });

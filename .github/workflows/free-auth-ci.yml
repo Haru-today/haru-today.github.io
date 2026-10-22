@@ -9,7 +9,7 @@ on:
       - 'tests/free-auth*.test.cjs'
       - '.github/workflows/free-auth-ci.yml'
   push:
-    branches: [main, 'feature/free-google-approval-auth-20261014', 'codex/repodam-private-site-20261023']
+    branches: [main, 'feature/free-google-approval-auth-20261014', 'codex/repodam-private-site-20261023', 'codex/labdam-public-brand-20261023']
     paths:
       - 'free-auth/**'
       - 'tests/free-auth*.test.cjs'
@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 20602c05ff469683b22b4f00f11f81b81bf447f2
+          ref: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4

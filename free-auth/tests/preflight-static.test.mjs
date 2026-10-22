@@ -8,7 +8,7 @@ import { fileURLToPath } from 'node:url';
 import { inspectStatic } from '../scripts/preflight-static.mjs';
 
 const files = [
-  'index.html','account.html','admin.html','login.html','pending.html','membership-privacy.html',
+  'assets/portal-session.js','index.html','account.html','admin.html','login.html','pending.html','membership-privacy.html',
   'labinsight/index.html','labinsight/checkup.html','labinsight/report.html',
   'labinsight/hospitals.html','labinsight/account.html','labinsight/styles.css',
   'labinsight/manifest.webmanifest','labinsight/app.js','labinsight/ocr-review.js',

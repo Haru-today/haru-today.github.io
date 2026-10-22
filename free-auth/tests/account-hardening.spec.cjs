@@ -14,7 +14,7 @@ test("account temporary outage preserves page and disables actions", async ({ pa
 test("account expired session returns to login", async ({ page }) => {
   await page.route("**/api/me", route => route.fulfill({ status: 401, body: "expired" }));
   await page.goto("/account.html");
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
 });
 
 test("account refuses incomplete identity response", async ({ page }) => {
@@ -44,7 +44,7 @@ test("successful logout clears only the REPODAM health report before allowing an
     sessionStorage.setItem("unrelated-preference", "keep");
   });
   await page.locator("#logout").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   const result = await page.evaluate(() => ({
     session: sessionStorage.getItem("labinsight-latest-report"),
     legacy: localStorage.getItem("labinsight-latest-report"),
@@ -83,7 +83,7 @@ test("successful account withdrawal deletes only known local health-report keys"
     localStorage.setItem("labinsight-latest-report", "synthetic-legacy-values");
   });
   await page.locator("#withdraw").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   expect(await page.evaluate(() => [
     sessionStorage.getItem("labinsight-latest-report"), localStorage.getItem("labinsight-latest-report")
   ])).toEqual([null, null]);
@@ -101,7 +101,7 @@ test("pending applicant withdrawal clears an older same-origin report", async ({
   await expect(page.locator("#withdraw")).toBeEnabled();
   await page.evaluate(() => sessionStorage.setItem("labinsight-latest-report", "synthetic-old-user-data"));
   await page.locator("#withdraw").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   expect(await page.evaluate(() => sessionStorage.getItem("labinsight-latest-report"))).toBeNull();
 });
 
@@ -137,7 +137,7 @@ test("CarePath session history is purged on successful account logout", async ({
     localStorage.setItem("labinsight-carepath-session-v1", "synthetic-old-data");
   });
   await page.locator("#logout").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   expect(await page.evaluate(() => [
     sessionStorage.getItem("labinsight-carepath-session-v1"),
     localStorage.getItem("labinsight-carepath-session-v1")
@@ -196,7 +196,7 @@ test("pending-member account withdrawal removes CarePath from both stores before
     localStorage.setItem("labinsight-carepath-session-v1", "synthetic-legacy-history");
   });
   await page.locator("#withdraw").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   expect(await page.evaluate(() => [
     sessionStorage.getItem("labinsight-carepath-session-v1"),
     localStorage.getItem("labinsight-carepath-session-v1")
@@ -221,7 +221,7 @@ test("successful logout clears report, CarePath and demo bookings without touchi
     }
   });
   await page.locator("#logout").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   const result = await page.evaluate(() => {
     const oldKeys = ["labinsight-latest-report", "labinsight-carepath-session-v1",
       "labinsight-demo-bookings-v2", "labinsight-bookings"];
@@ -251,7 +251,7 @@ test("pending applicant withdrawal clears simulated bookings before another acco
     }
   });
   await page.locator("#withdraw").click();
-  await expect(page).toHaveURL(/\/login\.html$/);
+  await expect(page).toHaveURL(/\/#login$/);
   expect(await page.evaluate(() => [sessionStorage, localStorage].flatMap(store =>
     ["labinsight-demo-bookings-v2", "labinsight-bookings"].map(key => store.getItem(key))
   ))).toEqual([null, null, null, null]);
