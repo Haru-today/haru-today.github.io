@@ -1,0 +1,7 @@
+# DEV-ONLY dummy values; copy to .dev.vars and add to .gitignore before using.
+# Actual OAuth credentials/Google subject must never be committed.
+AUTH_ORIGIN=https://localhost.example
+GOOGLE_CLIENT_ID=YOUR_GOOGLE_WEB_CLIENT_ID.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=YOUR_PRIVATE_CLIENT_SECRET
+BOOTSTRAP_ADMIN_EMAIL=YOUR_VERIFIED_GOOGLE_EMAIL
+RATE_LIMIT_SECRET=GENERATE_A_RANDOM_32_PLUS_CHARACTER_SECRET

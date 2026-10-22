@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#f7faff">
+<meta name="color-scheme" content="light">
+<title>로그인·가입 신청 | LABDAM</title>
+<style>
+:root{
+  font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
+  color:#172d49;background:#f7faff;font-size:16px;
+  -webkit-font-smoothing:antialiased
+}
+*{box-sizing:border-box}
+body{
+  min-height:100vh;min-height:100svh;margin:0;
+  background:
+    radial-gradient(ellipse 46% 42% at 8% 8%,rgba(194,220,255,.33),transparent 85%),
+    radial-gradient(ellipse 45% 44% at 96% 98%,rgba(199,224,255,.30),transparent 87%),
+    #f7faff;
+  display:flex;flex-direction:column
+}
+a{color:#2757b7;text-decoration:none}
+a:hover{text-decoration:underline}
+a:focus-visible{outline:3px solid #4382ee;outline-offset:4px;border-radius:5px}
+.site-header{width:100%;max-width:1140px;margin:0 auto;padding:28px 38px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+.brand{display:inline-flex;align-items:center;gap:11px;color:#142e57;text-decoration:none}
+.brand:hover{text-decoration:none}
+.brand-mark{
+  width:32px;height:32px;border-radius:10px;background:linear-gradient(135deg,#3776f5,#143c96);
+  color:white;display:grid;place-items:center;font-weight:800;font-size:15px;letter-spacing:-.08em;box-shadow:0 5px 12px #2858af24
+}
+.brand-name{font-size:20px;font-weight:800;letter-spacing:-.055em}
+.header-link{font-size:13px;font-weight:650;color:#476381;display:inline-flex;align-items:center;gap:6px}
+main{flex:1;width:100%;display:grid;place-items:center;padding:34px 18px 66px}
+.login-panel{width:min(100%,460px);background:#fff;border:1px solid #e2eaf6;border-radius:20px;box-shadow:0 24px 62px #2449760d,0 3px 12px #183b6508;padding:46px 40px 30px}
+.eyebrow{margin:0 0 12px;color:#3866ae;font-size:11px;font-weight:800;letter-spacing:.17em}
+h1{font-size:clamp(26px,4vw,31px);letter-spacing:-.065em;line-height:1.33;margin:0 0 12px;font-weight:780;color:#13284b}
+.description{font-size:14px;color:#61738b;line-height:1.85;margin:0 0 31px;word-break:keep-all}
+.login-box{border:1px solid #dfe8f6;border-radius:13px;background:#fbfdff;padding:21px 20px 22px}
+.login-box h2{font-size:14px;font-weight:750;margin:0 0 8px;color:#203d67;letter-spacing:-.025em}
+.login-box p{font-size:12px;color:#71829a;line-height:1.65;margin:0}
+.google-button{
+  display:flex;align-items:center;justify-content:center;gap:13px;width:100%;min-height:52px;margin-top:19px;
+  border-radius:9px;background:#3262e8;border:1px solid #3262e8;color:#fff;font-size:14px;font-weight:760;
+  box-shadow:0 5px 12px #3262e82c;transition:background .15s,transform .15s,box-shadow .15s;text-decoration:none
+}
+.google-button:hover{background:#2451d2;box-shadow:0 7px 17px #3262e831;text-decoration:none;transform:translateY(-1px)}
+.google-button:active{transform:translateY(0)}
+.google-logo{width:23px;height:23px;border-radius:6px;background:#fff;display:grid;place-items:center;flex:none}
+.google-logo svg{width:15px;height:15px;display:block}
+.notice{display:flex;align-items:flex-start;gap:9px;margin:17px 0 0;font-size:12px;line-height:1.75;color:#61738b}
+.notice svg{flex:none;margin-top:2px}
+.notice strong{color:#425c7f}
+.privacy-copy{font-size:12px;color:#78879a;line-height:1.8;margin:19px 0 0;word-break:keep-all}
+.privacy-copy a{text-decoration:underline;text-underline-offset:3px;font-weight:650}
+.divider{height:1px;background:#e9eef7;margin:26px 0 19px}
+.public-service{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.public-service h3{margin:0 0 3px;font-size:12px;font-weight:740;color:#314761}
+.public-service p{font-size:11px;color:#7a8ba1;line-height:1.6;margin:0}
+.public-service a{font-size:12px;white-space:nowrap;font-weight:700}
+#localDataStatus{font-size:11px;color:#6c7e95;line-height:1.65;margin:13px 0 0}
+.site-footer{text-align:center;color:#8696a8;font-size:11px;padding:0 18px 27px;line-height:1.65}
+/* Keep Korean words intact instead of orphaning the last syllable on narrow screens. */
+#welcome-title{word-break:keep-all;overflow-wrap:normal}
+.welcome-line{display:block;white-space:nowrap}
+@media(max-width:370px){
+  #welcome-title{font-size:clamp(20px,6.6vw,24px)}
+}
+/* Compact, action-first login and independently accessible public service. */
+.login-panel{padding-top:36px;padding-bottom:25px}
+.eyebrow{margin-bottom:9px}
+h1{font-size:clamp(24px,4vw,29px);line-height:1.35;margin-bottom:11px}
+.description{margin:0 0 23px;font-size:13px;line-height:1.65}
+.login-box{padding:14px 16px 16px}
+.login-box h2{margin:0 0 11px;font-size:13px}
+.google-button{margin-top:0;min-height:52px}
+.notice{margin-top:15px;font-size:12px;line-height:1.55}
+.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}
+#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}
+.divider{margin:20px 0 17px}
+.public-service{display:block}
+.caffeine-card{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  width:100%;min-height:76px;padding:15px 16px;border:1px solid #cadbf6;
+  border-radius:12px;background:#f1f6ff;color:#183f84;text-decoration:none;
+  transition:border-color .15s,background .15s
+}
+.caffeine-card:hover{background:#eaf2ff;border-color:#8fb5f4;text-decoration:none}
+.caffeine-card-info{display:flex;flex-direction:column;gap:6px;min-width:0}
+.caffeine-card-info strong{font-size:14px;font-weight:780;line-height:1.35}
+.caffeine-card-info small{font-size:12px;line-height:1.5;color:#456381}
+.public-badge{
+  display:inline-block;vertical-align:middle;margin-left:6px;border-radius:99px;
+  padding:3px 7px;background:#d9e8ff;color:#194b99;font-size:10px;font-weight:760
+}
+.caffeine-arrow{font-size:20px;font-weight:700;flex:none}
+@media(max-width:540px){
+  .login-panel{padding:28px 22px 23px}
+  .description{margin-bottom:19px}
+  .login-box{padding:13px 14px 14px}
+  .caffeine-card{min-height:74px;padding:13px 14px}
+  .caffeine-card-info strong{font-size:13px}
+}
+@media(max-width:350px){
+  .login-panel{padding:27px 16px 22px}
+  .public-badge{margin-left:3px;font-size:9px}
+}
+@media(max-width:540px){
+  .site-header{padding:22px 21px}
+  .brand-name{font-size:19px}
+  .header-link{font-size:12px}
+  main{padding:24px 14px 50px;place-items:start center}
+  .login-panel{border-radius:17px;padding:28px 22px 23px}
+  .description{margin-bottom:25px}
+  .login-box{padding:18px 16px 19px}
+  .public-service{align-items:flex-start;flex-direction:column;gap:9px}
+}
+@media(max-width:350px){.login-panel{padding:29px 17px 22px}.site-header{padding:18px 15px}}
+@media(prefers-reduced-motion:reduce){.google-button{transition:none}.google-button:hover{transform:none}}
+</style>
+</head>
+<body>
+<header class="site-header">
+  <a class="brand" href="/login.html" aria-label="LABDAM 로그인">
+    <span class="brand-mark" aria-hidden="true">L</span><span class="brand-name">LABDAM<span aria-hidden="true">.</span></span>
+  </a>
+  <a class="header-link" href="https://haru-today.github.io/" aria-label="LABDAM 서비스 소개로 이동">서비스 소개 <span aria-hidden="true">↗</span></a>
+</header>
+<main>
+  <article class="login-panel" aria-labelledby="welcome-title">
+    <p class="eyebrow">LABDAM ACCOUNT</p>
+    <h1 id="welcome-title"><span class="welcome-line">LABDAM에 오신 것을</span><span class="welcome-line">환영합니다.</span></h1>
+    <p class="description">Google 계정 하나로 LABDAM과 LabInsight를 시작하세요.</p>
+
+    <section class="login-box" aria-labelledby="login-heading">
+      <h2 id="login-heading">Google 계정으로 가입 신청</h2>
+      <a id="googleStart" class="google-button" href="/auth/start">
+        <span class="google-logo" aria-hidden="true">
+          <svg viewBox="0 0 48 48" focusable="false" aria-hidden="true">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.24 5.48-4.73 7.18l7.73 6C44.46 38.03 46.98 31.89 46.98 24.55z"/>
+            <path fill="#FBBC05" d="M10.53 28.59A14.47 14.47 0 0 1 9.75 24c0-1.59.27-3.12.77-4.59l-7.98-6.2A23.9 23.9 0 0 0 0 24c0 3.87.92 7.51 2.54 10.79l7.99-6.2z"/>
+            <path fill="#34A853" d="M24 48c6.47 0 11.9-2.13 15.94-5.8l-7.73-6c-2.15 1.45-4.92 2.3-8.21 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.2C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+        </span>
+        Google 계정으로 계속하기
+      </a>
+    </section>
+
+    <p class="notice"><svg width="15" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1.4 13.5 3.6v4.2c0 3.3-2.1 5.5-5.5 6.8C4.6 13.3 2.5 11.1 2.5 7.8V3.6L8 1.4Z" stroke="#4A6A98" stroke-width="1.25"/><path d="m5.5 7.8 1.7 1.7 3.4-3.5" stroke="#4A6A98" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <span><strong>관리자가 승인한 회원만 이용</strong>할 수 있습니다. 승인 전에는 건강검진 결과 조회 페이지에 접근할 수 없습니다.</span>
+    </p>
+    <p class="privacy-copy">로그인 전 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인해 주세요. LABDAM은 Google 비밀번호를 저장하지 않습니다.</p>
+    <p id="localDataStatus" role="status" aria-live="polite">계정을 전환하면 이 기기의 이전 임시 검사 결과를 삭제합니다.</p>
+
+    <div class="divider" role="presentation"></div>
+    <section class="public-service" aria-label="별도 공개 서비스">
+      <a class="caffeine-card" href="https://haru-today.github.io/caffeine-atlas/" aria-label="Caffeine Atlas 공개 체험 열기">
+        <span class="caffeine-card-info">
+          <strong>Caffeine Atlas <span class="public-badge">로그인 불필요</span></strong>
+          <small>회원가입 없이 카페인 유전자형 체험</small>
+        </span>
+        <span class="caffeine-arrow" aria-hidden="true">↗</span>
+      </a>
+    </section>
+  </article>
+</main>
+<footer class="site-footer">© LABDAM · Biohealth Research &amp; Digital Health</footer>
+<script>(function(){
+ const p=new URLSearchParams(location.search),next=p.get("next"),start=document.getElementById("googleStart");
+ if(next&&next.startsWith("/")&&!next.startsWith("//"))start.href="/auth/start?next="+encodeURIComponent(next);
+ start.addEventListener("click",event=>{
+  // This is an account switch: discard any previous same-origin health report
+  // before starting Google OAuth, not while merely reading the login page.
+  try{
+   sessionStorage.removeItem("labinsight-latest-report");
+   sessionStorage.removeItem("labinsight-carepath-session-v1");
+   localStorage.removeItem("labinsight-latest-report");
+   localStorage.removeItem("labinsight-carepath-session-v1");
+   sessionStorage.removeItem("labinsight-demo-bookings-v2");
+   sessionStorage.removeItem("labinsight-bookings");
+   localStorage.removeItem("labinsight-demo-bookings-v2");
+   localStorage.removeItem("labinsight-bookings");
+  }catch(_){
+   event.preventDefault();
+   document.getElementById("localDataStatus").textContent="이 기기의 이전 임시 검사 결과를 지우지 못했습니다. 브라우저 사이트 데이터를 삭제한 뒤 다시 시도해 주세요.";
+  }
+ });
+})();</script>
+</body>
+</html>

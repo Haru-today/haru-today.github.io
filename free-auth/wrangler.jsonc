@@ -1,0 +1,29 @@
+{
+  "$schema": "https://developers.cloudflare.com/workers/wrangler/config-schema.json",
+  "name": "labdam-free-approval",
+  "main": "./worker.mjs",
+  "compatibility_date": "2026-10-14",
+  "workers_dev": true,
+  "vars": {
+    "AUTH_ORIGIN": "https://labdam-free-approval.jleegenomics.workers.dev",
+    "GOOGLE_CLIENT_ID": "226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com"
+  },
+  "triggers": {
+    "crons": [
+      "15 3 * * *"
+    ]
+  },
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "run_worker_first": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "labdam-membership",
+      "database_id": "4ff9780e-9af3-49ce-a4e3-a32821038401",
+      "migrations_dir": "migrations"
+    }
+  ]
+}
