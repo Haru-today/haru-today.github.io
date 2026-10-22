@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v7
         with:
-          ref: 9ddcfd98b81fc1eeef82e811db23382b569d098e
+          ref: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
           persist-credentials: false
-      - name: Fetch fully reviewed LabInsight snapshot (immutable)
+      - name: Fetch fully reviewed REPODAM snapshot (immutable)
         uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
-          ref: 2df3a509730e6be36ebaac46d3e91b56c8255f32
+          ref: 5954944834c5995e1a0e42355d58a10cf9e2988e
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -40,14 +40,14 @@ jobs:
           package-manager-cache: false
       - name: Verify OAuth security and bootstrap using synthetic identities
         run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
-      - name: Build trial-only private LABDAM and LabInsight bundle
+      - name: Build trial-only private LABDAM and REPODAM bundle
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: 2df3a509730e6be36ebaac46d3e91b56c8255f32
-          LABDAM_AUTH_RELEASE_SHA: 9ddcfd98b81fc1eeef82e811db23382b569d098e
+          LABINSIGHT_RELEASE_SHA: 5954944834c5995e1a0e42355d58a10cf9e2988e
+          LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -148,8 +148,8 @@ jobs:
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: 2df3a509730e6be36ebaac46d3e91b56c8255f32
-          LABDAM_AUTH_RELEASE_SHA: 9ddcfd98b81fc1eeef82e811db23382b569d098e
+          LABINSIGHT_RELEASE_SHA: 5954944834c5995e1a0e42355d58a10cf9e2988e
+          LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -160,6 +160,7 @@ jobs:
           for (const [name, value] of [['labinsight-source-sha', process.env.LABINSIGHT_RELEASE_SHA], ['labdam-auth-source-sha', process.env.LABDAM_AUTH_RELEASE_SHA]]) assert.ok(html.includes('<meta name="' + name + '" content="' + value + '">'), 'Source identity mismatch');
           assert.match(html, /name="labinsight-app-sha256" content="[0-9a-f]{64}"/);
           assert.match(html, /name="labinsight-html-sha256" content="[0-9a-f]{64}"/);
+          assert.ok(html.includes('REPODAM') && !html.includes('LabInsight') && !html.includes('랩인사이트'));
           assert.ok(html.includes('이정민') && html.includes('mailto:jleegenomics@gmail.com'));
           assert.ok(html.includes('name="policy-status" content="draft"'));
           console.log('Verified exact reviewed source identities, contact and honest draft status on the live Worker.');
@@ -183,6 +184,7 @@ jobs:
                printf '%s' "$login_html" | grep -Fq '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}' &&
                printf '%s' "$login_html" | grep -Fq '"labinsight-demo-bookings-v2"' &&
                printf '%s' "$login_html" | grep -Fq '"labinsight-bookings"' &&
+               printf '%s' "$login_html" | grep -Fq 'REPODAM' &&
                printf '%s' "$login_html" | grep -Fq 'href="/auth/start"'; then
               ui_ready=1
               break
