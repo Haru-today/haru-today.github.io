@@ -59,12 +59,16 @@ function protectedPolicyHtml(src, kind) {
   const notice = kind === "privacy"
     ? '<section class="section" aria-label="회원가입 데이터 처리"><h2>회원가입·로그인 정보 처리</h2>' +
       '<p>LABDAM과 LabInsight는 Google 계정 인증 후 관리자 승인제로 운영합니다. 회원가입 심사를 위해 Google 계정 식별자, 이메일, 표시 이름, 선택적으로 입력한 가입 목적, 승인 상태 및 세션 해시값을 Cloudflare D1에 처리합니다. 건강검진 입력값은 회원가입 데이터베이스에 저장하지 않습니다.</p>' +
-      '<p>승인 대기·승인 회원의 가입 철회와 세션 삭제는 계정 페이지에서 제공하며, 보유기간·운영자 연락처 등 미확정 사항은 정식 운영 전에 확정해야 합니다. 자세한 내용은 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인하세요.</p></section>'
+      '<p>LABDAM·LabInsight 회원가입의 개인정보처리자는 <strong>이정민</strong>이며 개인정보 문의는 <a href="mailto:jleegenomics@gmail.com">jleegenomics@gmail.com</a>으로 접수할 수 있습니다. 운영자·문의처 안내는 2026년 10월 22일 갱신했습니다.</p>' +
+      '<p>승인 대기·승인 회원의 가입 철회와 세션 삭제는 계정 페이지에서 제공합니다. 개인정보 보호책임자 지정, 회원정보 보유정책·외부 처리 등 남은 사항은 정식 운영 전에 확정해야 합니다. 자세한 내용은 <a href="/membership-privacy.html">회원가입 개인정보 처리 안내</a>를 확인하세요.</p></section>'
     : '<section class="section" aria-label="회원 승인 정책"><h2>LABDAM 회원 승인 방식</h2>' +
       '<p>LABDAM과 LabInsight는 Google 계정으로 가입을 신청하고 관리자 승인을 받아야 이용할 수 있습니다. 이메일 인증만으로는 승인되지 않으며, 관리자는 접근 승인을 거절하거나 철회할 수 있습니다. 회원가입 및 개인정보 처리에 관해서는 <a href="/membership-privacy.html">회원가입 개인정보 안내</a>를 참고하세요.</p>' +
       '<p>Caffeine Atlas는 이 로그인 정책과 무관하며 누구나 별도 승인 없이 이용할 수 있습니다.</p></section>';
   html = html.replace(start, start + "\n" + notice);
   if (kind === "privacy") {
+    html = html.replace('운영 주체의 법적 명칭·책임자 및 전용 연락 창구,', '개인정보 보호책임자 지정과 서비스별 운영 절차,')
+      .replace('현재 서비스 전용 개인정보 담당자, 연락 수단 및 실명 확인 절차는 확정되지 않았습니다.',
+        'LABDAM·LabInsight 회원가입의 운영자·문의처는 위 회원가입 안내를 확인하세요. 개인정보 보호책임자 지정·본인 확인 절차 및 Caffeine Atlas의 별도 운영 절차는 최종 확인이 필요합니다.');
     const older = "포털에는 이름·검사값 입력란이 없습니다.";
     const revised = "포털 자체에는 건강검진 수치 입력란이 없지만, 승인제 회원가입 과정에서 이메일·이름 등 계정 정보를 처리합니다.";
     if (!html.includes(older)) throw new Error("Legacy portal privacy wording has changed; review required");

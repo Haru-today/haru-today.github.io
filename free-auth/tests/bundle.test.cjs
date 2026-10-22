@@ -34,6 +34,13 @@ test("protected privacy and terms disclose Google approval processing accurately
   assert.match(privacy, /Google 계정 식별자/);
   assert.match(privacy, /승인제 회원가입 과정에서 이메일·이름/);
   assert.match(privacy, /href="\/membership-privacy\.html"/);
+  const membership = read("membership-privacy.html");
+  const controller = membership.match(/name="policy-controller" content="([^"]+)"/)?.[1];
+  const contact = membership.match(/href="mailto:([^"]+)"/)?.[1];
+  assert.ok(controller && contact);
+  assert.ok(privacy.includes("<strong>" + controller + "</strong>"));
+  assert.ok(privacy.includes('href="mailto:' + contact + '"'));
+  assert.doesNotMatch(privacy, /현재 서비스 전용 개인정보 담당자, 연락 수단 및 실명 확인 절차는 확정되지 않았습니다/);
   assert.doesNotMatch(privacy, /포털에는 이름·검사값 입력란이 없습니다/);
   assert.match(terms, /LABDAM 회원 승인 방식/);
   assert.match(terms, /Caffeine Atlas는 이 로그인 정책과 무관/);

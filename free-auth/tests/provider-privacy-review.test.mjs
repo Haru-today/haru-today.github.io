@@ -32,13 +32,19 @@ test('actual D1 schema has only membership and transient auth tables, not health
   assert.match(policy, /회원 승인용 D1 데이터베이스에 저장하지 않습니다/);
 });
 
-test('provider audit leaves operator and private contact as release blockers', () => {
+test('confirmed operator and contact do not imply final retention or provider approval', () => {
   assert.match(notes, /법적 개인정보처리자/);
   assert.match(notes, /비공개/);
   assert.match(notes, /Google/);
   assert.match(notes, /Cloudflare/);
-  assert.match(policy, /운영자 실명 또는 공식 사업자 명칭 확인 대기/);
-  assert.match(policy, /개설·확인 대기/);
+  const controller = policy.match(/name="policy-controller" content="([^"]+)"/)?.[1];
+  assert.ok(controller && !/확인 대기|미정/.test(controller));
+  assert.ok(policy.includes('<strong>' + controller + '</strong>'));
+  assert.match(policy, /href="mailto:[^"@]+@[^"@]+"/);
+  assert.doesNotMatch(policy, /운영자 실명 또는 공식 사업자 명칭 확인 대기|개설·확인 대기/);
+  assert.match(policy, /policy-status" content="draft"/);
+  assert.doesNotMatch(policy, /name="policy-(?:providers|retention)-reviewed" content="yes"/);
+  assert.match(policy, /개인정보 보호책임자·담당 부서 지정 확인 대기/);
 });
 
 test('provider review source contains no tokens, real personal data or access keys', () => {
