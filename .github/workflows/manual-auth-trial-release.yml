@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@v7
         with:
-          ref: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
+          ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
           persist-credentials: false
       - name: Fetch fully reviewed REPODAM snapshot (immutable)
         uses: actions/checkout@v7
@@ -40,14 +40,14 @@ jobs:
           package-manager-cache: false
       - name: Verify OAuth security and bootstrap using synthetic identities
         run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs
-      - name: Build trial-only private LABDAM and REPODAM bundle
+      - name: Build public LABDAM brand and protected REPODAM bundle
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
-          LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
+          LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -55,7 +55,8 @@ jobs:
           const app = process.env.LABINSIGHT_RELEASE_SHA, auth = process.env.LABDAM_AUTH_RELEASE_SHA;
           if (![app, auth].every(value => /^[0-9a-f]{40}$/.test(value || ''))) throw Error('Invalid reviewed source identity');
           const digest = file => createHash('sha256').update(fs.readFileSync('free-auth/dist/labinsight/' + file)).digest('hex');
-          const metadata = [['labinsight-source-sha', app], ['labdam-auth-source-sha', auth], ['labinsight-app-sha256', digest('app.js')], ['labinsight-html-sha256', digest('index.html')], ['labinsight-css-sha256', digest('styles.css')], ['labinsight-carepath-sha256', digest('carepath.js')]];
+          const portalDigest = file => createHash('sha256').update(fs.readFileSync('free-auth/dist/' + file)).digest('hex');
+          const metadata = [['labdam-home-sha256', portalDigest('index.html')], ['labdam-portal-session-sha256', portalDigest('assets/portal-session.js')], ['labinsight-source-sha', app], ['labdam-auth-source-sha', auth], ['labinsight-app-sha256', digest('app.js')], ['labinsight-html-sha256', digest('index.html')], ['labinsight-css-sha256', digest('styles.css')], ['labinsight-carepath-sha256', digest('carepath.js')]];
           const file = 'free-auth/dist/membership-privacy.html';
           const html = fs.readFileSync(file, 'utf8');
           if (!html.includes('<head>') || !html.includes('content="draft"')) throw Error('Expected reviewed draft membership notice');
@@ -130,7 +131,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261020-r4-supplement"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261023-public-brand"'; then
                 ready=1
                 break
               fi
@@ -142,14 +143,40 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261020-r4-supplement with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261023-public-brand with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
+      - name: Verify public brand homepage and private service login entry
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          import { readFileSync } from 'node:fs';
+          import { createHash } from 'node:crypto';
+          const origin = 'https://labdam-free-approval.jleegenomics.workers.dev';
+          const hash = data => createHash('sha256').update(data).digest('hex');
+          for (const [route, file] of [['/', 'index.html'], ['/assets/portal-session.js', 'assets/portal-session.js']]) {
+            const response = await fetch(origin + route, { redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000) });
+            assert.equal(response.status, 200);
+            assert.match(response.headers.get('cache-control') || '', /no-store/);
+            assert.equal(hash(Buffer.from(await response.arrayBuffer())), hash(readFileSync('free-auth/dist/' + file)));
+          }
+          const response = await fetch(origin + '/api/session-status', { credentials:'omit', redirect:'error', signal:AbortSignal.timeout(20000) });
+          assert.equal(response.status, 200);
+          assert.deepEqual(await response.json(), { authenticated:false });
+          const gated = await fetch(origin + '/labinsight/', { redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000) });
+          assert.equal(gated.status, 303);
+          const target = new URL(gated.headers.get('location'), origin);
+          assert.equal(target.origin, origin);
+          assert.equal(target.pathname, '/');
+          assert.equal(target.hash, '#login');
+          assert.equal(target.searchParams.get('next'), '/labinsight/');
+          console.log('Public LABDAM files match this build; anonymous REPODAM entry returns to homepage login.');
+          NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
           LABINSIGHT_RELEASE_SHA: 06a2c257e9f60715cf2d9334b836fbe334e9ae18
-          LABDAM_AUTH_RELEASE_SHA: 2ad3ef9b5931323f7ef222d198972821e8ae00aa
+          LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';

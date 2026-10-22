@@ -32,7 +32,7 @@ test('public root HTML is a safe handoff with no app forms, and Caffeine stays p
 test('fallback gateway layout is keyboard accessible and has no horizontal scroll', async ({ page }) => {
   const body = await (await page.request.get('/')).text();
   await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
-  await expect(page.getByRole('link', { name: /LABDAM 로그인·입장/ }))
+  await expect(page.getByRole('link', { name: /LABDAM 홈페이지 열기/ }))
     .toHaveAttribute('href', WORKER);
   await expect(page.getByRole('link', { name: 'REPODAM 바로가기' }))
     .toHaveAttribute('href', WORKER + 'labinsight/');

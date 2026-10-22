@@ -12,7 +12,7 @@ export const CASES = Object.freeze([
   { name: "Worker readiness", origin: TRIAL, path: "/healthz", status: 200, type: "ready" },
   { name: "Public login", origin: TRIAL, path: "/login.html", status: 200, type: "public" },
   { name: "Public pending page", origin: TRIAL, path: "/pending.html", status: 200, type: "public" },
-  { name: "Private LABDAM portal", origin: TRIAL, path: "/", status: 303, type: "redirect" },
+  { name: "Public LABDAM brand", origin: TRIAL, path: "/", status: 200, type: "public" },
   { name: "Private REPODAM home", origin: TRIAL, path: "/labinsight/", status: 303, type: "redirect" },
   { name: "Private REPODAM report", origin: TRIAL, path: "/labinsight/report.html", status: 303, type: "redirect" },
   { name: "Private REPODAM script", origin: TRIAL, path: "/labinsight/app.js", status: 401, type: "deny" },
@@ -26,7 +26,7 @@ export const CASES = Object.freeze([
 function loginRedirect(location) {
   try {
     const url = new URL(location, TRIAL);
-    return url.origin === TRIAL && url.pathname === "/login.html";
+    return url.origin === TRIAL && url.pathname === "/" && url.hash === "#login";
   } catch (_) { return false; }
 }
 
