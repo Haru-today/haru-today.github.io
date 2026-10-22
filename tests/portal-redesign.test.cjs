@@ -9,7 +9,7 @@ test("redesign preserves LABDAM single portal and exactly two products", () => {
   assert.match(html, /Personal Health Atlas 통합 포털/);
   assert.match(html, /id="services"/);
   assert.equal((html.match(/class="service-card"/g)||[]).length, 2);
-  assert.match(html, /LabInsight 이용하기/);
+  assert.match(html, /REPODAM 이용하기/);
   assert.match(html, /Caffeine Atlas 이용하기/);
   assert.match(html, /href="https:\/\/haru-today.github.io\/labinsight\/"/);
   assert.match(html, /href="https:\/\/haru-today.github.io\/caffeine-atlas\/"/);

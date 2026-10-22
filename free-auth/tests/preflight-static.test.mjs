@@ -71,7 +71,7 @@ test('symlinked asset tree cannot escape inspected bundle',async()=>fixture(asyn
   const r=await inspectStatic(root);assert.equal(r.ok,false);
   assert.match(r.errors.join(' '),/symbolic link/);
 }));
-test('missing critical LabInsight script fails closed',async()=>fixture(async({root,dist})=>{
+test('missing critical REPODAM script fails closed',async()=>fixture(async({root,dist})=>{
   await rm(join(dist,'labinsight','app.js'));
   const r=await inspectStatic(root);assert.equal(r.ok,false);
   assert.match(r.errors.join(' '),/Missing protected asset: labinsight\/app.js/);

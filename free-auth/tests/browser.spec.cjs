@@ -159,7 +159,7 @@ test("member account shows role and withdrawal without administrator access", as
   await expect(page.locator("#status")).toHaveText("승인 완료");
   await expect(page.locator("#adminLink")).toBeHidden();
   await expect(page.locator("#withdraw")).toBeVisible();
-  await expect(page.getByRole("link", { name: "LabInsight 이용" })).toHaveAttribute("href", "/labinsight/");
+  await expect(page.getByRole("link", { name: "REPODAM 이용" })).toHaveAttribute("href", "/labinsight/");
 });
 
 test("pending approval can be checked again without repeating Google sign-in", async ({ page }) => {

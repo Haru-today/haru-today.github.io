@@ -252,7 +252,7 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
     return { start, callback, browserCookie, result };
   };
 }
-test("anonymous visitor sees Google request page but not protected homepage, CSS or LabInsight", async () => {
+test("anonymous visitor sees Google request page but not protected homepage, CSS or REPODAM", async () => {
   const f = fixture();
   for (const path of ["/", "/labinsight/", "/labinsight/report.html"]) {
     const res = await handleRequest(req(path), f.env, f.opts);
@@ -271,7 +271,7 @@ test("anonymous visitor sees Google request page but not protected homepage, CSS
   assert.equal((await handleRequest(req("/caffeine-atlas/"), f.env, f.opts)).status, 404);
   assert.equal((await handleRequest(req("/api/admin/applications"), f.env, f.opts)).status, 401);
 });
-test("approved Google member can open LABDAM homepage and LabInsight without signing in twice", async () => {
+test("approved Google member can open LABDAM homepage and REPODAM without signing in twice", async () => {
   const f = fixture(), member = seedMember(f);
   for (const path of ["/", "/index.html", "/labinsight/", "/labinsight/app.js", "/labinsight/supplement-guidance.js",
     "/labinsight/report.html", "/assets/portal-redesign.css"]) {

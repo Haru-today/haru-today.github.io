@@ -3,7 +3,7 @@ const test=require("node:test");
 const assert=require("node:assert/strict");
 
 async function load(){return import("../free-auth/scripts/audit-public-pages.mjs");}
-test("public path probe inventories protected LABDAM/LabInsight and exactly the four poster URLs",async()=>{
+test("public path probe inventories protected LABDAM/REPODAM and exactly the four poster URLs",async()=>{
   const {LEGACY_PROTECTED_PATHS, PUBLIC_CAFFEINE_PATHS}=await load();
   assert.equal(new Set([...LEGACY_PROTECTED_PATHS,...PUBLIC_CAFFEINE_PATHS]).size,
     LEGACY_PROTECTED_PATHS.length+PUBLIC_CAFFEINE_PATHS.length);

@@ -1,14 +1,15 @@
 name: Free Google approval-login security
 
 on:
+  workflow_dispatch:
   pull_request:
-    branches: [main]
+    branches: [main, 'feature/free-google-approval-auth-20261014']
     paths:
       - 'free-auth/**'
       - 'tests/free-auth*.test.cjs'
       - '.github/workflows/free-auth-ci.yml'
   push:
-    branches: [main, 'feature/free-google-approval-auth-20261014']
+    branches: [main, 'feature/free-google-approval-auth-20261014', 'codex/repodam-private-site-20261023']
     paths:
       - 'free-auth/**'
       - 'tests/free-auth*.test.cjs'
@@ -52,29 +53,21 @@ jobs:
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
-      # PR merge previews now contain the public Pages handoff rather than the
-      # full LABDAM portal. Preserve the reviewed private portal snapshot.
-      - name: Fetch reviewed LABDAM portal before public Pages handoff
-        uses: actions/checkout@v4
-        with:
-          repository: Haru-today/haru-today.github.io
-          ref: d7fd176de02bcc45652348161a58e2823d3ed980
-          path: sources/labdam
-          persist-credentials: false
+      # This reviewed private-source branch contains the complete gated portal.
       # CI preview only; manual Worker release source pins remain unchanged.
-      - name: Fetch CI-verified LabInsight supplement review snapshot
+      - name: Fetch CI-verified REPODAM supplement review snapshot
         uses: actions/checkout@v4
         with:
           repository: Haru-today/labinsight
-          ref: 5654b024c708ab18aa762d0bf4dc36591c7ad33b
+          ref: 20602c05ff469683b22b4f00f11f81b81bf447f2
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
-      - name: Build only LABDAM + LabInsight protected assets without deployment
+      - name: Build only LABDAM + REPODAM protected assets without deployment
         env:
-          LABDAM_SOURCE: ${{ github.workspace }}/sources/labdam
+          LABDAM_SOURCE: ${{ github.workspace }}
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
         run: node free-auth/build.mjs
       - name: Check reviewed static Worker config and built assets

@@ -6,7 +6,7 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
 const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
 
-test("free Workers bundle contains only LABDAM and LabInsight protected assets", () => {
+test("free Workers bundle contains only LABDAM and REPODAM protected assets", () => {
   assert.deepEqual(fs.readdirSync(root).sort(), [
     "account.html", "admin.html", "assets", "favicon.svg", "index.html",
     "labinsight", "login.html", "membership-privacy.html", "pending.html", "privacy.html",
@@ -18,7 +18,7 @@ test("free Workers bundle contains only LABDAM and LabInsight protected assets",
   }
 });
 
-test("protected LABDAM portal links into LabInsight but not to a protected Caffeine Atlas copy", () => {
+test("protected LABDAM portal links into REPODAM but not to a protected Caffeine Atlas copy", () => {
   const portal = read("index.html");
   assert.match(portal, /href="\/labinsight\/"/);
   assert.match(portal, /href="\/account.html"/);
@@ -77,7 +77,7 @@ test("admin dashboard offers approval, denial and revocation without hidden fake
   assert.match(account, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
 });
 
-test("private LabInsight HTML retains all original medical functionality and one account UI", () => {
+test("private REPODAM HTML retains all original medical functionality and one account UI", () => {
   for (const file of ["index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html"]) {
     const html = read("labinsight/" + file);
     assert.match(html, /href="\.\/account.html"/);
@@ -92,7 +92,7 @@ test("private LabInsight HTML retains all original medical functionality and one
   assert.equal(read("labinsight/account.html"), read("account.html"));
 });
 
-test("every local script referenced by protected LabInsight pages is bundled", () => {
+test("every local script referenced by protected REPODAM pages is bundled", () => {
   for (const file of ["index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html"]) {
     const page = path.join("labinsight", file);
     for (const match of read(page).matchAll(/<script\b[^>]*\bsrc=["']([^"']+)["']/gi)) {
@@ -134,7 +134,7 @@ test("protected build preserves reviewed interpretation, OCR and PDF scripts", (
     path.resolve(__dirname, "../../sources/labinsight"),
     path.resolve(__dirname, "../../../labinsight")
   ].find(p => fs.existsSync(path.join(p, "app.js")));
-  assert.ok(source, "Reviewed LabInsight checkout is required");
+  assert.ok(source, "Reviewed REPODAM checkout is required");
   for (const file of ["ocr-review.js", "reference-ranges.js", "hospital-data.js", "runtime-config.js", "app.js", "carepath-data.js", "carepath.js"]) {
     let expected = fs.readFileSync(path.join(source, file), "utf8")
       .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")

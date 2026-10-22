@@ -1,5 +1,5 @@
 /*
- * LABDAM / LabInsight: Google OAuth + Cloudflare Workers Free + D1.
+ * LABDAM / REPODAM: Google OAuth + Cloudflare Workers Free + D1.
  * Free and approval-only. No Cloudflare Access, subscriptions, or card billing.
  * Caffeine Atlas stays an independent public GitHub Pages service.
  * Authentication must ALWAYS execute before the protected ASSETS binding.
