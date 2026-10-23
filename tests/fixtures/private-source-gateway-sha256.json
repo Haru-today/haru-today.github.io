@@ -1,0 +1,14 @@
+{
+  "source": "Haru-today/labinsight@e6b3247aea5deb94a017c1a969ee08b51550a900:docs",
+  "files": {
+    "index.html": "0326ba6f58b8a913c65e5fd4fdb0b0597b969bf160aa4819fceca442058f5313",
+    "checkup.html": "ae02f63bb9996aa3e761c7ab0d9b92231699489f7c0323a54406940e8d38ec47",
+    "report.html": "2ba6858fb0d2ca4587bc38ebe4d751300f904ea7fb7b16dbaccd39e0aeeec53f",
+    "hospitals.html": "3e90424bb87cbc88fd8adbfae90bd07c6a8c20a8751c7271e25233ec32949137",
+    "account.html": "66ddf7d01bf2e505c8ff0d01ef18b165745c5caa31a5a5c38540a1044f264919",
+    "404.html": "8b4895cfc2677a18c2ec5d92e93009231b72054ea1118cb9e286644c9b9f5e9e",
+    "legacy-data-cleanup.html": "af01d11aa4dd57c5ced88758254fbc971a776e10be98148571a5672a635ae392",
+    "legacy-data-cleanup.js": "8a8f3ceb274844775e29c6c56875590c81fe3f799df2521fa8f890353622ad55",
+    "service-worker.js": "dafe3459234b6601ad1d92fffde91eb1c3374da85f9d637b42ac75778bd328fe"
+  }
+}

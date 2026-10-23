@@ -6,6 +6,23 @@ const path = require("node:path");
 
 const yaml = fs.readFileSync(path.join(__dirname, "../.github/workflows/manual-auth-trial-release.yml"), "utf8");
 
+test("private app checkout fails before build/deploy without source access and never persists its token", () => {
+  const preflight = yaml.indexOf("Verify read access to the reviewed app source");
+  const checkout = yaml.indexOf("Fetch fully reviewed REPODAM snapshot");
+  const build = yaml.indexOf("Build public LABDAM brand and protected REPODAM bundle");
+  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  assert.ok(preflight > 0 && preflight < checkout && checkout < build && build < deploy);
+  assert.match(yaml.slice(preflight, checkout), /GH_TOKEN: \$\{\{ secrets\.LABINSIGHT_SOURCE_TOKEN \|\| github\.token \}\}/);
+  assert.match(yaml.slice(preflight, checkout), /gh api .*--silent 2>\/dev\/null/);
+  assert.match(yaml.slice(preflight, checkout), /exit 1/);
+  assert.match(yaml.slice(checkout, build), /token: \$\{\{ secrets\.LABINSIGHT_SOURCE_TOKEN \|\| github\.token \}\}/);
+  assert.match(yaml.slice(checkout, build), /persist-credentials: false/);
+  assert.match(yaml.slice(preflight, checkout), /HAS_SOURCE_DEPLOY_KEY: \$\{\{ secrets\.LABINSIGHT_SOURCE_DEPLOY_KEY != '' \}\}/);
+  assert.match(yaml.slice(checkout, build), /ssh-key: \$\{\{ secrets\.LABINSIGHT_SOURCE_DEPLOY_KEY \}\}/);
+  assert.match(yaml.slice(checkout, build), /ssh-strict: true/);
+  assert.equal((yaml.match(/LABINSIGHT_SOURCE_TOKEN/g) || []).length, 3);
+});
+
 test("trial release is explicitly manual, not a push/PR/scheduled deployment", () => {
   assert.match(yaml, /^on:\n  workflow_dispatch:/m);
   assert.doesNotMatch(yaml, /^  (push|pull_request|schedule|repository_dispatch):/m);
@@ -16,7 +33,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
   assert.match(yaml, /ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24/);
-  assert.match(yaml, /ref: 2c8b9c01ea9e471cf7971b4226917977e2262c61/);
+  assert.match(yaml, /ref: e6b3247aea5deb94a017c1a969ee08b51550a900/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);

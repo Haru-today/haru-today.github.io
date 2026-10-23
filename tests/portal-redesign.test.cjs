@@ -24,6 +24,7 @@ test("no login bypass is advertised and Caffeine remains an explicit public exce
   assert.match(html, /LABDAM 홈페이지 열기/);
   assert.match(html, /REPODAM 바로가기/);
   assert.match(html, /Caffeine Atlas는/);
-  assert.match(html, /https:\/\/haru-today\.github\.io\/caffeine-atlas\//);
+  const links = [...html.matchAll(/href="([^"]+)"/g)].map(match => match[1]);
+  assert.ok(links.some(link => link === "https://haru-today.github.io/caffeine-atlas/"));
   assert.doesNotMatch(html, /임상적 효능 입증 완료|법적 준수 인증 완료|FDA 인증 완료/);
 });
