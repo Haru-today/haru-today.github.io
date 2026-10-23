@@ -1,6 +1,6 @@
 # REPODAM private-source transition
 
-Status: preparation only. `Haru-today/labinsight` remains public until the checks below are complete. `Haru-today/haru-today.github.io` and the LABDAM homepage remain public. Making a repository private cannot recall copies or forks already made while it was public.
+This is a migration checklist, not a live deployment-status record. Current visibility and release-verification evidence belong in private operator records. The LABDAM homepage is intended to remain public. Making a repository private cannot recall copies or forks already made while it was public.
 
 ## Deployment access
 
@@ -8,7 +8,7 @@ The existing manual release checks out the app from another repository. A public
 
 The release workflow passes the key only to the pinned source checkout, with strict SSH host verification and `persist-credentials: false`. A missing/invalid key must fail at checkout before building or deploying. A fine-grained **LABINSIGHT_SOURCE_TOKEN** with **Contents: read** restricted to the app repository can be used instead; it falls back to the existing job token while source is public. Never paste credentials into chat, issues, workflow files or command arguments. Do not reuse a Cloudflare or broad personal token.
 
-## Before the visibility change
+## Checklist before a visibility change
 
 1. Confirm the dedicated read-only source secret is present, then run the existing manual release using the pinned, reviewed app commit. Confirm SSH checkout, deployment and anonymous gate probes pass.
 2. Confirm the account plan supports the desired branch protections for a private repository. GitHub Free protection and CodeQL availability can differ between public and private repositories. Do not purchase a plan or enable paid security features implicitly. Keep local/CI secret scanning, dependency auditing and browser tests available independently.
