@@ -16,6 +16,12 @@ The release workflow passes the key only to the pinned source checkout, with str
 4. Review the source/license publication policy. The current package metadata says MIT and there is no root LICENSE file; do not promise confidentiality or legal exclusivity based on repository settings alone.
 5. Preserve the current deployment and immutable rollback pins. Change only the app repository's visibility after the owner approves the prepared transition.
 
+### Free-plan tradeoffs
+
+[GitHub's branch-protection documentation](https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/managing-protected-branches) limits private-repository branch protection to Pro or higher plans. On Free, making the app private therefore loses the platform enforcement of its current PR and required-check rules. Continuing to run CI and following a manual PR process does not provide equivalent enforcement.
+
+[Private CodeQL scanning](https://docs.github.com/en/code-security/reference/code-scanning/troubleshoot-analysis-errors/private-repository-enablement) requires an eligible organization and GitHub Code Security; a personal Pro upgrade alone does not preserve hosted private CodeQL scanning. Gitleaks, package audits and browser tests remain separate checks. Review private Actions minutes, artifact storage and spending limits before a visibility change. Never enable a paid plan, paid security product or extra spend implicitly. Record account-specific security observations privately, not in this public repository.
+
 ## After the visibility change
 
 Verify anonymous source access is denied, approved development tools still fetch, and the manual release still builds the exact app commit. Recheck homepage 200, Google login entry, protected HTML 303, protected JS/API 401 and the Pages handoffs. Keep the operator's 2FA/passkey and recovery codes under their own control; API results that omit 2FA status do not prove it is enabled.
