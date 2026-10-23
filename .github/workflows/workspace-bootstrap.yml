@@ -7,6 +7,8 @@ on:
       - 'developer/**'
       - 'tests/workspace-bootstrap.test.cjs'
       - 'tests/ai-doctor.test.cjs'
+      - 'tests/ai-review.test.cjs'
+      - 'tests/ai-google.test.cjs'
       - '.github/workflows/workspace-bootstrap.yml'
   push:
     branches: [main]
@@ -14,6 +16,8 @@ on:
       - 'developer/**'
       - 'tests/workspace-bootstrap.test.cjs'
       - 'tests/ai-doctor.test.cjs'
+      - 'tests/ai-review.test.cjs'
+      - 'tests/ai-google.test.cjs'
       - '.github/workflows/workspace-bootstrap.yml'
 
 permissions:
@@ -35,4 +39,4 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - run: node --test tests/workspace-bootstrap.test.cjs tests/ai-doctor.test.cjs
+      - run: node --test tests/workspace-bootstrap.test.cjs tests/ai-doctor.test.cjs tests/ai-review.test.cjs tests/ai-google.test.cjs

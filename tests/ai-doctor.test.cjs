@@ -9,6 +9,7 @@ const MARKER = 'LABDAM_AI_CHECK_0123456789abcdef0123456789abcdef';
 const SECRET = 'DO_NOT_PRINT_account_token_or_path';
 const PROJECT = join(tmpdir(), 'labdam-mock-project');
 const PROBE = join(tmpdir(), 'labdam-mock-probe');
+const SUBSCRIPTION_AUTH = { loggedIn: true, authMethod: 'claude.ai', subscriptionType: 'pro' };
 const ok = (stdout) => ({ status: 0, stdout, error: null });
 const json = (value) => ok(JSON.stringify(value));
 
@@ -39,7 +40,7 @@ async function scenario(config = {}) {
     if (args[0] === '--version') return ok(`${command} 2.1.248 ${SECRET}`);
     if (args[0] === '--help') return ok([...doctor.REQUIRED_FLAGS, '-p', '--help', '--version'].join('\n'));
     if (command === 'claude' && args.join(' ') === 'auth status') {
-      return json({ authMethod: 'claude.ai', email: SECRET, configDirectory: SECRET, token: SECRET });
+      return json({ ...SUBSCRIPTION_AUTH, email: SECRET, configDirectory: SECRET, token: SECRET });
     }
     if (command === 'claude' && args.includes('--print')) {
       return json({ type: 'result', subtype: 'success', is_error: false, result: MARKER });
@@ -48,6 +49,7 @@ async function scenario(config = {}) {
   };
   const result = doctor.runDoctor({
     cwd: PROJECT, env, probeClaude: config.probeClaude ?? true, runner,
+    ...(config.now ? { now: config.now } : {}),
     createMarker: () => MARKER,
     createDirectory: () => {
       created += 1;
@@ -65,6 +67,9 @@ test('default diagnostics never authenticate, create a directory or request a mo
   assert.equal(result.exitCode, 0);
   assert.equal(result.report.claudeProbe.state, 'not_requested');
   assert.equal(result.report.claudeAuthentication.state, 'not_checked');
+  assert.match(result.report.checkedAt, /^\d{4}-\d{2}-\d{2}T/);
+  assert.equal(result.report.claudeProbe.requestStartedAt, null);
+  assert.equal(result.report.claudeProbe.requestFinishedAt, null);
   assert.equal(result.report.project.repository, 'Haru-today/haru-today.github.io');
   assert.equal(result.report.tools.agy.authentication, 'not_checked');
   assert.equal(result.report.tools.agy.modelResponse, 'not_run');
@@ -112,7 +117,7 @@ test('missing ordinary safety options remain unverified; substring lookalikes do
   assert.equal(result.created, 0);
 });
 
-test('documented version can confirm only the two known hidden flags', async () => {
+test('documented versions confirm the two existing hidden safety flags', async () => {
   const { REQUIRED_FLAGS } = await doctorModule;
   const help = REQUIRED_FLAGS.filter((flag) => !['--safe-mode', '--restricted'].includes(flag)).join('\n');
   for (const version of ['2.1.247', '2.1.248']) {
@@ -127,9 +132,72 @@ test('documented version can confirm only the two known hidden flags', async () 
   }
 });
 
+test('hidden max-turns requires its documented evidence version and remains in the request', async () => {
+  const { REQUIRED_FLAGS } = await doctorModule;
+  const help = REQUIRED_FLAGS.filter((flag) => flag !== '--max-turns').join('\n');
+  for (const version of ['2.1.303', '2.1.304', '2.1.309', 'unrecognized']) {
+    const result = await scenario({ override: (command, args) => {
+      if (command !== 'claude') return undefined;
+      if (args[0] === '--version') return ok(version);
+      if (args[0] === '--help') return ok(help);
+    } });
+    const verified = ['2.1.304', '2.1.309'].includes(version);
+    assert.equal(result.report.claudeProbe.state, verified ? 'passed' : 'blocked');
+    assert.equal(result.report.tools.claude.optionsEvidence['--max-turns'], verified ? 'documented_version' : 'unverified');
+    if (verified) {
+      const evidence = result.report.tools.claude.optionsDocumentation['--max-turns'];
+      assert.deepEqual(evidence.minimumVersion, [2, 1, 304]);
+      assert.equal(evidence.source, 'https://github.com/anthropics/claude-code/releases/tag/v2.1.304');
+      const [call] = requests(result);
+      assert.equal(call.args[call.args.indexOf('--max-turns') + 1], '1');
+    } else assert.equal(requests(result).length, 0);
+  }
+});
+
+test('successful stderr help is inspected but raw help and account text never enter reports', async () => {
+  const { runProcess } = await doctorModule;
+  const result = await scenario({ probeClaude: false, override: (command, args, options) => {
+    if (command !== 'agy') return undefined;
+    return runProcess(command, args, options, () => ({ status: 0, stdout: '',
+      stderr: args[0] === '--version' ? `1.4.6 ${SECRET}` : `Usage: agy\n  -p, --print\n  --output-format <format>\n${SECRET}` }));
+  } });
+  assert.equal(result.report.tools.agy.version, '1.4.6');
+  assert.equal(result.report.tools.agy.help, 'checked');
+  assert.deepEqual(result.report.tools.agy.optionsFound, ['--print', '-p', '--output-format']);
+  assert.equal(JSON.stringify(result.report).includes(SECRET), false);
+  assert.equal(requests(result).length, 0);
+});
+
+test('failed stderr help cannot verify capabilities', async () => {
+  const { runProcess } = await doctorModule;
+  const result = await scenario({ probeClaude: false, override: (command, args, options) => {
+    if (command !== 'agy' || args[0] !== '--help') return undefined;
+    return runProcess(command, args, options, () => ({ status: 1, stdout: '', stderr: `--print --output-format ${SECRET}` }));
+  } });
+  assert.equal(result.report.tools.agy.help, 'unverified');
+  assert.deepEqual(result.report.tools.agy.optionsFound, []);
+  assert.equal(JSON.stringify(result.report).includes(SECRET), false);
+});
+
+test('reports record inspection and attempted request times without claiming a blocked request occurred', async () => {
+  const times = ['2026-10-23T12:00:00.000Z', '2026-10-23T12:00:01.000Z', '2026-10-23T12:00:02.000Z'];
+  for (const failed of [false, true]) {
+    let next = 0;
+    const result = await scenario({ now: () => times[next++], override: (command, args) =>
+      failed && command === 'claude' && args.includes('--print') ? { status: null, stdout: '', error: 'timeout' } : undefined });
+    assert.equal(result.report.checkedAt, times[0]);
+    assert.equal(result.report.claudeProbe.requestStartedAt, times[1]);
+    assert.equal(result.report.claudeProbe.requestFinishedAt, times[2]);
+    assert.equal(result.report.claudeProbe.state, failed ? 'failed' : 'passed');
+  }
+  const blocked = await scenario({ env: { ANTHROPIC_API_KEY: SECRET }, now: () => times[0] });
+  assert.equal(blocked.report.claudeProbe.requestStartedAt, null);
+  assert.equal(blocked.report.claudeProbe.requestFinishedAt, null);
+});
+
 test('API, helper, OAuth-token, third-party and unknown authentication never trigger generation', async () => {
   for (const authMethod of ['api_key', 'api_key_helper', 'oauth_token', 'third_party', 'unknown']) {
-    const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth' ? json({ authMethod, email: SECRET }) : undefined });
+    const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth' ? json({ ...SUBSCRIPTION_AUTH, authMethod, email: SECRET }) : undefined });
     assert.equal(result.report.claudeProbe.reason, 'subscription_auth_unverified');
     assert.equal(requests(result).length, 0);
     assert.equal(result.cleaned, 1);
@@ -137,12 +205,46 @@ test('API, helper, OAuth-token, third-party and unknown authentication never tri
   }
 });
 
-test('contradictory optional auth fields block a subscription-shaped status', async () => {
+test('contradictory auth fields block a subscription-shaped status', async () => {
   for (const extra of [{ loggedIn: false }, { loggedIn: 'true' }, { apiKeySource: SECRET }, { apiProvider: 'bedrock' }, { subscriptionType: 'enterprise' }]) {
-    const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth' ? json({ authMethod: 'claude.ai', ...extra }) : undefined });
+    const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth' ? json({ ...SUBSCRIPTION_AUTH, ...extra }) : undefined });
     assert.equal(result.report.claudeProbe.state, 'blocked');
     assert.equal(requests(result).length, 0);
     assert.equal(JSON.stringify(result.report).includes(SECRET), false);
+  }
+});
+
+test('explicit logged-in state and a recognized personal subscription are mandatory', async () => {
+  const cases = [
+    [{ loggedIn: undefined }, 'auth_json_unrecognized'],
+    [{ loggedIn: null }, 'auth_json_unrecognized'],
+    [{ loggedIn: 1 }, 'auth_json_unrecognized'],
+    [{ loggedIn: false }, 'login_required'],
+    [{ subscriptionType: undefined }, 'personal_subscription_unverified'],
+    [{ subscriptionType: null }, 'personal_subscription_unverified'],
+    [{ subscriptionType: '' }, 'personal_subscription_unverified'],
+    [{ subscriptionType: 'unknown' }, 'personal_subscription_unverified'],
+    [{ subscriptionType: 'enterprise' }, 'personal_subscription_unverified'],
+  ];
+  for (const [extra, reason] of cases) {
+    const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth'
+      ? json({ ...SUBSCRIPTION_AUTH, ...extra }) : undefined });
+    assert.equal(result.report.claudeProbe.state, 'blocked');
+    assert.equal(result.report.claudeProbe.reason, reason);
+    assert.equal(result.report.claudeProbe.requestAttempted, false);
+    assert.equal(requests(result).length, 0);
+  }
+});
+
+test('confirmed pro and max subscriptions accept absent or explicit first-party provider', async () => {
+  for (const subscriptionType of ['pro', 'max']) {
+    for (const apiProvider of [undefined, 'firstParty']) {
+      const result = await scenario({ override: (command, args) => command === 'claude' && args[0] === 'auth'
+        ? json({ ...SUBSCRIPTION_AUTH, subscriptionType, apiProvider }) : undefined });
+      assert.equal(result.report.claudeProbe.state, 'passed');
+      assert.equal(result.report.claudeAuthentication.subscription, subscriptionType);
+      assert.equal(requests(result).length, 1);
+    }
   }
 });
 
@@ -162,7 +264,7 @@ test('a successful exact marker verifies only the Claude response, using all pro
   assert.equal(result.report.claudeProbe.state, 'passed');
   assert.equal(result.report.claudeProbe.temporaryDirectory, 'removed');
   assert.equal(result.report.claudeAuthentication.state, 'subscription_route_verified');
-  assert.equal(result.report.claudeAuthentication.subscription, 'not_reported');
+  assert.equal(result.report.claudeAuthentication.subscription, 'pro');
   assert.equal(result.report.claudeAuthentication.billingStatus, 'unknown');
   assert.equal(result.report.codeReview, 'not_run');
   assert.equal(result.report.tools.agy.modelResponse, 'not_run');
@@ -238,7 +340,20 @@ test('native process errors and size limits do not expose exception or stderr te
   }
   assert.equal(runProcess('fake-cli', ['x'.repeat(8193)], {}, () => assert.fail('must not spawn')).error, 'input_limit');
   assert.equal(runProcess('fake-cli', [], {}, () => ({ status: 0, stdout: 'x'.repeat(MAX_OUTPUT_BYTES + 1) })).error, 'output_limit');
+  assert.equal(runProcess('fake-cli', ['--help'], { includeInspectionStderr: true }, () => ({ status: 0, stdout: '', stderr: 'x'.repeat(MAX_OUTPUT_BYTES + 1) })).error, 'output_limit');
+  assert.equal(runProcess('fake-cli', ['--help'], { includeInspectionStderr: true }, () => ({ status: 0, stdout: 'x'.repeat(MAX_OUTPUT_BYTES), stderr: 'x' })).error, 'output_limit');
   assert.equal(runProcess('fake-cli', [], {}, () => { throw new Error(SECRET); }).error, 'process_error');
+});
+
+test('stderr opt-in cannot expose authentication, model or failed inspection output', async () => {
+  const { runProcess } = await doctorModule;
+  for (const args of [['auth', 'status'], ['--print', 'synthetic'], ['--help', 'unexpected']]) {
+    const result = runProcess('fake-cli', args, { includeInspectionStderr: true }, () => ({ status: 0, stdout: '{}', stderr: SECRET }));
+    assert.equal(result.stdout, '{}');
+    assert.equal(JSON.stringify(result).includes(SECRET), false);
+  }
+  const failure = runProcess('fake-cli', ['--help'], { includeInspectionStderr: true }, () => ({ status: 1, stdout: '', stderr: SECRET }));
+  assert.equal(JSON.stringify(failure).includes(SECRET), false);
 });
 
 test('temporary directories are outside the project and only the new directory is removed', async () => {

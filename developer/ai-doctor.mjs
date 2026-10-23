@@ -13,6 +13,13 @@ export const REQUIRED_FLAGS = Object.freeze([
   '--no-session-persistence', '--output-format', '--print',
 ]);
 export const MAX_OUTPUT_BYTES = 256 * 1024;
+// These are conservative evidence versions, not claims about first introduction.
+// v2.1.304 explicitly documents a fix enforcing --max-turns for headless runs.
+export const DOCUMENTED_CLAUDE_OPTIONS = Object.freeze({
+  '--safe-mode': { minimumVersion: [2, 1, 248], source: 'https://code.claude.com/docs/en/cli-reference' },
+  '--restricted': { minimumVersion: [2, 1, 248], source: 'https://code.claude.com/docs/en/cli-reference' },
+  '--max-turns': { minimumVersion: [2, 1, 304], source: 'https://github.com/anthropics/claude-code/releases/tag/v2.1.304', reference: 'https://code.claude.com/docs/en/cli-reference' },
+});
 const INSPECTION_TIMEOUT_MS = 10_000;
 const PROBE_TIMEOUT_MS = 45_000;
 
@@ -32,10 +39,18 @@ export function runProcess(command, args, options = {}, spawn = spawnSync) {
     const errors = { ENOENT: 'not_found', ETIMEDOUT: 'timeout', ENOBUFS: 'output_limit' };
     if (result.error) return { status: null, stdout: '', error: errors[result.error.code] ?? 'process_error' };
     if (result.signal) return { status: null, stdout: '', error: 'process_terminated' };
-    if (typeof result.stdout !== 'string' || Buffer.byteLength(result.stdout) > MAX_OUTPUT_BYTES) {
+    const stderr = result.stderr ?? '';
+    if (typeof result.stdout !== 'string' || typeof stderr !== 'string' ||
+        Buffer.byteLength(result.stdout) + Buffer.byteLength(stderr) > MAX_OUTPUT_BYTES) {
       return { status: null, stdout: '', error: 'output_limit' };
     }
-    return { status: result.status, stdout: result.stdout, error: null };
+    // Some CLIs (agy 1.4.6) print successful help to stderr. Opt in only for
+    // exact help/version inspections; auth and model stderr stays discarded.
+    const inspectStderr = options.includeInspectionStderr === true && result.status === 0 &&
+      args.length === 1 && ['--help', '--version'].includes(args[0]);
+    const stdout = inspectStderr && stderr ? [result.stdout, stderr].filter(Boolean).join('\n') : result.stdout;
+    if (Buffer.byteLength(stdout) > MAX_OUTPUT_BYTES) return { status: null, stdout: '', error: 'output_limit' };
+    return { status: result.status, stdout, error: null };
   } catch {
     return { status: null, stdout: '', error: 'process_error' };
   }
@@ -52,7 +67,7 @@ function parseObject(text) {
   } catch { return null; }
 }
 
-function optionInHelp(help, option) {
+export function optionInHelp(help, option) {
   return new RegExp(`(^|[\\s,])${option}(?=[\\s,=<]|$)`, 'm').test(help);
 }
 
@@ -66,11 +81,12 @@ function versionAtLeast(actual, minimum) {
 }
 
 function inspectTool(name, invoke, options) {
-  const version = invoke(name, ['--version'], options);
+  const inspectionOptions = { ...options, includeInspectionStderr: true };
+  const version = invoke(name, ['--version'], inspectionOptions);
   if (version.error === 'not_found') {
     return { installation: 'not_found', version: null, help: 'not_checked', optionsFound: [] };
   }
-  const help = invoke(name, ['--help'], options);
+  const help = invoke(name, ['--help'], inspectionOptions);
   return {
     installation: typeof version.status === 'number' || typeof help.status === 'number' ? 'found' : 'unverified',
     version: succeeded(version) ? version.stdout.match(/\b\d{1,4}\.\d{1,4}\.\d{1,6}\b/)?.[0] ?? null : null,
@@ -109,7 +125,7 @@ function inspectProject(invoke, options) {
   };
 }
 
-function configuredProviderEnvironment(env) {
+export function configuredProviderEnvironment(env) {
   // Prefixes also cover newly introduced endpoint/profile/federation credentials.
   // Return only fixed categories, never arbitrary variable names or their values.
   return [
@@ -132,11 +148,10 @@ export function createProbeDirectory({ cwd, projectRoot, tempRoot = tmpdir() }) 
   return { cwd: directory, cleanup: () => rmSync(directory, { recursive: true, force: true }) };
 }
 
-function classifyAuthentication(result) {
+export function classifyAuthentication(result) {
   if (!succeeded(result)) return { state: 'unverified', reason: 'auth_status_failed' };
   const auth = parseObject(result.stdout);
-  if (!auth || typeof auth.authMethod !== 'string' ||
-      (Object.hasOwn(auth, 'loggedIn') && typeof auth.loggedIn !== 'boolean')) {
+  if (!auth || typeof auth.authMethod !== 'string' || typeof auth.loggedIn !== 'boolean') {
     return { state: 'unverified', reason: 'auth_json_unrecognized' };
   }
   if (auth.loggedIn === false || auth.authMethod === 'none') return { state: 'not_logged_in', reason: 'login_required' };
@@ -144,17 +159,19 @@ function classifyAuthentication(result) {
   if (auth.apiKeySource || (auth.apiProvider && auth.apiProvider !== 'firstParty')) {
     return { state: 'blocked', reason: 'api_or_provider_auth' };
   }
-  if (auth.subscriptionType != null && !['pro', 'max'].includes(auth.subscriptionType)) {
+  if (!['pro', 'max'].includes(auth.subscriptionType)) {
     return { state: 'unverified', reason: 'personal_subscription_unverified' };
   }
-  return { state: 'subscription_route_verified', method: 'claude.ai', subscription: auth.subscriptionType ?? 'not_reported', billingStatus: 'unknown' };
+  return { state: 'subscription_route_verified', method: 'claude.ai', subscription: auth.subscriptionType, billingStatus: 'unknown' };
 }
 
 export function runDoctor({
   cwd = process.cwd(), env = process.env, probeClaude = false, runner = runProcess,
   createDirectory = createProbeDirectory,
   createMarker = () => `LABDAM_AI_CHECK_${randomBytes(16).toString('hex')}`,
+  now = () => new Date().toISOString(),
 } = {}) {
+  const checkedAt = now();
   const invoke = (command, args, options) => {
     try {
       const result = runner(command, args, options);
@@ -168,19 +185,22 @@ export function runDoctor({
   const project = inspectProject(invoke, options);
   const claude = inspectTool('claude', invoke, options);
   const agy = inspectTool('agy', invoke, options);
-  // Official docs: safe-mode since 2.1.169; restricted since 2.1.248.
-  // --help intentionally hides some options. Keep every protection in the request.
+  // Official documentation can establish known hidden flags for a verified
+  // version. No other missing option is inferred; every protection is retained.
   claude.optionsEvidence = Object.fromEntries(REQUIRED_FLAGS.map((flag) => [flag,
     claude.optionsFound.includes(flag) ? 'help' :
-      (['--safe-mode', '--restricted'].includes(flag) && versionAtLeast(claude.version, [2, 1, 248]) ? 'documented_version' : 'unverified'),
+      (DOCUMENTED_CLAUDE_OPTIONS[flag] && versionAtLeast(claude.version, DOCUMENTED_CLAUDE_OPTIONS[flag].minimumVersion) ? 'documented_version' : 'unverified'),
   ]));
+  claude.optionsDocumentation = Object.fromEntries(REQUIRED_FLAGS
+    .filter((flag) => claude.optionsEvidence[flag] === 'documented_version')
+    .map((flag) => [flag, DOCUMENTED_CLAUDE_OPTIONS[flag]]));
   claude.unverifiedOptions = REQUIRED_FLAGS.filter((flag) => claude.optionsEvidence[flag] === 'unverified');
   claude.safeProbeCapabilities = claude.unverifiedOptions.length ? 'unverified' : 'verified';
   const report = {
-    schemaVersion: 1, mode: probeClaude ? 'probe-claude' : 'inspect', project: project.report,
+    schemaVersion: 1, checkedAt, mode: probeClaude ? 'probe-claude' : 'inspect', project: project.report,
     tools: { claude, agy: { ...agy, authentication: 'not_checked', modelResponse: 'not_run' } },
     claudeAuthentication: { state: 'not_checked' },
-    claudeProbe: { state: 'not_requested', reason: 'explicit_flag_required', requestAttempted: false },
+    claudeProbe: { state: 'not_requested', reason: 'explicit_flag_required', requestAttempted: false, requestStartedAt: null, requestFinishedAt: null },
     codeReview: 'not_run',
   };
   const finish = () => ({ report, exitCode: probeClaude && report.claudeProbe.state !== 'passed' ? 1 : 0 });
@@ -216,7 +236,9 @@ export function runDoctor({
       `Reply with exactly this text and nothing else: ${marker}`,
     ];
     report.claudeProbe.requestAttempted = true;
+    report.claudeProbe.requestStartedAt = now();
     const result = invoke('claude', args, { ...probeOptions, timeout: PROBE_TIMEOUT_MS });
+    report.claudeProbe.requestFinishedAt = now();
     const response = succeeded(result) ? parseObject(result.stdout) : null;
     let reason = 'marker_confirmed';
     if (!succeeded(result)) reason = 'request_process_failed';

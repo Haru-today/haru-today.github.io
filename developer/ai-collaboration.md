@@ -121,9 +121,8 @@ GitHub 연동으로 넣은 파일은 최신화 상태를 확인해야 합니다.
 
 ## Codex에서 외부 AI에 검토를 맡길 때
 
-프로젝트 이어하기와 외부 AI 호출은 따로 검증합니다. 현재 이 PR은 공통 지침,
-인계 절차와 연결 점검 도구를 제공합니다. **사용자 기기에서 자동 검토 호출·응답
-수신이 검증됐다는 뜻은 아닙니다.**
+프로젝트 이어하기와 외부 AI 호출은 따로 검증합니다. 이 PR은 공통 지침, 인계 절차, 연결 점검과 검토 결과 수집 도구를 제공합니다.
+실제 기기·요청별 검증 결과는 인계 문서를 확인합니다.
 
 권장 작업 흐름은 다음과 같습니다.
 
@@ -190,12 +189,14 @@ node developer/ai-doctor.mjs --probe-claude
 `--safe-mode`에도 조직의 관리 정책은 적용될 수 있으므로 이 실행을 운영체제
 샌드박스나 모든 정책 실행의 차단으로 설명하지 않습니다. 지원 옵션은
 [Claude CLI 공식 문서](https://code.claude.com/docs/en/cli-reference)를 기준으로
-하되 실제 설치본에서 확인합니다. `--safe-mode`와 `--restricted`는 도움말에
-숨겨질 수 있어 공식 도입 버전을 함께 사용합니다. Claude Code 2.1.248 이상은
-두 옵션을 지원하는 버전 근거가 있습니다. 나머지 필수 옵션의 지원 여부를 확인하지
-못하면 중단합니다. 옵션 오류가 나도 제한을 제거해 재시도하지 않습니다.
+하되 실제 설치본에서 확인합니다. `--safe-mode`, `--restricted`, `--max-turns`는
+도움말에 숨겨질 수 있어 공식 문서의 버전 근거를 함께 사용합니다. Claude Code
+2.1.248 이상은 앞의 두 옵션, 2.1.304 이상은 `--max-turns` 지원 근거가 있습니다.
+이는 각 옵션의 최초 도입 버전이 모두 같다는 뜻은 아닙니다. 필수 옵션의 지원을
+확인하지 못하면 중단하며 옵션 오류가 나도 제한을 제거해 재시도하지 않습니다.
 버전 근거: [safe mode 도입](https://code.claude.com/docs/en/whats-new/2026-w24),
-[restricted 및 실행 옵션](https://code.claude.com/docs/en/cli-reference).
+[restricted 및 실행 옵션](https://code.claude.com/docs/en/cli-reference),
+[max-turns 버전 근거](https://github.com/anthropics/claude-code/releases/tag/v2.1.304).
 
 | 결과 | 해석 |
 | --- | --- |
@@ -204,7 +205,7 @@ node developer/ai-doctor.mjs --probe-claude
 | `claudeProbe.state: passed` | 해당 기기·인증 경로에서 짧은 Claude 응답을 검증했음 |
 | `claudeProbe.state: blocked` 또는 `failed` / 종료 코드 `1` | 요청 전 조건 미충족 또는 실제 호출 실패; `reason` 확인 |
 | 종료 코드 `2` | 사용법 오류 또는 진단 자체의 오류 |
-| Google 인증·응답 / `codeReview` | 아직 미검증·미실행; Claude 확인 요청 성공과 별개 |
+| Google 인증·응답 / `codeReview` | 기본 doctor 범위 밖; 아래 review 도구로 별도 검사 |
 
 Google `agy`는 이 도구에서 설치·버전·도움말까지만 확인합니다. 검증된 실행별
 권한 제한을 확인하기 전에는 모델 요청을 자동 실행하지 않습니다. 도움말로
@@ -212,6 +213,54 @@ Google `agy`는 이 도구에서 설치·버전·도움말까지만 확인합니
 
 개발 검사는 `node --test tests/ai-doctor.test.cjs`로 실행합니다. 모의 CLI를
 사용하므로 실제 계정 로그인이나 외부 모델 응답을 검증한 결과로 보고하지 않습니다.
+
+### 코드 검토 요청과 결과 수집
+
+`ai-review.mjs`는 기본 실행에서 명시한 파일의 HEAD·바이트 해시·크기만 보고하며
+모델을 호출하지 않습니다. 파일은 현재 작업 폴더에서 읽으므로 커밋 전 수정과
+명시한 새 파일도 검토할 수 있습니다. 다른 미추적 파일은 전송하지 않습니다.
+파일에 비공개 연구자료나 개인정보가 없는지 먼저 확인하세요. 내장 비밀키 패턴
+검사는 보조 장치이며 모든 민감정보를 찾아준다는 보장은 없습니다.
+
+```sh
+# 파일 목록과 크기 확인. 설치된 claude/agy가 PATH에 있어야 합니다.
+node developer/ai-review.mjs --provider claude --file developer/ai-doctor.mjs
+# 위 범위를 기존 구독으로 실제 전송하고 결과를 저장합니다. 출력 부모 폴더는 미리 만듭니다.
+node developer/ai-review.mjs --provider claude --file developer/ai-doctor.mjs --send --output ../claude-review.json
+# Google은 먼저 코드 없는 합성 문구로 연결/권한을 확인합니다.
+node developer/ai-review.mjs --provider google --probe --send
+node developer/ai-review.mjs --provider google --file developer/ai-doctor.mjs --send --output ../google-review.json
+```
+
+Claude는 내장 도구·MCP·세션 저장을 끄고 프로젝트 밖 임시 폴더에서 실행합니다.
+Google은 macOS에서 원본 프로젝트 읽기·쓰기, 일반 명령 실행과 설정 변경을
+제한한 별도 임시 폴더를 사용합니다. 기존 로그인에 필요한 CLI 실행 파일과
+Keychain·런타임 경로는 허용합니다. 각 요청 전에 실제 파일 접근·실행 차단과
+전역·공유·프로젝트 권한에 추가 허용 규칙이 없는지 확인합니다.
+
+검증한 `agy 1.4.6`은 전용 에이전트에도 기본 도구 60개를 노출하므로 도구가
+없다고 가정하지 않습니다. 설치 버전, 실제 도구 목록, 선택 에이전트, 임시 경로와
+`request-review` 모드가 검증한 값과 같아야 본문을 전송합니다. 도구 사용이 응답에
+관찰되면 실패 처리합니다. 이 감지는 도구 실행 전에 차단했다는 보증이 아니며,
+원본 보호의 근거는 별도로 검증한 OS 제한입니다. 다른 버전은 재검증 전까지 중단합니다.
+
+기존 전역 hooks/MCP/plugins 또는 API/추가 크레딧 설정이 있으면 임의로 끄거나
+바꾸지 않고 중단합니다. Google 검토는 현재 macOS에서만 지원하며, 네이티브
+CLI의 계정 내 대화/로그 저장까지 끄는 기능은 제공하지 않습니다.
+
+`state: completed`와 검증된 `review`가 함께 있어야 코드 검토가 완료된 것입니다.
+합성 `probe` 성공은 코드 검토와 다릅니다. 요청이나 응답 검증 실패 시 `review`는
+`null`이며 실패를 지적사항 0개로 바꾸지 않습니다. 결과 저장 실패는 이미 받은
+검토를 유지하면서 `outputError`와 실패 종료 코드를 기록합니다.
+`stale`은 실행 중 원본 상태가 달라졌다는
+뜻이므로 현재 소스와 다시 대조합니다. 파일별 해시로 미커밋 상태도 구분합니다.
+보존 검사는 선택한 파일의 내용과 Git 상태를 비교하며, 지정하지 않은 미추적 파일의
+내용은 읽거나 해시하지 않습니다. `reviewedSourceUnchanged`는 이 범위를 뜻합니다.
+
+Codex는 결과의 각 finding을 원본 줄과 대조하여 반영·기각·보류 이유를 적고,
+필요한 최소 수정과 관련 검사를 수행합니다. 외부 결과를 그대로 실행·적용·병합하지
+않습니다. 결과 파일은 저장소 밖에 새로 만들며 덮어쓰지 않습니다. 검토 요약,
+대상 파일 해시, 반영 이유와 테스트 결과만 handoff/PR에 기록합니다.
 
 ### 로컬 Work에서 이어받기
 
