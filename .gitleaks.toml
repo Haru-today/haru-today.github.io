@@ -1,0 +1,11 @@
+[extend]
+useDefault = true
+
+# These exact release-metadata assignments contain public Git commit IDs.
+# Do not exempt token variables, entire workflow files or arbitrary hashes.
+[[rules]]
+id = "generic-api-key"
+[[rules.allowlists]]
+description = "Immutable public source identities in release metadata"
+regexTarget = "line"
+regexes = ['''^\s+(?:LABINSIGHT_RELEASE_SHA|LABDAM_AUTH_RELEASE_SHA): [0-9a-f]{40}\s*$''']
