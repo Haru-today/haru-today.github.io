@@ -31,7 +31,7 @@ jobs:
         uses: actions/checkout@v7
         with:
           repository: Haru-today/labinsight
-          ref: ee228b2692e3d6115c172d8d5cf2b1e531dbd3b8
+          ref: 2c8b9c01ea9e471cf7971b4226917977e2262c61
           path: sources/labinsight
           persist-credentials: false
       - uses: actions/setup-node@v7
@@ -46,7 +46,7 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: ee228b2692e3d6115c172d8d5cf2b1e531dbd3b8
+          LABINSIGHT_RELEASE_SHA: 2c8b9c01ea9e471cf7971b4226917977e2262c61
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node <<'NODE'
@@ -175,7 +175,7 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: ee228b2692e3d6115c172d8d5cf2b1e531dbd3b8
+          LABINSIGHT_RELEASE_SHA: 2c8b9c01ea9e471cf7971b4226917977e2262c61
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node --input-type=module <<'NODE'
