@@ -148,3 +148,9 @@ test("supplement release requires the private module and checks its anonymous de
   assert.ok(block.includes('test "$code" = 401'));
   assert.doesNotMatch(block, /auth\/start|auth\/callback|curl .*--data|d1 execute/);
 });
+
+test("manual release reads the renamed REPODAM source repository", () => {
+  assert.match(yaml, /^          repository: Haru-today\/repodam$/m);
+  assert.match(yaml, /gh api "repos\/Haru-today\/repodam\/commits\/\$REVIEWED_APP_SHA"/);
+  assert.doesNotMatch(yaml, /Haru-today\/labinsight/);
+});

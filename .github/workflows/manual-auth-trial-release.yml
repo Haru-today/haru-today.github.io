@@ -37,14 +37,14 @@ jobs:
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
             exit 0
           fi
-          if ! gh api "repos/Haru-today/labinsight/commits/$REVIEWED_APP_SHA" --silent 2>/dev/null; then
-            echo "::error::Cannot read the pinned REPODAM source. For private source, configure the labdam-trial environment's LABINSIGHT_SOURCE_TOKEN with read-only Contents access to Haru-today/labinsight. No deployment was started."
+          if ! gh api "repos/Haru-today/repodam/commits/$REVIEWED_APP_SHA" --silent 2>/dev/null; then
+            echo "::error::Cannot read the pinned REPODAM source. For private source, configure the labdam-trial environment's LABINSIGHT_SOURCE_TOKEN with read-only Contents access to Haru-today/repodam (renamed from labinsight on 2026-10-23). No deployment was started."
             exit 1
           fi
       - name: Fetch fully reviewed REPODAM snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: Haru-today/labinsight
+          repository: Haru-today/repodam
           ref: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
