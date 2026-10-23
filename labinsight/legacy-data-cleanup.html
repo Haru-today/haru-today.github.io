@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="light">
+  <title>이전 REPODAM 데이터 정리 | LABDAM</title>
+  <style>
+    :root{font:16px/1.7 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;color:#1b3249;background:#f4f7fa}
+    *{box-sizing:border-box}body{margin:0}main{width:min(640px,calc(100% - 30px));margin:clamp(22px,7vh,64px) auto 48px;padding:clamp(24px,5vw,40px);border:1px solid #d5e2ed;border-radius:18px;background:#fff}
+    .brand{color:#173a61;font-weight:800;letter-spacing:.04em}.eyebrow{font-size:12px;color:#385f86;font-weight:700}
+    h1{font-size:clamp(25px,5vw,31px);line-height:1.4;margin:12px 0 15px;letter-spacing:-.04em}h2{font-size:18px}
+    p,li{line-height:1.75}p.muted{color:#52677c}ul{padding-left:23px}
+    .note{padding:14px 16px;border-radius:10px;background:#f1f6fd;color:#294968}
+    button{font:inherit;font-weight:750;cursor:pointer;color:#fff;background:#2057a6;border:1px solid #2057a6;border-radius:9px;min-height:48px;padding:10px 18px;width:100%}
+    button:disabled{opacity:.6;cursor:wait}a{color:#1956a3}a:focus-visible,button:focus-visible{outline:3px solid #2767bf;outline-offset:3px}
+    #cleanupStatus{min-height:50px;font-size:14px;line-height:1.65;color:#284f72}nav{border-top:1px solid #e3eaf2;margin-top:22px;padding-top:18px;display:flex;flex-wrap:wrap;gap:12px 24px}
+  </style>
+</head>
+<body>
+<main>
+  <div class="brand">LABDAM / REPODAM</div>
+  <p class="eyebrow">이전 공개 주소 · 개인정보 관리</p>
+  <h1>이전 REPODAM 브라우저 데이터 정리</h1>
+  <p>REPODAM은 관리자 승인 후 이용하는 새 서비스 주소로 이전했습니다. 과거 공개 주소에서 입력한 검사 결과는 새 주소로 자동 이전되지 않습니다.</p>
+  <h2>선택적으로 삭제할 내용</h2>
+  <ul>
+    <li>기존 REPODAM 검사 결과 및 CarePath 임시 기록</li>
+    <li>기존 예약 체험 기록</li>
+    <li>오래된 REPODAM 앱 캐시와 해당 주소의 서비스워커 등록</li>
+  </ul>
+  <p class="note">이 작업은 <strong>현재 브라우저에만 적용</strong>되고 되돌릴 수 없습니다. 다른 탭의 세션 기록, 다른 브라우저, 설치된 오래된 오프라인 앱 및 다른 기기의 자료는 별도로 확인해야 합니다. Caffeine Atlas 데이터와 다른 서비스의 캐시·등록은 삭제하지 않습니다.</p>
+  <p>삭제 버튼을 누른 뒤 한 번 더 확인해야 삭제가 시작됩니다. 이 페이지는 검사 결과를 읽거나 서버로 전송하지 않습니다.</p>
+  <button type="button" id="clearOldLabInsight">이전 REPODAM 데이터 삭제하기</button>
+  <p id="cleanupStatus" role="status" aria-live="polite">아직 아무것도 삭제하지 않았습니다.</p>
+  <nav aria-label="서비스 이동">
+    <a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">승인제 REPODAM으로 이동</a>
+    <a href="https://haru-today.github.io/caffeine-atlas/">Caffeine Atlas 공개 체험</a>
+  </nav>
+</main>
+<script src="./legacy-data-cleanup.js" defer></script>
+</body>
+</html>
