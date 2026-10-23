@@ -1,4 +1,4 @@
-# Codex · Claude Code · Gemini CLI 협업
+# Codex · Claude Code · Google Antigravity 협업
 
 세 도구는 같은 GitHub 저장소를 공유하고 각자 별도 브랜치/작업 폴더에서 일합니다.
 대화·로그인·구독은 도구별이며 자동으로 서로 공유되지 않습니다. 공통 작업 규칙은
@@ -33,7 +33,10 @@ GitHub가 공유하는 것은 커밋입니다. 미커밋 파일·실험 원본·
   바뀌었다고 간주하지 않습니다.
 - Claude Code는 공식 설치 후 `claude auth login --claudeai`로 기존 Claude 구독에
   로그인합니다. Console/API billing을 선택하지 않습니다.
-- Gemini CLI는 `gemini`를 실행해 **Sign in with Google**에서 구독 계정을 사용합니다.
+- Google AI Pro/Ultra는 Antigravity CLI `agy`를 실행해 개인 Google 계정으로
+  로그인합니다. 기존 Gemini CLI의 개인 구독 요청 지원은 2026-06-18 종료됐습니다.
+  `AGENTS.md`와 `GEMINI.md`는 Antigravity에서도 지원합니다. 추가 AI 크레딧/초과
+  사용을 활성화하지 말고 기존 구독 한도만 사용합니다.
 - 사용자 로그인·계정 선택·동의는 직접 완료합니다. 비밀번호, OAuth 코드, 토큰을
   채팅이나 저장소에 붙여 넣지 않습니다. 구독 한도 초과 시 API로 자동 전환하지 않습니다.
 - 기본 승인/신뢰 확인을 유지합니다. `--yolo`, `--dangerously-skip-permissions`나
@@ -42,8 +45,10 @@ GitHub가 공유하는 것은 커밋입니다. 미커밋 파일·실험 원본·
 공식 안내: [Codex 모델 선택](https://learn.chatgpt.com/docs/developer-commands#set-the-active-model-with-model),
 [Claude 설치](https://code.claude.com/docs/en/setup),
 [Claude 구독 로그인](https://code.claude.com/docs/en/authentication),
-[Gemini 설치](https://geminicli.com/docs/get-started/installation/),
-[Gemini 로그인](https://geminicli.com/docs/get-started/authentication/).
+[Google CLI 전환 안내](https://developers.googleblog.com/an-important-update-transitioning-gemini-cli-to-antigravity-cli/),
+[Antigravity 설치](https://www.antigravity.google/docs/getting-started/),
+[로그인](https://www.antigravity.google/docs/install?tab=cli),
+[규칙 호환](https://www.antigravity.google/docs/cli/gcli-migration/).
 
 ## Mac과 Windows
 

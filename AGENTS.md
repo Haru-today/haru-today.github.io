@@ -1,6 +1,6 @@
 # LABDAM agent rules
 
-These rules apply to Codex, Claude Code and Gemini CLI. Read the nearest rules
+These rules apply to Codex, Claude Code and Google Antigravity CLI (Gemini). Read the nearest rules
 before editing; use the current source and release workflow over older notes.
 
 ## Scope and source of truth

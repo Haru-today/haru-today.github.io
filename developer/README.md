@@ -30,7 +30,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 
 기본 경로는 양쪽 모두 홈 디렉터리 아래 `LABDAM-Workspace`입니다. 다른 위치에 만들려면 Mac은 첫 번째 인자, Windows는 `-Root` 매개변수를 전달합니다.
 
-## Codex · Claude Code · Gemini CLI 사용
+## Codex · Claude Code · Google Antigravity 사용
 
 공통 규칙은 각 저장소의 `AGENTS.md`이며 도구별 진입 파일이 이를 가져옵니다.
 브랜치·worktree·계정 로그인·PC 인계 방법은 [협업 안내](ai-collaboration.md)를 따르세요.
