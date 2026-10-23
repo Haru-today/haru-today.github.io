@@ -53,8 +53,10 @@ function safeFile(root, name) {
 
 export function prepareReview({ cwd = process.cwd(), files }) {
   if (!Array.isArray(files) || !files.length || files.length > 12 || new Set(files).size !== files.length) throw new Error('explicit_files_required');
-  const root = realpathSync(git(cwd, ['rev-parse', '--show-toplevel']).trim());
-  if (realpathSync(cwd) !== root) throw new Error('run_from_repository_root');
+  // Native canonical paths resolve Windows short names; relative also respects
+  // the platform's drive-letter, separator and case rules.
+  const root = realpathSync.native(git(cwd, ['rev-parse', '--show-toplevel']).trim());
+  if (relative(root, realpathSync.native(cwd)) !== '') throw new Error('run_from_repository_root');
   const before = repositoryState(root);
   const snapshots = files.map((path) => {
     const bytes = readFileSync(safeFile(root, path));
@@ -222,8 +224,8 @@ async function main() {
       } else throw new Error('usage');
     }
     if (output) {
-      const parent = realpathSync(dirname(resolve(output)));
-      const root = realpathSync(git(process.cwd(), ['rev-parse', '--show-toplevel']).trim());
+      const parent = realpathSync.native(dirname(resolve(output)));
+      const root = realpathSync.native(git(process.cwd(), ['rev-parse', '--show-toplevel']).trim());
       const rel = relative(root, parent);
       if (rel === '' || (!isAbsolute(rel) && rel !== '..' && !rel.startsWith(`..${sep}`))) throw new Error('output_inside_repository');
       // Reserve before sending, avoiding a paid/limited request followed by an overwrite error.

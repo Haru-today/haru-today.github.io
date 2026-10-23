@@ -26,7 +26,7 @@ GitHub를 통한 코드·인계 공유는 구분합니다.
 | `developer/ai-review.mjs` | 지정 snapshot·manifest 작성, 명시적 전송, 응답 검증·수집 구현 |
 | Claude 코드 검토 | 실제 응답 수집 후 findings 3개를 코드와 대조하고 수정 |
 | `developer/ai-google.mjs` | macOS 원본·설정 격리, 실효 권한 확인 및 실제 응답·코드 검토 성공 |
-| 로컬 개발 검사 | 아래 4개 검사 파일의 68개 검사 모두 통과 |
+| 로컬 개발 검사 | 통합 검사 68개 통과; 이후 Windows 경로 보완의 영향 범위 별도 검사 |
 | GitHub CI | 최신 수정 커밋의 원격 CI 결과는 별도 확인 필요 |
 | 실제 Windows PC | 이번 Mac 확인으로 설정·인증 완료를 주장하지 않음 |
 
@@ -85,10 +85,15 @@ F1의 추가 제안 중 `apiProvider` 필드 자체를 필수로 만들지는 �
 - 보존 상태를 지정 파일 바이트와 Git 메타데이터 범위로 명시.
 - Google 런타임의 인증·로그 쓰기를 허용하되 hooks/MCP/plugins/agents/skills/rules
   등 실행 설정 경로는 별도로 읽기·쓰기 차단.
+- 실제 AI 검토 이후 Windows CI에서 저장소 루트의 경로 표기 차이로 11개 검사가
+  실패한 것을 확인했습니다. OS의 native canonical path와 플랫폼별 상대 경로
+  비교를 사용하도록 보완했습니다. 하위 폴더·다른 저장소는 계속 거부하며,
+  출력 폴더 검사에도 같은 정규화를 적용했습니다. 이 보완은 외부 AI 검토 후의
+  내부 CI 수정이며, 외부 모델이 재검토한 것으로 표시하지 않습니다.
 
 ## 로컬 검사와 실제 호출의 구분
 
-사용자 Mac의 현재 수정본에서 다음 명령을 실행해 68/68 통과했습니다.
+사용자 Mac에서 AI 검토 통합본에 다음 명령을 실행해 68/68 통과했습니다.
 
 ```sh
 node --test tests/workspace-bootstrap.test.cjs tests/ai-doctor.test.cjs tests/ai-review.test.cjs tests/ai-google.test.cjs
@@ -104,6 +109,9 @@ node --test tests/workspace-bootstrap.test.cjs tests/ai-doctor.test.cjs tests/ai
 이 68개 검사는 외부 모델을 호출하지 않습니다. 실제 Claude·Google 연결과
 코드 검토의 근거는 별도 호출 결과입니다. 모의 검사 통과와 사용자 Windows PC
 설정·인증 완료를 구분합니다.
+
+Windows 경로 보완 후에는 영향받는 `tests/ai-review.test.cjs`를 다시 실행해
+21/21 통과했습니다. 최종 Windows 결과는 수정 커밋의 CI로 확인합니다.
 
 ## 실제 Google 요청의 증거와 범위
 
