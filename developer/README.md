@@ -37,6 +37,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 같은 작업을 다른 AI에서 이어갈 때는 [인계 양식](handoff-template.md)을 사용합니다.
 현재 협업 구성의 남은 일은 [작업 인계](handoffs/ai-collaboration-20261023.md)에 기록합니다.
 
+- 사용자 기기에서 `node developer/ai-doctor.mjs`로 Git·CLI 상태를 확인합니다.
+  실제 Claude 응답 검사는 `node developer/ai-doctor.mjs --probe-claude`로 별도
+  실행합니다. 설치 확인과 실제 응답 성공은 다릅니다. 세부 조건과 결과 판독은
+  [연결 점검 절차](ai-collaboration.md#사용자-기기에서-연결-점검)를 따르세요.
 - Windows와 Mac에서 같은 저장소를 각자 clone하고 Codex에서 필요한 하위 폴더를 엽니다.
 - 수정 전 `git status`로 작업 내용을 확인합니다.
 - 각각의 기능별 브랜치에서 작업하고 PR 검토·테스트 후에만 `main`에 병합합니다.

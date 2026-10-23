@@ -121,8 +121,9 @@ GitHub 연동으로 넣은 파일은 최신화 상태를 확인해야 합니다.
 
 ## Codex에서 외부 AI에 검토를 맡길 때
 
-프로젝트 이어하기와 외부 AI 호출은 따로 검증합니다. 현재 이 PR은 공통 지침과
-인계 절차를 제공하며, **자동 검토 호출·응답 수신 완료를 의미하지 않습니다.**
+프로젝트 이어하기와 외부 AI 호출은 따로 검증합니다. 현재 이 PR은 공통 지침,
+인계 절차와 연결 점검 도구를 제공합니다. **사용자 기기에서 자동 검토 호출·응답
+수신이 검증됐다는 뜻은 아닙니다.**
 
 권장 작업 흐름은 다음과 같습니다.
 
@@ -153,3 +154,76 @@ Claude Code는 `claude -p`, Antigravity는 `agy -p`로 비대화형 응답을 �
 [Claude Code 로그인](https://code.claude.com/docs/en/authentication),
 [Antigravity 비대화형 실행과 권한](https://www.antigravity.google/docs/cli/headless/),
 [Claude 프로젝트의 GitHub 연결](https://support.claude.com/en/articles/10167454-use-the-github-integration).
+
+## 사용자 기기에서 연결 점검
+
+`developer/ai-doctor.mjs`는 추가 패키지 없이 Node로 실행합니다. 현재 작업
+브랜치를 안전하게 갱신한 뒤 포털 저장소 루트에서 실행하세요. 이 파일이 아직
+`main`에 없다면 기존 협업 PR의 브랜치를 사용합니다. 로컬 수정이 있으면 먼저
+상태를 확인하고, 현재 작업을 덮어쓰는 checkout/reset을 하지 않습니다.
+
+```sh
+node developer/ai-doctor.mjs
+```
+
+기본 실행은 Git 작업 상태와 `claude`, `agy`의 설치·버전·도움말을 확인합니다.
+AI에 응답을 요청하지 않습니다. 결과는 JSON이며 계정 이메일, 토큰, 환경변수 값,
+원본 인증 응답과 원본 오류 출력을 보고서에 넣지 않습니다. 명령이 `0`으로 끝나도
+모든 CLI가 설치됐거나 로그인됐다는 뜻은 아닙니다. 각 항목의 상태를 읽습니다.
+
+Claude에 실제 확인 요청을 보내려면 다음을 실행합니다.
+
+```sh
+node developer/ai-doctor.mjs --probe-claude
+```
+
+이 실행은 API/다른 공급자 인증 환경설정을 확인하고, 지원 옵션 및 기존
+`claude.ai` 인증을 확인한 다음 프로젝트 밖 임시 디렉터리에서 무작위 확인
+문구만 요청합니다. 프로젝트 코드를 요청에 넣지 않습니다. 내장 도구와 MCP를
+끄는 옵션을 함께 전달하며, JSON 응답의 성공 상태와 확인 문구의 정확한 일치가
+모두 확인되어야 `claudeProbe.state`가 `passed`가 됩니다. 인증 실패·알 수 없는
+인증 경로·지원 여부를 확인하지 못한 옵션·응답 불일치에서는 성공으로 처리하지
+않으며, 제한 옵션을 제거하거나 API 인증으로 바꿔 재시도하지 않습니다.
+
+기존 구독 사용량은 소비될 수 있습니다. 점검 도구는 추가 사용 과금이나 구독
+설정을 변경하지 않으며, 계정의 잔여량이나 추가 과금 여부를 보증하지 않습니다.
+`--safe-mode`에도 조직의 관리 정책은 적용될 수 있으므로 이 실행을 운영체제
+샌드박스나 모든 정책 실행의 차단으로 설명하지 않습니다. 지원 옵션은
+[Claude CLI 공식 문서](https://code.claude.com/docs/en/cli-reference)를 기준으로
+하되 실제 설치본에서 확인합니다. `--safe-mode`와 `--restricted`는 도움말에
+숨겨질 수 있어 공식 도입 버전을 함께 사용합니다. Claude Code 2.1.248 이상은
+두 옵션을 지원하는 버전 근거가 있습니다. 나머지 필수 옵션의 지원 여부를 확인하지
+못하면 중단합니다. 옵션 오류가 나도 제한을 제거해 재시도하지 않습니다.
+버전 근거: [safe mode 도입](https://code.claude.com/docs/en/whats-new/2026-w24),
+[restricted 및 실행 옵션](https://code.claude.com/docs/en/cli-reference).
+
+| 결과 | 해석 |
+| --- | --- |
+| 기본 실행 종료 코드 `0` | 진단 보고서를 만들었음; 개별 설치 상태는 JSON 확인 |
+| `claudeProbe.state: not_requested` | 실제 Claude 요청을 실행하지 않았음 |
+| `claudeProbe.state: passed` | 해당 기기·인증 경로에서 짧은 Claude 응답을 검증했음 |
+| `claudeProbe.state: blocked` 또는 `failed` / 종료 코드 `1` | 요청 전 조건 미충족 또는 실제 호출 실패; `reason` 확인 |
+| 종료 코드 `2` | 사용법 오류 또는 진단 자체의 오류 |
+| Google 인증·응답 / `codeReview` | 아직 미검증·미실행; Claude 확인 요청 성공과 별개 |
+
+Google `agy`는 이 도구에서 설치·버전·도움말까지만 확인합니다. 검증된 실행별
+권한 제한을 확인하기 전에는 모델 요청을 자동 실행하지 않습니다. 도움말로
+확인하지 않은 인증 명령을 추정해 호출하거나 전역 설정을 바꾸지 않습니다.
+
+개발 검사는 `node --test tests/ai-doctor.test.cjs`로 실행합니다. 모의 CLI를
+사용하므로 실제 계정 로그인이나 외부 모델 응답을 검증한 결과로 보고하지 않습니다.
+
+### 로컬 Work에서 이어받기
+
+사용자 Mac의 설치와 구독 세션을 확인하려면 그 Mac의 폴더와 터미널에 접근할 수
+있는 Work 작업이 필요합니다. 현재 작업이 클라우드에서만 실행되면 대화 동기화나
+GitHub 연결만으로 Mac의 파일·CLI·로그인 세션이 연결되지는 않습니다.
+
+Mac의 기존 LABDAM 프로젝트에서 로컬 컴퓨터 접근이 가능한 Work 작업을 열고
+이 [작업 인계](handoffs/ai-collaboration-20261023.md)를 먼저 읽습니다. 기존
+클라우드 작업에서 로컬 접근을 사용할 수 없으면 같은 프로젝트에서 로컬 작업을
+시작해 이 인계를 이어받습니다. 실제 저장소 경로와 미커밋 변경을 확인한 뒤 위
+진단과 요청 검사를 진행하고, 그 결과를 바탕으로 지정 코드의 검토 호출을 구현합니다.
+
+Work 안내: [기기 간 이어하기와 로컬 접근](https://learn.chatgpt.com/docs/get-started-with-work),
+[프로젝트 폴더 연결](https://learn.chatgpt.com/docs/projects#use-local-projects-for-folders-and-codebases).

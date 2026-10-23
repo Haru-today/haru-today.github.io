@@ -6,12 +6,14 @@ on:
     paths:
       - 'developer/**'
       - 'tests/workspace-bootstrap.test.cjs'
+      - 'tests/ai-doctor.test.cjs'
       - '.github/workflows/workspace-bootstrap.yml'
   push:
     branches: [main]
     paths:
       - 'developer/**'
       - 'tests/workspace-bootstrap.test.cjs'
+      - 'tests/ai-doctor.test.cjs'
       - '.github/workflows/workspace-bootstrap.yml'
 
 permissions:
@@ -33,4 +35,4 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
-      - run: node --test tests/workspace-bootstrap.test.cjs
+      - run: node --test tests/workspace-bootstrap.test.cjs tests/ai-doctor.test.cjs

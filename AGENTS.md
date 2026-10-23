@@ -48,6 +48,8 @@ before editing; use the current source and release workflow over older notes.
 
 - Bootstrap: `node --test tests/workspace-bootstrap.test.cjs`; macOS and Windows
   run their own scripts in `.github/workflows/workspace-bootstrap.yml`.
+- AI diagnostics: `node --test tests/ai-doctor.test.cjs` uses mock CLI responses;
+  it does not verify a user's subscription or contact an AI provider.
 - Portal changes: select relevant `tests/*.test.cjs`; `npm test` runs the portal
   suite, and `npm run test:browser` needs its existing Playwright dependencies.
 - Run only checks justified by the change. Report local, CI, live and actual
