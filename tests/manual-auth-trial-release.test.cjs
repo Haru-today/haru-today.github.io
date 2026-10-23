@@ -30,7 +30,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
   assert.match(yaml, /ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24/);
-  assert.match(yaml, /ref: f6f77676ddfd756f1d9f8111f6eab814833e81c2/);
+  assert.match(yaml, /ref: 89bce79af4b79304c1f0f1027b67a6c172cb541f/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);

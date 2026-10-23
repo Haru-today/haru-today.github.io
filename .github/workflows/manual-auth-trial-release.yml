@@ -30,7 +30,7 @@ jobs:
       - name: Verify read access to the reviewed app source before private checkout
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
-          REVIEWED_APP_SHA: f6f77676ddfd756f1d9f8111f6eab814833e81c2
+          REVIEWED_APP_SHA: 89bce79af4b79304c1f0f1027b67a6c172cb541f
         run: |
           if ! gh api "repos/Haru-today/labinsight/commits/$REVIEWED_APP_SHA" --silent 2>/dev/null; then
             echo "::error::Cannot read the pinned REPODAM source. For private source, configure the labdam-trial environment's LABINSIGHT_SOURCE_TOKEN with read-only Contents access to Haru-today/labinsight. No deployment was started."
@@ -40,7 +40,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Haru-today/labinsight
-          ref: f6f77676ddfd756f1d9f8111f6eab814833e81c2
+          ref: 89bce79af4b79304c1f0f1027b67a6c172cb541f
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           persist-credentials: false
@@ -56,7 +56,7 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: f6f77676ddfd756f1d9f8111f6eab814833e81c2
+          LABINSIGHT_RELEASE_SHA: 89bce79af4b79304c1f0f1027b67a6c172cb541f
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node <<'NODE'
@@ -185,7 +185,7 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: f6f77676ddfd756f1d9f8111f6eab814833e81c2
+          LABINSIGHT_RELEASE_SHA: 89bce79af4b79304c1f0f1027b67a6c172cb541f
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node --input-type=module <<'NODE'
