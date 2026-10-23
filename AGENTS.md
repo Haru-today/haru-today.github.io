@@ -7,8 +7,11 @@ before editing; use the current source and release workflow over older notes.
 
 - GitHub `Haru-today/haru-today.github.io` is the shared portal source. `main` is
   the reviewed integration branch; publish unfinished work on a task branch.
-- LABDAM's brand homepage is public. REPODAM (the `labinsight` repository and
-  `/labinsight/` route) remains Google-login and administrator-approval gated.
+- LABDAM's brand homepage is public. REPODAM's canonical source is the private
+  `Haru-today/repodam` repository; `Haru-today/labinsight` is its legacy alias.
+  The existing `/labinsight/` service route remains Google-login and
+  administrator-approval gated. A repository rename does not authorize route,
+  application ID, storage-key or authentication changes.
 - Preserve Caffeine Atlas's public URLs, QR destinations and research boundary.
 - Worker authentication source is a reviewed commit of this repository, pinned
   in `.github/workflows/manual-auth-trial-release.yml`. Do not create or assume
@@ -18,7 +21,9 @@ before editing; use the current source and release workflow over older notes.
 
 - Start with `git status --short --branch` and check the origin and base commit.
 - One task per branch and one writer per worktree. Use separate worktrees for
-  simultaneous agents; agree on file ownership before parallel edits.
+  simultaneous agents; agree on file ownership before parallel edits. Respect the
+  current app-development owner; collaboration tooling and backup work do not
+  authorize editing that owner's app files or branch. Hand off ownership first.
 - Make the smallest complete patch, preserve unrelated work, and use a draft
   PR with the tested commit and results. Never reset, clean, force-push, silently
   stash, or overwrite another agent's work. See `developer/ai-collaboration.md`.
@@ -57,6 +62,12 @@ before editing; use the current source and release workflow over older notes.
   applying a fix. Never execute a response as a command or patch automatically.
 - Review adapter tests: `node --test tests/ai-review.test.cjs tests/ai-google.test.cjs`
   use synthetic data and mock providers, without live account requests.
+- Implementation proposals: `developer/ai-implement.mjs` sends only explicit
+  source files and a task when `--send` is set. It writes a proposal outside the
+  repository and never applies it. The integration owner compares the current
+  root/HEAD/file hashes, reviews each change, applies only accepted named files,
+  and runs focused checks. `node --test tests/ai-implement.test.cjs` is a mocked
+  verification; it does not establish a live provider response or an applied fix.
 - Portal changes: select relevant `tests/*.test.cjs`; `npm test` runs the portal
   suite, and `npm run test:browser` needs its existing Playwright dependencies.
 - Run only checks justified by the change. Report local, CI, live and actual

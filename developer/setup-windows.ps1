@@ -6,7 +6,10 @@ New-Item -ItemType Directory -Force -Path $Root | Out-Null
 function Get-RepositoryIdentity([string]$Value) {
   # Read the stored URL before Git's insteadOf rewrites; keep local paths exact.
   if ($Value -match '^(https://([^/@]+@)?github\.com/|git@github\.com:|ssh://git@github\.com(:22)?/)([a-z0-9_.-]+/[a-z0-9_.-]+)/*$') {
-    return "github.com/" + ($Matches[4] -replace '\.git$', '').ToLowerInvariant()
+    $repository = ($Matches[4] -replace '\.git$', '').ToLowerInvariant()
+    # Preserve existing checkouts of the repository's former name.
+    if ($repository -eq "haru-today/labinsight") { $repository = "haru-today/repodam" }
+    return "github.com/" + $repository
   }
   return $Value
 }
@@ -32,7 +35,7 @@ function Clone-IfMissing([string]$Name, [string]$Url) {
   if ($LASTEXITCODE -ne 0) { throw "$dest 복제 실패. Git 인증과 원본 접근 권한을 확인하세요." }
 }
 Clone-IfMissing "labdam" "https://github.com/Haru-today/haru-today.github.io.git"
-Clone-IfMissing "labinsight" "https://github.com/Haru-today/labinsight.git"
+Clone-IfMissing "labinsight" "https://github.com/Haru-today/repodam.git"
 Clone-IfMissing "caffeine-atlas" "https://github.com/Haru-today/caffeine-atlas.git"
 if ($env:LABDAM_AUTH_REPO_URL) {
   Clone-IfMissing "labdam-auth" $env:LABDAM_AUTH_REPO_URL

@@ -26,7 +26,9 @@ GitHub를 통한 코드·인계 공유는 구분합니다.
 | `developer/ai-review.mjs` | 지정 snapshot·manifest 작성, 명시적 전송, 응답 검증·수집 구현 |
 | Claude 코드 검토 | 실제 응답 수집 후 findings 3개를 코드와 대조하고 수정 |
 | `developer/ai-google.mjs` | macOS 원본·설정 격리, 실효 권한 확인 및 실제 응답·코드 검토 성공 |
-| 로컬 개발 검사 | 통합 검사 68개 통과; 이후 Windows 경로 보완의 영향 범위 별도 검사 |
+| 로컬 개발 검사 | 최초 통합 68개 통과; 구현 인계·저장소 이름 호환 보완 후 관련 82개 통과 |
+| `developer/ai-implement.mjs` | 지정 snapshot으로 Claude 구현안 수집, hash 검증, 외부 JSON·diff 저장; Codex가 검토·적용·검사 |
+| Claude 웹 프로젝트 | 기존 프로젝트와 인계 자료 확인; 앱 작성자와 협업 도구 작성자 분리 |
 | GitHub CI | 최신 수정 커밋의 원격 CI 결과는 별도 확인 필요 |
 | 실제 Windows PC | 이번 Mac 확인으로 설정·인증 완료를 주장하지 않음 |
 
@@ -160,3 +162,50 @@ API 키 경로, 추가 크레딧 활성화와 전역 승인 우회는 사용하�
 병합·배포·인증 또는 관리자 승인 설정 변경은 별도 소유자 승인 범위입니다.
 기존 사용자 결정과 보안 경계를 유지하고, 계정의 잔여량·추가 과금 여부를
 연결 검사 성공만으로 보증하지 않습니다.
+
+## 구현 인계와 지속 협업 보완 (2026-10-23)
+
+기존 Claude 웹 프로젝트·공통 지침·컨텍스트와 진행 중인 앱 작업을 직접 확인했습니다.
+앱 구현은 기존 Claude 담당자가 이어가고, 이 PR은 협업 도구·백업·보안 검증을
+담당합니다. 개인 프로젝트 URL, 앱 대화 전문, Drive 식별자는 공개 문서에 넣지
+않습니다. 지속 협업은 `claude-project-collaboration.md`와 확장한 인계 양식을
+따릅니다. 두 서비스의 전체 대화가 자동 동기화된다는 뜻은 아닙니다.
+
+### 실제 Claude 구현 제안과 Codex 반영
+
+- 기반 HEAD: `f73b12a63d5dd0c813214b018bfd8ee1ebeb0f92`의 선택 파일 snapshot.
+- 요청: 기존 `claude.ai` Pro, Claude Code `2.1.309`, 응답 모델 `claude-opus-5-5`.
+- 시각: 23:43:51–23:46:30 KST (14:43:51–14:46:30 UTC).
+- 과제: `ai-doctor.mjs`가 현재 저장소 `repodam`과 과거 이름 `labinsight`를
+  같은 canonical 식별자로 보고하고, 유사한 잘못된 주소를 계속 거부하도록 수정.
+- 입력: `developer/ai-doctor.mjs`, `tests/ai-doctor.test.cjs`만 전송.
+- Payload SHA-256: `24e054c63141a8db180256ed671c786ecf8c4a0ad17a8d2ef5d4e84e64db8f9e`.
+- 결과: `completed` / `proposal_validated`, 실제 요청 확인, 두 파일 제안,
+  `sourceUnchanged: true`, `applied: false`. 이 값은 도구의 자동 적용이 없다는 뜻입니다.
+- Codex가 제안 diff·원본 해시·변경 범위를 검토한 뒤 두 파일을 직접 적용했습니다.
+  별도 내부 수정으로 Mac/Windows 초기 복제 URL을 canonical 이름으로 변경하면서
+  기존 `labinsight` 폴더·remote·미커밋 파일을 그대로 허용·보존하도록 보완했습니다.
+- 반영 후 관련 검사 82개 통과: workspace 10, doctor 24, review 21, Google 16,
+  implementation 10, 개발 보안 1. 새 두 doctor 검사는 실제 저장소에 요청하지 않는
+  합성 입력이며, 실제 Claude 구현 요청과 별도입니다.
+
+### 새 구현 인계 도구의 실제 Google 검토
+
+- 시각: 23:47:42–23:49:58 KST (14:47:42–14:49:58 UTC).
+- 대상: `developer/ai-implement.mjs` 한 파일.
+- 파일 SHA-256: `e7cf65bf38ed42d080be38fa99210c02ef9edc34d580afca5f650bc8de8cd19b`.
+- Payload SHA-256: `4affc63e37bf4585fd742a90910884c8d522b106d6a66f751b6ff836ed0d6b25`.
+- 결과: `completed` / `review_validated`, `findings: []`, 원본 보존 확인.
+- `agy 1.4.6`의 앞서 검증한 macOS 격리 경로를 사용했습니다. 원본 읽기·쓰기,
+  외부 쓰기·프로세스 실행 차단 검사 통과; 실효 추가 권한 0(3 scope), 도구 catalog 60.
+  모델명은 응답에 없으므로 추정하지 않습니다. 무결함이나 다른 OS의 실기기 검증을
+  의미하지 않습니다.
+
+### 백업·운영 경계
+
+개발 소스의 비공개 Drive 보조 백업을 별도로 구성합니다. 정확한 snapshot 커밋,
+파일별 해시, 제외 목록, 복원 검사 및 업로드 결과는 비공개 백업 목록에 기록합니다.
+진행 중인 앱 브랜치의 이후 커밋이나 미커밋 변경까지 자동 백업됐다고 해석하지
+않습니다. 개인정보·연구 원자료·실제 건강정보·D1 데이터·인증 정보·서명 키는
+대상에서 제외합니다. GitHub 개발 이력과 원본 Mac 작업을 보존하며 이 PR은
+병합·배포·운영 설정 변경을 수행하지 않습니다.

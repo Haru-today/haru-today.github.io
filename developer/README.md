@@ -7,9 +7,13 @@
 | 로컬 디렉터리 | GitHub |
 | --- | --- |
 | `LABDAM-Workspace/labdam` | `Haru-today/haru-today.github.io` |
-| `LABDAM-Workspace/labinsight` | `Haru-today/labinsight` |
+| `LABDAM-Workspace/labinsight` | `https://github.com/Haru-today/repodam.git` (기존 alias: `Haru-today/labinsight`) |
 | `LABDAM-Workspace/caffeine-atlas` | `Haru-today/caffeine-atlas` |
 | `LABDAM-Workspace/labdam-auth` | 인증 Worker 원본 URL 확인 시에만 선택적으로 복제 |
+
+REPODAM의 현재 원본 저장소는 비공개 `Haru-today/repodam`입니다. 기존
+`labinsight` 로컬 폴더와 서비스 `/labinsight/` 경로는 호환성을 위해 유지합니다.
+저장소 이름을 확인하는 작업으로 기존 origin·앱 ID·인증·배포를 재설정하지 않습니다.
 
 ### macOS
 
@@ -35,6 +39,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 공통 규칙은 각 저장소의 `AGENTS.md`이며 도구별 진입 파일이 이를 가져옵니다.
 브랜치·worktree·계정 로그인·PC 인계 방법은 [협업 안내](ai-collaboration.md)를 따르세요.
 같은 작업을 다른 AI에서 이어갈 때는 [인계 양식](handoff-template.md)을 사용합니다.
+Claude 웹의 앱 개발 담당과 Codex의 협업·백업 담당을 나누는 방법은
+[Claude 프로젝트 협업 안내](claude-project-collaboration.md)를 확인합니다.
+지정 코드의 구현 제안은 같은 안내의 `ai-implement.mjs` 절차로 검토한 뒤 반영합니다.
 현재 협업 구성의 남은 일은 [작업 인계](handoffs/ai-collaboration-20261023.md)에 기록합니다.
 
 - 사용자 기기에서 `node developer/ai-doctor.mjs`로 Git·CLI 상태를 확인합니다.

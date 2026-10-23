@@ -79,6 +79,59 @@ test('default diagnostics never authenticate, create a directory or request a mo
   assert.equal(JSON.stringify(result.report).includes(SECRET), false);
 });
 
+const remoteUrl = (url) => (command, args) => command === 'git' && args.slice(3).join(' ') === 'config --get remote.origin.url'
+  ? ok(`${url}\n`) : undefined;
+
+test('repodam and legacy labinsight remotes report the canonical repository; the portal is unchanged', async () => {
+  const cases = [
+    ['https://github.com/Haru-today/repodam.git', 'Haru-today/repodam'],
+    ['https://github.com/Haru-today/repodam', 'Haru-today/repodam'],
+    ['https://github.com/Haru-today/repodam/', 'Haru-today/repodam'],
+    [`https://${SECRET}@github.com/Haru-today/repodam.git`, 'Haru-today/repodam'],
+    ['git@github.com:Haru-today/repodam.git', 'Haru-today/repodam'],
+    ['git@github.com:Haru-today/repodam', 'Haru-today/repodam'],
+    ['HTTPS://GitHub.com/haru-today/RepoDam.GIT', 'Haru-today/repodam'],
+    ['git@GITHUB.COM:HARU-TODAY/REPODAM.git', 'Haru-today/repodam'],
+    ['https://github.com/Haru-today/labinsight.git', 'Haru-today/repodam'],
+    [`https://${SECRET}@github.com/Haru-today/labinsight`, 'Haru-today/repodam'],
+    ['git@github.com:Haru-today/labinsight.git', 'Haru-today/repodam'],
+    ['https://github.com/HARU-TODAY/LabInsight.git', 'Haru-today/repodam'],
+    ['https://github.com/Haru-today/haru-today.github.io.git', 'Haru-today/haru-today.github.io'],
+    ['git@github.com:Haru-today/haru-today.github.io', 'Haru-today/haru-today.github.io'],
+    ['https://github.com/haru-today/Haru-Today.GitHub.io', 'Haru-today/haru-today.github.io'],
+  ];
+  for (const [url, expected] of cases) {
+    const result = await scenario({ probeClaude: false, override: remoteUrl(url) });
+    assert.equal(result.report.project.repository, expected);
+    assert.equal(JSON.stringify(result.report).includes(SECRET), false);
+  }
+});
+
+test('unrelated and deceptive remotes stay unrecognized without exposing raw values', async () => {
+  const remotes = [
+    'https://github.com/Other-org/repodam.git',
+    'https://github.com/Haru-today/repodam-fork.git',
+    'https://github.com/Haru-today/labinsight2.git',
+    'https://github.com/Haru-today/repodam.git.evil',
+    'https://github.com/Haru-today/repodam/extra.git',
+    'https://github.com/Haru-today/repodam.git?ref=1',
+    'https://github.com.evil.example/Haru-today/repodam.git',
+    'https://evil.example/github.com/Haru-today/repodam.git',
+    `https://${SECRET}@evil.example/Haru-today/repodam.git`,
+    'https://evil.example?@github.com/Haru-today/repodam.git',
+    'https://evil.example#@github.com/Haru-today/repodam.git',
+    'https://github.com:443@evil.example/Haru-today/repodam.git',
+    'http://github.com/Haru-today/repodam.git',
+    'git@evil.example:Haru-today/repodam.git',
+    'git@github.com:Haru-today/labinsight.git\nhttps://evil.example/Haru-today/repodam.git',
+  ];
+  for (const url of remotes) {
+    const result = await scenario({ probeClaude: false, override: remoteUrl(url) });
+    assert.equal(result.report.project.repository, 'unrecognized');
+    assert.equal(JSON.stringify(result.report).includes(SECRET), false);
+  }
+});
+
 test('missing CLIs are not mistaken for a working connection', async () => {
   const result = await scenario({ override: (command) => command !== 'git' ? { status: null, stdout: '', error: 'not_found' } : undefined });
   assert.equal(result.report.tools.claude.installation, 'not_found');

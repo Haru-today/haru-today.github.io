@@ -96,10 +96,11 @@ function inspectTool(name, invoke, options) {
   };
 }
 
+// The renamed repodam repository and its legacy labinsight name share one canonical identifier.
 function knownRepository(remote) {
-  const match = remote.trim().match(/^(?:https:\/\/(?:[^\s/@]+@)?github\.com\/|git@github\.com:)(Haru-today\/(?:haru-today\.github\.io|labinsight))(?:\.git)?\/?$/i);
+  const match = remote.trim().match(/^(?:https:\/\/(?:[^\s/@?#\\]+@)?github\.com\/|git@github\.com:)Haru-today\/(haru-today\.github\.io|repodam|labinsight)(?:\.git)?\/?$/i);
   if (!match) return 'unrecognized';
-  return /\/labinsight$/i.test(match[1]) ? 'Haru-today/labinsight' : 'Haru-today/haru-today.github.io';
+  return /^haru-today\.github\.io$/i.test(match[1]) ? 'Haru-today/haru-today.github.io' : 'Haru-today/repodam';
 }
 
 function inspectProject(invoke, options) {

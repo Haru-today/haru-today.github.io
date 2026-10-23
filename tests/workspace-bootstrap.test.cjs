@@ -8,7 +8,7 @@ const { spawnSync } = require("node:child_process");
 
 // Real local Git repositories; no GitHub, credentials, or user workspace writes.
 const names = ["labdam", "labinsight", "caffeine-atlas"];
-const repositories = ["haru-today.github.io.git", "labinsight.git", "caffeine-atlas.git"];
+const repositories = ["haru-today.github.io.git", "repodam.git", "caffeine-atlas.git"];
 function fixture(t) {
   const temp = fs.mkdtempSync(path.join(os.tmpdir(), "labdam-setup-"));
   t.after(() => fs.rmSync(temp, { recursive: true, force: true }));
@@ -47,6 +47,25 @@ test("workspace setup creates three repos in a spaced path and preserves uncommi
   assert.equal(second.status, 0, second.stderr || String(second.error));
   assert.equal(fs.readFileSync(sentinel, "utf8"), "preserve local work\n");
   assert.deepEqual(fs.readFileSync(path.join(root, "labinsight", ".git", "config")), config);
+});
+
+test("canonical app source is cloned while legacy origins and dirty app files remain unchanged", t => {
+  const { temp, run, git } = fixture(t);
+  const root = path.join(temp, "app rename");
+  assert.equal(run(root).status, 0);
+  const app = path.join(root, "labinsight");
+  assert.equal(git("-C", app, "config", "--get", "remote.origin.url"), "https://github.com/Haru-today/repodam.git");
+  const sentinel = path.join(app, "uncommitted.txt");
+  fs.writeFileSync(sentinel, "preserve app work\n");
+  for (const origin of ["https://github.com/Haru-today/labinsight.git", "git@github.com:Haru-today/labinsight.git", "ssh://git@github.com/HARU-TODAY/REPODAM.git"]) {
+    git("-C", app, "remote", "set-url", "origin", origin);
+    assert.equal(run(root).status, 0);
+    assert.equal(git("-C", app, "config", "--get", "remote.origin.url"), origin);
+    assert.equal(fs.readFileSync(sentinel, "utf8"), "preserve app work\n");
+  }
+  git("-C", app, "remote", "set-url", "origin", "https://github.com/unrelated/repodam.git");
+  assert.notEqual(run(root).status, 0);
+  assert.equal(fs.readFileSync(sentinel, "utf8"), "preserve app work\n");
 });
 
 test("nonrepository collision stops without overwriting files or creating later repos", t => {

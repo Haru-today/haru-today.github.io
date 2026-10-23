@@ -18,7 +18,10 @@ repository_identity() {
   lower="$(printf '%s' "$value" | LC_ALL=C tr '[:upper:]' '[:lower:]')"
   if [[ "$lower" =~ $github_pattern ]]; then
     local repository="${BASH_REMATCH[4]}"
-    printf 'github.com/%s' "${repository%.git}"
+    repository="${repository%.git}"
+    # Preserve existing checkouts of the repository's former name.
+    if [ "$repository" = "haru-today/labinsight" ]; then repository="haru-today/repodam"; fi
+    printf 'github.com/%s' "$repository"
   else
     printf '%s' "$value"
   fi
@@ -55,7 +58,7 @@ clone_if_missing() {
 }
 
 clone_if_missing "labdam" "https://github.com/Haru-today/haru-today.github.io.git"
-clone_if_missing "labinsight" "https://github.com/Haru-today/labinsight.git"
+clone_if_missing "labinsight" "https://github.com/Haru-today/repodam.git"
 clone_if_missing "caffeine-atlas" "https://github.com/Haru-today/caffeine-atlas.git"
 
 if [ -n "${LABDAM_AUTH_REPO_URL:-}" ]; then
