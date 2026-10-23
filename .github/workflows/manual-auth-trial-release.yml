@@ -31,7 +31,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           HAS_SOURCE_DEPLOY_KEY: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY != '' }}
-          REVIEWED_APP_SHA: 6451a4794d61699bacae86526ad65fe844d7a403
+          REVIEWED_APP_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
         run: |
           if [ "$HAS_SOURCE_DEPLOY_KEY" = true ]; then
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Haru-today/labinsight
-          ref: 6451a4794d61699bacae86526ad65fe844d7a403
+          ref: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           ssh-key: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY }}
@@ -63,7 +63,7 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: 6451a4794d61699bacae86526ad65fe844d7a403
+          LABINSIGHT_RELEASE_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node <<'NODE'
@@ -192,7 +192,7 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: 6451a4794d61699bacae86526ad65fe844d7a403
+          LABINSIGHT_RELEASE_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
           LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
         run: |
           node --input-type=module <<'NODE'
