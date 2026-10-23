@@ -12,7 +12,8 @@ test("private-source transition publishes only the reviewed legacy handoffs, not
     const html=fs.readFileSync(path.join(root,file),"utf8");
     assert.doesNotMatch(html,/<(?:form|input|script)\b|localStorage|sessionStorage/i,file);
     assert.ok(html.includes('name="robots" content="noindex,nofollow"'),file);
-    assert.ok(html.includes('https://labdam-free-approval.jleegenomics.workers.dev/'),file);
+    const targets = [...html.matchAll(/href="([^"]+)"/g)].map(match => new URL(match[1], "https://haru-today.github.io/labinsight/"));
+    assert.ok(targets.some(target => target.origin === "https://labdam-free-approval.jleegenomics.workers.dev"),file);
   }
   for(const file of ["app.js","styles.css","ocr-review.js","carepath.html","carepath.js","runtime-config.js"])
     assert.equal(fs.existsSync(path.join(root,file)),false,file+" must stay approval-protected");
