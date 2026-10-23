@@ -17,6 +17,9 @@ test("private app checkout fails before build/deploy without source access and n
   assert.match(yaml.slice(preflight, checkout), /exit 1/);
   assert.match(yaml.slice(checkout, build), /token: \$\{\{ secrets\.LABINSIGHT_SOURCE_TOKEN \|\| github\.token \}\}/);
   assert.match(yaml.slice(checkout, build), /persist-credentials: false/);
+  assert.match(yaml.slice(preflight, checkout), /HAS_SOURCE_DEPLOY_KEY: \$\{\{ secrets\.LABINSIGHT_SOURCE_DEPLOY_KEY != '' \}\}/);
+  assert.match(yaml.slice(checkout, build), /ssh-key: \$\{\{ secrets\.LABINSIGHT_SOURCE_DEPLOY_KEY \}\}/);
+  assert.match(yaml.slice(checkout, build), /ssh-strict: true/);
   assert.equal((yaml.match(/LABINSIGHT_SOURCE_TOKEN/g) || []).length, 3);
 });
 
