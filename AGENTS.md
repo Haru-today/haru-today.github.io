@@ -22,6 +22,9 @@ before editing; use the current source and release workflow over older notes.
 - Make the smallest complete patch, preserve unrelated work, and use a draft
   PR with the tested commit and results. Never reset, clean, force-push, silently
   stash, or overwrite another agent's work. See `developer/ai-collaboration.md`.
+- When resuming work, read the task handoff and verify its branch/code commit.
+  Update the task handoff before switching agents; use
+  `developer/handoff-template.md`. Do not treat chat history as shared state.
 - Before changing computers, commit only reviewed task files and push the task
   branch. On the other computer fetch, inspect local changes and ancestry, then
   use a fast-forward update only when clean. GitHub does not sync uncommitted files.

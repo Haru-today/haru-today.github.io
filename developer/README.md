@@ -34,6 +34,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 
 공통 규칙은 각 저장소의 `AGENTS.md`이며 도구별 진입 파일이 이를 가져옵니다.
 브랜치·worktree·계정 로그인·PC 인계 방법은 [협업 안내](ai-collaboration.md)를 따르세요.
+같은 작업을 다른 AI에서 이어갈 때는 [인계 양식](handoff-template.md)을 사용합니다.
+현재 협업 구성의 남은 일은 [작업 인계](handoffs/ai-collaboration-20261023.md)에 기록합니다.
 
 - Windows와 Mac에서 같은 저장소를 각자 clone하고 Codex에서 필요한 하위 폴더를 엽니다.
 - 수정 전 `git status`로 작업 내용을 확인합니다.
@@ -44,7 +46,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 ## REPODAM 개발 우선순위
 
 1. 인증 Worker의 최신 소스 버전과 해당 배포 콘텐츠를 확인합니다. 공개 Pages 리다이렉트와 인증 보호 앱을 구별합니다.
-2. 임상 안전성 PR #33과 성분 안내 PR #34는 병합 및 r4 배포 완료 상태입니다. 이후 변경도 원본 참고치와 판정 보류 경계를 유지합니다.
+2. 임상 안전성 및 성분 안내 변경을 이어갈 때는 해당 앱 저장소의 PR과 고정된 배포 커밋을 확인합니다. 이후 변경도 원본 참고치와 판정 보류 경계를 유지합니다.
 3. CarePath가 로그인 보호 Worker에 포함되었는지 확인합니다.
 4. 배포된 건강기능식품 안내는 **영양소 결핍 또는 복용 필요성을 혈액검사 1개 수치로 단정하지 않는** 경계를 유지합니다. 검사 근거, 결핍 확인 필요성, 약물·질환 금기, 원본 참고범위, 전문가 상담 경계를 먼저 정의합니다.
 5. 실제 사용자 건강 데이터를 테스트나 공개 GitHub/PR 로그에 업로드하지 않습니다.
