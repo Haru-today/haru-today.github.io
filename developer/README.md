@@ -14,11 +14,11 @@
 ### macOS
 
 ```bash
-curl -fL -o /tmp/labdam-setup.sh https://raw.githubusercontent.com/Haru-today/haru-today.github.io/chore/labdam-workspace-bootstrap-20261020/developer/setup-macos.sh
+curl -fL -o /tmp/labdam-setup.sh https://raw.githubusercontent.com/Haru-today/haru-today.github.io/main/developer/setup-macos.sh
 bash /tmp/labdam-setup.sh
 ```
 
-다운로드 실행 전에 스크립트를 열어 검토하세요. 저장소 PR이 병합되면 URL의 브랜치를 `main`으로 바꿀 수 있습니다.
+다운로드 실행 전에 스크립트를 열어 검토하세요. 위 주소는 병합된 `main`의 설정 스크립트입니다.
 
 ### Windows PowerShell
 
@@ -30,7 +30,10 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-windows.ps1
 
 기본 경로는 양쪽 모두 홈 디렉터리 아래 `LABDAM-Workspace`입니다. 다른 위치에 만들려면 Mac은 첫 번째 인자, Windows는 `-Root` 매개변수를 전달합니다.
 
-## Codex 사용
+## Codex · Claude Code · Gemini CLI 사용
+
+공통 규칙은 각 저장소의 `AGENTS.md`이며 도구별 진입 파일이 이를 가져옵니다.
+브랜치·worktree·계정 로그인·PC 인계 방법은 [협업 안내](ai-collaboration.md)를 따르세요.
 
 - Windows와 Mac에서 같은 저장소를 각자 clone하고 Codex에서 필요한 하위 폴더를 엽니다.
 - 수정 전 `git status`로 작업 내용을 확인합니다.

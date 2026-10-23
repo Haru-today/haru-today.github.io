@@ -19,6 +19,7 @@ function fixture(t) {
   const git = (...args) => {
     const r = spawnSync("git", args, { env, encoding: "utf8", timeout: 20000 });
     assert.equal(r.status, 0, r.stderr || String(r.error));
+    return r.stdout.trim();
   };
   for (const repo of repositories) git("init", "--bare", path.join(sources, repo));
   const fileUrl = require("node:url").pathToFileURL(sources + path.sep).href;
@@ -29,7 +30,7 @@ function fixture(t) {
     const args = windows ? ["-NoProfile", "-File", script, "-Root", root] : [script, root];
     return spawnSync(windows ? "pwsh" : "bash", args, { env: { ...env, ...extra }, encoding: "utf8", timeout: 30000 });
   };
-  return { temp, sources, run };
+  return { temp, sources, run, git };
 }
 
 test("workspace setup creates three repos in a spaced path and preserves uncommitted work on repeat", t => {
@@ -73,4 +74,92 @@ test("explicit auth source is optional and cloned only when supplied", t => {
   const r = run(root, { LABDAM_AUTH_REPO_URL: path.join(sources, repositories[0]) });
   assert.equal(r.status, 0, r.stderr || String(r.error));
   assert.ok(fs.statSync(path.join(root, "labdam-auth", ".git")).isDirectory());
+  const repeat = run(root, { LABDAM_AUTH_REPO_URL: path.join(sources, repositories[0]) });
+  assert.equal(repeat.status, 0, repeat.stderr || String(repeat.error));
+});
+
+test("linked worktree is recognized and preserves its branch and uncommitted work", t => {
+  const { temp, run, git } = fixture(t);
+  const root = path.join(temp, "linked workspace");
+  const seed = path.join(temp, "seed");
+  const dest = path.join(root, "labdam");
+  git("clone", "https://github.com/Haru-today/haru-today.github.io.git", seed);
+  git("-C", seed, "-c", "user.name=Workspace test", "-c", "user.email=workspace@example.invalid", "commit", "--allow-empty", "-m", "fixture");
+  git("-C", seed, "worktree", "add", "-b", "fixture-linked", dest);
+  const head = git("-C", dest, "rev-parse", "HEAD");
+  const marker = fs.readFileSync(path.join(dest, ".git"));
+  const sentinel = path.join(dest, "uncommitted.txt");
+  fs.writeFileSync(sentinel, "preserve linked work\n");
+  const result = run(root);
+  assert.equal(result.status, 0, result.stderr || String(result.error));
+  assert.deepEqual(fs.readFileSync(path.join(dest, ".git")), marker);
+  assert.equal(fs.readFileSync(sentinel, "utf8"), "preserve linked work\n");
+  assert.equal(git("-C", dest, "rev-parse", "HEAD"), head);
+  assert.equal(git("-C", dest, "branch", "--show-current"), "fixture-linked");
+});
+
+test("unexpected origin stops without disclosing URL credentials or touching later repositories", t => {
+  const { temp, run, git } = fixture(t);
+  const root = path.join(temp, "wrong origin");
+  const dest = path.join(root, "labdam");
+  git("init", dest);
+  const credential = "fixture-secret-not-real";
+  const origin = `https://${credential}@github.com/unexpected/project.git`;
+  git("-C", dest, "remote", "add", "origin", origin);
+  const sentinel = path.join(dest, "uncommitted.txt");
+  fs.writeFileSync(sentinel, "preserve");
+  const result = run(root);
+  assert.notEqual(result.status, 0);
+  assert.equal(fs.readFileSync(sentinel, "utf8"), "preserve");
+  assert.equal(git("-C", dest, "config", "--get", "remote.origin.url"), origin);
+  assert.ok(!fs.existsSync(path.join(root, "labinsight")));
+  assert.ok(!(result.stdout + result.stderr).includes(credential));
+  assert.ok(!(result.stdout + result.stderr).includes(origin));
+});
+
+test("equivalent GitHub SSH and HTTPS origins preserve existing repositories", t => {
+  const { temp, run, git } = fixture(t);
+  const origins = [
+    "git@github.com:Haru-today/haru-today.github.io.git",
+    "ssh://git@github.com/Haru-today/haru-today.github.io",
+    "ssh://git@github.com:22/haru-today/haru-today.github.io.git",
+    "https://fixture-secret-not-real@github.com/HARU-TODAY/haru-today.github.io.git/",
+  ];
+  for (const [index, origin] of origins.entries()) {
+    const root = path.join(temp, `equivalent ${index}`);
+    const dest = path.join(root, "labdam");
+    git("init", dest);
+    git("-C", dest, "remote", "add", "origin", origin);
+    const result = run(root);
+    assert.equal(result.status, 0, result.stderr || String(result.error));
+    assert.equal(git("-C", dest, "config", "--get", "remote.origin.url"), origin);
+    assert.ok(!(result.stdout + result.stderr).includes("fixture-secret-not-real"));
+  }
+});
+
+test("missing or ambiguous origin stops before cloning later repositories", t => {
+  const { temp, run, git } = fixture(t);
+  for (const ambiguous of [false, true]) {
+    const root = path.join(temp, ambiguous ? "multiple origins" : "no origin");
+    const dest = path.join(root, "labdam");
+    git("init", dest);
+    if (ambiguous) {
+      git("-C", dest, "remote", "add", "origin", "https://github.com/Haru-today/haru-today.github.io.git");
+      git("-C", dest, "config", "--add", "remote.origin.url", "https://github.com/other/project.git");
+    }
+    assert.notEqual(run(root).status, 0);
+    assert.ok(!fs.existsSync(path.join(root, "labinsight")));
+  }
+});
+
+test("failed optional auth clone does not disclose credentials from its URL", t => {
+  const { temp, sources, run, git } = fixture(t);
+  const credential = "fixture-secret-not-real";
+  const prefix = `https://${credential}@github.com/Haru-today/`;
+  const fileUrl = require("node:url").pathToFileURL(sources + path.sep).href;
+  git("config", "--global", "--add", `url.${fileUrl}.insteadOf`, prefix);
+  const result = run(path.join(temp, "auth clone failure"), { LABDAM_AUTH_REPO_URL: prefix + "missing.git" });
+  assert.notEqual(result.status, 0);
+  assert.ok(!(result.stdout + result.stderr).includes(credential));
+  assert.ok(!(result.stdout + result.stderr).includes(prefix));
 });
