@@ -44,3 +44,9 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 - 수동 배포 workflow의 앱 소스 checkout은 새 이름을 사용합니다. 고정된 앱 커밋 SHA, 읽기 전용 배포 키와 `LABINSIGHT_SOURCE_*` 비밀 이름은 그대로입니다.
 - 서비스 주소 경로 `/labinsight/`, 브라우저 저장 키, 앱 ID는 기존 사용자 기록·설치 앱 호환을 위해 바꾸지 않습니다.
 - 각 PC의 기존 복제본은 `git remote set-url origin https://github.com/Haru-today/repodam.git`으로 원격 주소를 갱신하세요.
+
+## 2026-10-25 REPODAM 새 화면 배포 준비
+
+- 수동 배포 workflow가 REPODAM `main`의 `b444434`(새 브랜드 화면 1·2단계, Haru-today/repodam#62·#63)를 가져오도록 고정값을 바꿨습니다.
+- 승인제 Worker 빌드 스냅숏은 `aab3aeb`입니다. 기존 `53bf3c8`에 REPODAM 브랜드 글꼴 4개(`fonts/*.subset.woff2`, OFL)를 `/labinsight/fonts/`로 복사하는 변경만 더했습니다. 글꼴도 다른 REPODAM 파일처럼 로그인과 승인을 거쳐야 받을 수 있습니다.
+- 배포는 여전히 Actions에서 확인 문구를 입력해야만 실행됩니다.
