@@ -7,7 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#f7faff">
 <meta name="color-scheme" content="light">
-<title>로그인·가입 신청 | LABDAM</title>
+<title>리포담 로그인 | REPODAM · LABDAM</title>
 <style>
 :root{
   font-family:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR","Malgun Gothic",sans-serif;
@@ -121,20 +121,37 @@ h1{font-size:clamp(24px,4vw,29px);line-height:1.35;margin-bottom:11px}
 }
 @media(max-width:350px){.login-panel{padding:29px 17px 22px}.site-header{padding:18px 15px}}
 @media(prefers-reduced-motion:reduce){.google-button{transition:none}.google-button:hover{transform:none}}
+/* REPODAM is the service; LABDAM remains the separate public homepage. */
+:root{color:#17324D;background:#EEF6F6}
+body{background:#EEF6F6}
+a{color:#1F7F83}
+a:focus-visible{outline-color:#1F7F83}
+.brand,.brand-name,h1{color:#17324D}
+.brand-mark{background:#1F7F83;box-shadow:none}
+.brand-name small{display:block;font-size:11px;letter-spacing:0;color:#1F7F83}
+.eyebrow{color:#1F7F83;letter-spacing:.04em}
+.login-panel{border-color:#D6E2E3;box-shadow:none}
+.login-box{background:#F7FAFA;border-color:#D6E2E3}
+.google-button{background:#1F7F83;border-color:#1F7F83;box-shadow:none}
+.google-button:hover{background:#17686C;box-shadow:none}
+.caffeine-card{background:#F7FAFA;border-color:#D6E2E3;color:#17324D}
+.caffeine-card:hover{background:#EEF6F6;border-color:#1F7F83}
+.public-badge{background:#DCEEEE;color:#17686C}
+.site-footer a{display:inline-block;padding:10px}
 </style>
 </head>
 <body>
 <header class="site-header">
-  <a class="brand" href="/login.html" aria-label="LABDAM 로그인">
-    <span class="brand-mark" aria-hidden="true">L</span><span class="brand-name">LABDAM<span aria-hidden="true">.</span></span>
+  <a class="brand" href="/labinsight/" aria-label="리포담 홈">
+    <span class="brand-mark" aria-hidden="true">R</span><span class="brand-name">리포담<small>REPODAM · by LABDAM</small></span>
   </a>
-  <a class="header-link" href="https://haru-today.github.io/" aria-label="LABDAM 서비스 소개로 이동">서비스 소개 <span aria-hidden="true">↗</span></a>
+  <a class="header-link" href="https://haru-today.github.io/">랩담 홈페이지 <span aria-hidden="true">↗</span></a>
 </header>
 <main>
   <article class="login-panel" aria-labelledby="welcome-title">
-    <p class="eyebrow">LABDAM ACCOUNT</p>
-    <h1 id="welcome-title"><span class="welcome-line">LABDAM에 오신 것을</span><span class="welcome-line">환영합니다.</span></h1>
-    <p class="description">LABDAM 홈페이지는 자유롭게 둘러보고, REPODAM은 로그인 후 시작하세요.</p>
+    <p class="eyebrow">랩담의 첫 서비스, 리포담</p>
+    <h1 id="welcome-title"><span class="welcome-line">리포담을 시작하려면</span><span class="welcome-line">로그인해 주세요.</span></h1>
+    <p class="description">검진 결과를 내 결과지 기준으로 정리하는 리포담입니다. 로그인과 관리자 승인 후 리포담 홈으로 이동합니다.</p>
 
     <section class="login-box" aria-labelledby="login-heading">
       <h2 id="login-heading">Google 계정으로 가입 신청</h2>
@@ -169,11 +186,24 @@ h1{font-size:clamp(24px,4vw,29px);line-height:1.35;margin-bottom:11px}
     </section>
   </article>
 </main>
-<footer class="site-footer">© LABDAM · Biohealth Research &amp; Digital Health</footer>
+<footer class="site-footer"><a href="https://haru-today.github.io/">랩담 홈페이지</a> · 리포담 REPODAM</footer>
 <script>(function(){
- const p=new URLSearchParams(location.search),next=p.get("next"),start=document.getElementById("googleStart");
- if(next&&next.startsWith("/")&&!next.startsWith("//"))start.href="/auth/start?next="+encodeURIComponent(next);
+ const p=new URLSearchParams(location.search),start=document.getElementById("googleStart");
+ function safeDestination(value){
+  if(typeof value!=="string"||value.length>350||!value.startsWith("/")||value.startsWith("//")||/[\u0000-\u0020\\]|%(?:0[0-9a-f]|1[0-9a-f]|20|2f|5c)/i.test(value))return "/labinsight/";
+  try{const u=new URL(value,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/labinsight/")||["/account.html","/admin.html"].includes(u.pathname)))return u.pathname+u.search;}catch(_){}
+  return "/labinsight/";
+ }
+ const next=safeDestination(p.get("next"));
+ let switching=false;
+ start.href="/auth/start?next="+encodeURIComponent(next);
+ // Existing approved sessions resume without another Google account switch.
+ fetch("/api/session-status",{credentials:"same-origin",cache:"no-store"})
+  .then(r=>{if(!r.ok)throw new Error("session_unavailable");return r.json();})
+  .then(s=>{if(!switching&&s.authenticated===true&&p.get("switch")!=="1")location.replace(s.status==="approved"?next:"/pending.html");})
+  .catch(()=>{document.getElementById("localDataStatus").textContent="로그인 상태를 확인하지 못했습니다. Google 계정으로 계속하거나 잠시 후 다시 시도해 주세요.";});
  start.addEventListener("click",event=>{
+  switching=true;
   // This is an account switch: discard any previous same-origin health report
   // before starting Google OAuth, not while merely reading the login page.
   try{

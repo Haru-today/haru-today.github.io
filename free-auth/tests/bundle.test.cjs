@@ -6,6 +6,20 @@ const path = require("node:path");
 const root = path.resolve(__dirname, "../dist");
 const read = rel => fs.readFileSync(path.join(root, rel), "utf8");
 
+test("every protected page navigation points to a bundled file or an intentional public URL", () => {
+  for(const file of ["index.html","checkup.html","report.html","hospitals.html","carepath.html","account.html"]){
+    const html=read("labinsight/"+file);
+    for(const [,href] of html.matchAll(/href="([^"]+)"/g)){
+      if(href.startsWith('#')||href.startsWith('mailto:'))continue;
+      const u=new URL(href,"https://worker.invalid/labinsight/"+file);
+      if(u.origin!=="https://worker.invalid")continue;
+      const target=path.join(root,decodeURIComponent(u.pathname));
+      assert.ok(fs.existsSync(target),file+": missing navigation "+u.pathname);
+    }
+    assert.match(html,/href="https:\/\/haru-today\.github\.io\/"/);
+  }
+});
+
 test("free Workers bundle contains only LABDAM and REPODAM protected assets", () => {
   assert.deepEqual(fs.readdirSync(root).sort(), [
     "account.html", "admin.html", "assets", "favicon.svg", "index.html",

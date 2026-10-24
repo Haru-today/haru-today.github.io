@@ -6,11 +6,11 @@ const CAFFEINE='https://haru-today.github.io';
 function fakeReply(url) {
   const pathname=new URL(url).pathname;
   const isCaffeine=url.startsWith(CAFFEINE);
-  const isPublic=['/healthz','/','/index.html','/assets/portal-redesign.css','/assets/portal-session.js','/favicon.svg','/privacy.html','/terms.html','/api/session-status','/login.html','/pending.html','/membership-privacy.html'].includes(pathname);
-  const isRedirect=['/labinsight/','/labinsight/checkup.html','/labinsight/report.html','/labinsight/carepath.html','/admin.html'].includes(pathname);
+  const isPublic=['/healthz','/assets/portal-redesign.css','/assets/portal-session.js','/favicon.svg','/privacy.html','/terms.html','/api/session-status','/login.html','/pending.html','/membership-privacy.html'].includes(pathname);
+  const isRedirect=['/','/index.html','/labinsight/','/labinsight/checkup.html','/labinsight/report.html','/labinsight/carepath.html','/admin.html'].includes(pathname);
   const status=isCaffeine||isPublic?200:isRedirect?303:pathname==='/caffeine-atlas/'?404:401;
   const headers={'Cache-Control':'private, no-store, max-age=0'};
-  if(isRedirect)headers.Location=ORIGIN+'/?next=%2Flabinsight%2F#login';
+  if(isRedirect)headers.Location=ORIGIN+'/login.html?next='+encodeURIComponent(['/','/index.html'].includes(pathname)?'/labinsight/':pathname);
   return new Response(null,{status,headers});
 }
 test('realistic anonymous Worker gate plus unchanged public Caffeine URLs pass',async()=>{

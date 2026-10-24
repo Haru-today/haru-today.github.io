@@ -5,7 +5,7 @@
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
 // Public build identifier for release verification; not a secret or credential.
-const RELEASE_ID = "labdam-auth-20261023-public-brand";
+const RELEASE_ID = "repodam-auth-20261025-dedicated-login";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
@@ -97,16 +97,16 @@ function putCookie(response, name, value, maxAge) {
 }
 function safeNext(value) {
   if (typeof value !== "string" || value.length > 350 ||
-      !value.startsWith("/") || value.startsWith("//") || /[\r\n\\]/.test(value)) return "/";
+      !value.startsWith("/") || value.startsWith("//") || /[\u0000-\u0020\\]|%(?:0[0-9a-f]|1[0-9a-f]|20|2f|5c)/i.test(value)) return "/labinsight/";
   try {
     const u = new URL(value, "https://example.test");
-    if (u.origin !== "https://example.test") return "/";
-    if (u.pathname === "/" || u.pathname.startsWith("/labinsight/") ||
+    if (u.origin !== "https://example.test") return "/labinsight/";
+    if (u.pathname.startsWith("/labinsight/") ||
         u.pathname === "/account.html" || u.pathname === "/admin.html") {
       return u.pathname + u.search;
     }
   } catch (_) { /* bad path */ }
-  return "/";
+  return "/labinsight/";
 }
 function bytesOf(segment) {
   if (!/^[a-zA-Z0-9_-]+$/.test(segment)) throw new LoginError(401, "Google 인증 정보가 올바르지 않습니다.");
@@ -471,6 +471,12 @@ async function handleRequest(request, env, opts = {}) {
   const origin = validOrigin(env);
   if (!origin || url.origin !== origin) return simple(503, "허용된 로그인 서비스 주소가 설정되지 않았습니다.");
   try {
+    // This host is REPODAM; the public LABDAM homepage lives on Pages.
+    // Legacy /#login bookmarks also reach the dedicated service login.
+    if (["/", "/index.html", "/login"].includes(path)) {
+      if (!["GET", "HEAD"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
+      return redirect("/login.html?next=" + encodeURIComponent(safeNext(url.searchParams.get("next"))), origin);
+    }
     if (path === "/healthz" && method === "GET") {
       // Read-only readiness: missing OAuth secrets, D1 or static assets must
       // never be reported as a healthy release. This does not test real Google
@@ -490,8 +496,13 @@ async function handleRequest(request, env, opts = {}) {
       const member = await currentSession(request, env, opts);
       return json(200, member ? { authenticated: true, status: member.status } : { authenticated: false });
     }
-    if (path === "/login" && method === "GET") return redirect("/#login", origin);
     if (path === "/login.html" && ["GET", "HEAD"].includes(method)) {
+      if (cookieMap(request).get(COOKIE_SESSION) && url.searchParams.get("switch") !== "1") {
+        configured(env);
+        const member = await currentSession(request, env, opts);
+        if (member) return redirect(member.status === "approved"
+          ? safeNext(url.searchParams.get("next")) : "/pending.html", origin);
+      }
       return await assetFor(request, env, "/login.html");
     }
     if (path === "/membership-privacy.html" && ["GET", "HEAD"].includes(method)) {
@@ -514,7 +525,7 @@ async function handleRequest(request, env, opts = {}) {
     const member = await currentSession(request, env, opts);
     if (!member) {
       if (method === "GET" && isHtmlRoute(path) && !path.startsWith("/api/")) {
-        return redirect("/?next=" + encodeURIComponent(safeNext(path + url.search)) + "#login", origin);
+        return redirect("/login.html?next=" + encodeURIComponent(safeNext(path + url.search)), origin);
       }
       return json(401, { ok: false, code: "LOGIN_REQUIRED" });
     }
@@ -530,7 +541,7 @@ async function handleRequest(request, env, opts = {}) {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
       const token = cookieMap(request).get(COOKIE_SESSION);
       await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await digest(token)).run();
-      return putCookie(redirect("/#login", origin), COOKIE_SESSION, "", 0);
+      return putCookie(redirect("/login.html", origin), COOKIE_SESSION, "", 0);
     }
     if (path === "/api/application" && method === "POST") {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
