@@ -14,7 +14,7 @@ function fakeFetch(changes = {}) {
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
         '<h1>검진 결과, 내 결과지 기준으로 보세요</h1>' +
-        '<a href="' + WORKER + '/">승인된 사용자 로그인</a>', { status: 200 });
+        '<a href="' + WORKER + '/labinsight/">리포담</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
@@ -22,9 +22,9 @@ function fakeFetch(changes = {}) {
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/app.js") return new Response(null, { status: 404 });
     if (u.origin === ROOT && u.pathname.startsWith("/caffeine-atlas/")) return new Response("", { status: 200 });
-    if (u.origin === WORKER && u.pathname === "/") return new Response('<a id="portalAccountLink" href="#login">로그인</a><a id="portalGoogleStart" href="/auth/start">Google</a>', {status:200});
+    if (u.origin === WORKER && u.pathname === "/") return new Response(null,{status:303,headers:{Location:WORKER+'/login.html?next=%2Flabinsight%2F','Cache-Control':'no-store'}});
     if (u.origin === WORKER && u.pathname === "/labinsight/") return new Response(null, { status: 303,
-      headers: { Location: WORKER + "/?next=%2Flabinsight%2F#login", "Cache-Control": "no-store" }
+      headers: { Location: WORKER + "/login.html?next=%2Flabinsight%2F", "Cache-Control": "no-store" }
     });
     if (u.origin === WORKER && u.pathname === "/labinsight/app.js") return new Response("", {
       status: 401, headers: { "Cache-Control": "private, no-store" }

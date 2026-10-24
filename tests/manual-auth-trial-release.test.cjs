@@ -32,7 +32,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: aab3aeb8b9557fcff3f2827e95e8b724a0718695/);
+  assert.match(yaml, /ref: 55c1843e5dac79059fb468a1e1a29917bcd96c21/);
   assert.match(yaml, /ref: b444434317793270fe52a96d23320edca99c3ad5/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -72,7 +72,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"labdam-auth-20261023-public-brand"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"repodam-auth-20261025-dedicated-login"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
@@ -111,7 +111,7 @@ test("new compact login markup is checked after live deployment, not only in bun
   assert.ok(deploy !== -1 && live > deploy && gated > live);
   const block = yaml.slice(live, gated);
   for (const fragment of [
-    'welcome-line', 'LABDAM에 오신 것을', '환영합니다.',
+    'welcome-line', '리포담을 시작하려면', '로그인해 주세요.',
     'class="caffeine-card"', '로그인 불필요',
     '.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}',
     '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}',

@@ -14,3 +14,8 @@ regexes = ['''^\s+(?:LABINSIGHT_RELEASE_SHA|LABDAM_AUTH_RELEASE_SHA): (?:53bf3c8
 description = "Verified public Worker font-build commit used by release PR 51"
 regexTarget = "line"
 regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695\s*$''']
+
+[[rules.allowlists]]
+description = "Verified public dedicated REPODAM login source commit"
+regexTarget = "line"
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21\s*$''']

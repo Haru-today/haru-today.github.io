@@ -10,7 +10,7 @@ const EMAIL = "mailto:jleegenomics@gmail.com";
 test("public homepage keeps one contact address and the approved users' login entry", () => {
   assert.match(html, /LABDAM/);
   assert.ok(html.includes('href="' + EMAIL + '"'));
-  assert.ok(html.includes('href="' + WORKER + '"'));
+  assert.ok(html.includes('href="' + WORKER + 'login.html"'));
   assert.ok(html.includes('name="robots" content="noindex,nofollow"'));
   assert.ok(html.includes('name="referrer" content="no-referrer"'));
   assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
