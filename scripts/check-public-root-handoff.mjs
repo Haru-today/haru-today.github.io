@@ -8,7 +8,7 @@ import { resolve } from "node:path";
 const ROOT = "https://haru-today.github.io";
 const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev";
 export const CHECKS = [
-  { path: "/", origin: ROOT, status: 200, kind: "root-handoff" },
+  { path: "/", origin: ROOT, status: 200, kind: "root-home" },
   { path: "/labinsight/", origin: ROOT, status: 200, kind: "labinsight-handoff" },
   { path: "/labinsight/app.js", origin: ROOT, status: 404, kind: "gone" },
   { path: "/caffeine-atlas/", origin: ROOT, status: 200, kind: "caffeine" },
@@ -33,14 +33,14 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
       });
       status = response.status;
       ok = status === x.status;
-      if (ok && x.kind === "root-handoff") {
+      if (ok && x.kind === "root-home") {
         const html = await response.text();
-        ok = html.includes('http-equiv="refresh" content="0;url=' + WORKER + '/"') &&
+        ok = html.includes('검진 결과, 내 결과지 기준으로 보세요') &&
           html.includes('name="robots" content="noindex,nofollow"') &&
-          html.includes('href="' + ROOT + '/caffeine-atlas/"') &&
-          html.includes('href="' + WORKER + '/labinsight/"') &&
+          html.includes('href="' + WORKER + '/"') &&
+          !html.includes('/labinsight/app.js') &&
           !/<(?:script|form|input)\b/i.test(html);
-        if (!ok) detail = "public-root-still-serves-legacy-portal";
+        if (!ok) detail = "public-root-home-mismatch";
       } else if (ok && x.kind === "labinsight-handoff") {
         const html = await response.text();
         ok = html.includes('href="' + WORKER + '/labinsight/"') &&
@@ -62,7 +62,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
         ok = /no-store/i.test(response.headers.get("Cache-Control") || "");
         if (!ok) detail = "worker-cache-policy-mismatch";
       }
-      if (!["root-handoff", "labinsight-handoff", "public-brand"].includes(x.kind)) {
+      if (!["root-home", "labinsight-handoff", "public-brand"].includes(x.kind)) {
         try { await response.body?.cancel(); } catch (_) { /* no body */ }
       }
       if (ok) detail = "ok";
@@ -81,7 +81,7 @@ async function main() {
         "expected", r.expected, r.ok ? "" : "[" + r.detail + "]");
     }
     if (audit.ok) {
-      console.log("PASS: Google/direct visitors reach public LABDAM with protected REPODAM; legacy REPODAM app inaccessible, Caffeine Atlas public.");
+      console.log("PASS: public LABDAM homepage is live with the approved-user login entry, REPODAM protected; legacy REPODAM app inaccessible, Caffeine Atlas public.");
       return;
     }
     if (attempt === 6) {

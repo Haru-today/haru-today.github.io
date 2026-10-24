@@ -13,9 +13,8 @@ function fakeFetch(changes = {}) {
     const u = new URL(url);
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
-        '<meta http-equiv="refresh" content="0;url=' + WORKER + '/">' +
-        '<a href="' + WORKER + '/labinsight/">REPODAM</a>' +
-        '<a href="' + ROOT + '/caffeine-atlas/">Caffeine</a>', { status: 200 });
+        '<h1>검진 결과, 내 결과지 기준으로 보세요</h1>' +
+        '<a href="' + WORKER + '/">승인된 사용자 로그인</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
@@ -34,19 +33,19 @@ function fakeFetch(changes = {}) {
     throw Error("Unexpected route");
   };
 }
-test("root handoff, private Worker and Caffeine public demo all pass anonymous checks", async () => {
+test("root homepage, private Worker and Caffeine public demo all pass anonymous checks", async () => {
   const { inspectPublicEntry, CHECKS } = await load();
   assert.equal(CHECKS.length, 9);
   const a = await inspectPublicEntry(fakeFetch());
   assert.equal(a.ok, true, JSON.stringify(a.results.filter(x => !x.ok)));
 });
-test("old public LABDAM portal is explicitly detected, even if Worker itself is secure", async () => {
+test("a root that is not the LABDAM homepage is detected, even if Worker itself is secure", async () => {
   const { inspectPublicEntry } = await load();
   const a = await inspectPublicEntry(fakeFetch({
     [ROOT + "/"]: new Response('<main>old portal</main>', { status: 200 })
   }));
   assert.equal(a.ok, false);
-  assert.equal(a.results[0].detail, "public-root-still-serves-legacy-portal");
+  assert.equal(a.results[0].detail, "public-root-home-mismatch");
 });
 test("private file exposure and Caffeine QR regression fail independently", async () => {
   const { inspectPublicEntry } = await load();

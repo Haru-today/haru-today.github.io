@@ -2,43 +2,44 @@ const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 
-test('Google or direct visitors are forwarded to the approved Worker, never to public private apps', async ({ page }) => {
-  await page.route('https://labdam-free-approval.jleegenomics.workers.dev/**', async route => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'text/html',
-      body: '<!doctype html><html lang="ko"><head><title>LABDAM 승인제 Worker 테스트</title></head>' +
-        '<body><main id="worker-stub">승인제 Worker로 정상 이동</main></body></html>'
-    });
-  });
-  await page.goto('/', { waitUntil: 'domcontentloaded' });
-  await expect(page).toHaveURL(WORKER, { timeout: 10000 });
-  await expect(page.locator('#worker-stub')).toBeVisible();
+test('visitors stay on the public homepage instead of being forwarded', async ({ page }) => {
+  await page.goto('/', { waitUntil: 'load' });
+  await expect(page).toHaveURL(/127\.0\.0\.1:4173\/$/);
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('검진 결과, 내 결과지 기준으로 보세요');
+  await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
 });
 
-test('public root HTML is a safe handoff with no app forms, and Caffeine stays public', async ({ request }) => {
+test('public root HTML has no app forms or scripts, and its own files load', async ({ request }) => {
   const res = await request.get('/');
   expect(res.status()).toBe(200);
   const body = await res.text();
-  expect(body).toContain('http-equiv="refresh" content="0;url=' + WORKER + '"');
-  expect(body).toContain('href="' + WORKER + 'labinsight/"');
-  expect(body).toContain('href="https://haru-today.github.io/caffeine-atlas/"');
+  expect(body).not.toContain('http-equiv="refresh"');
+  expect(body).toContain('href="' + WORKER + '"');
   expect(body).toContain('name="robots" content="noindex,nofollow"');
   expect(body).not.toMatch(/<(?:form|input|script)\b/i);
-  expect((await request.get('/privacy.html')).status()).toBe(200);
-  expect((await request.get('/terms.html')).status()).toBe(200);
+  for (const path of ['/privacy.html', '/terms.html', '/assets/labdam-logo.svg',
+    ...[...body.matchAll(/url\("([^"]+)"\)/g)].map(match => match[1])]) {
+    expect((await request.get(path)).status(), path).toBe(200);
+  }
 });
 
-test('fallback gateway layout is keyboard accessible and has no horizontal scroll', async ({ page }) => {
-  const body = await (await page.request.get('/')).text();
-  await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
-  await expect(page.getByRole('link', { name: /LABDAM 홈페이지 열기/ }))
-    .toHaveAttribute('href', WORKER);
-  await expect(page.getByRole('link', { name: 'REPODAM 바로가기' }))
-    .toHaveAttribute('href', WORKER + 'labinsight/');
-  await expect(page.getByRole('link', { name: /로그인 없이 공개 이용/ }))
-    .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
-  await expect(page.locator('main h1')).toBeVisible();
+test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
+  await page.goto('/');
+  const ask = page.getByRole('link', { name: '궁금한 점 물어보기' });
+  for (const name of ['문의하기', '궁금한 점 물어보기', '이메일로 물어보기']) {
+    await expect(page.getByRole('link', { name })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
+  }
+  const faq = page.getByText('진단해 주나요?');
+  await faq.click();
+  await expect(page.getByText('리포담은 진단하지 않습니다', { exact: false })).toBeVisible();
+  await expect(page.getByRole('link', { name: '승인된 사용자 로그인' })).toHaveAttribute('href', WORKER);
+  await expect(page.getByRole('link', { name: '개인정보 처리 안내' })).toHaveAttribute('href', '/privacy.html');
+  // WebKit skips links on Tab by default, so focus the skip link directly and check it appears.
+  const skip = page.getByRole('link', { name: '본문으로 바로가기' });
+  await skip.focus();
+  expect((await skip.boundingBox()).x).toBeGreaterThanOrEqual(0);
+  const box = await ask.first().boundingBox();
+  expect(box.height).toBeGreaterThanOrEqual(44);
   const dimensions = await page.evaluate(() => ({
     viewport: document.documentElement.clientWidth,
     page: document.documentElement.scrollWidth
@@ -46,12 +47,22 @@ test('fallback gateway layout is keyboard accessible and has no horizontal scrol
   expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('fallback gateway has no serious or critical WCAG violations', async ({ page }) => {
-  const body = await (await page.request.get('/')).text();
-  await page.setContent(body.replace(/<meta http-equiv="refresh"[^>]*>/, ''));
-  const results = await new AxeBuilder({ page })
-    .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-    .analyze();
-  const issues = results.violations.filter(x => ['critical', 'serious'].includes(x.impact));
-  expect(issues.map(x => ({ id: x.id, impact: x.impact }))).toEqual([]);
+test('the hero fits in the first screen on phones', async ({ page }, testInfo) => {
+  test.skip(!['android-chromium', 'iphone-webkit'].includes(testInfo.project.name), 'phone viewports only');
+  await page.goto('/');
+  const trust = page.getByText('임상병리학 전공자가 만듭니다', { exact: true });
+  const box = await trust.boundingBox();
+  expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
 });
+
+for (const colorScheme of ['light', 'dark']) {
+  test(`homepage has no serious or critical WCAG violations (${colorScheme})`, async ({ page }) => {
+    await page.emulateMedia({ colorScheme });
+    await page.goto('/');
+    const results = await new AxeBuilder({ page })
+      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
+      .analyze();
+    const issues = results.violations.filter(x => ['critical', 'serious'].includes(x.impact));
+    expect(issues.map(x => ({ id: x.id, impact: x.impact }))).toEqual([]);
+  });
+}

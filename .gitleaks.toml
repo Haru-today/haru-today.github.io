@@ -9,3 +9,8 @@ id = "generic-api-key"
 description = "Immutable public source identities in release metadata"
 regexTarget = "line"
 regexes = ['''^\s+(?:LABINSIGHT_RELEASE_SHA|LABDAM_AUTH_RELEASE_SHA): (?:53bf3c88a08f50de53ff5ea37b5c016140bbed24|2ad3ef9b5931323f7ef222d198972821e8ae00aa)\s*$''']
+
+[[rules.allowlists]]
+description = "Verified public Worker font-build commit used by release PR 51"
+regexTarget = "line"
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695\s*$''']
