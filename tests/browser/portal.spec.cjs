@@ -2,9 +2,9 @@ const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 
-test('visitors stay on the public homepage instead of being forwarded', async ({ page }) => {
+test('visitors stay on the public homepage instead of being forwarded', async ({ page, baseURL }) => {
   await page.goto('/', { waitUntil: 'load' });
-  await expect(page).toHaveURL(/127\.0\.0\.1:4173\/$/);
+  await expect(page).toHaveURL(new URL('/', baseURL).href);
   await expect(page.getByRole('heading', { level: 1 })).toHaveText('검진 결과, 내 결과지 기준으로 보세요');
   await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
 });
@@ -25,8 +25,11 @@ test('public root HTML has no app forms or scripts, and its own files load', asy
 
 test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
   await page.goto('/');
-  const ask = page.getByRole('link', { name: '궁금한 점 물어보기' });
-  for (const name of ['문의하기', '궁금한 점 물어보기', '이메일로 물어보기']) {
+  const ask = page.getByRole('link', { name: '리포담', exact: true });
+  await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
+  await expect(page.getByRole('link', { name: '카페인 아틀라스', exact: true }))
+    .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
+  for (const name of ['문의하기', '이메일로 물어보기']) {
     await expect(page.getByRole('link', { name })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
   }
   const faq = page.getByText('진단해 주나요?');
