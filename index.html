@@ -7,43 +7,129 @@
   <meta name="robots" content="noindex,nofollow">
   <meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209">
   <meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ">
-  <meta name="theme-color" content="#102B50">
-  <meta http-equiv="refresh" content="0;url=https://labdam-free-approval.jleegenomics.workers.dev/">
-  <title>LABDAM | 브랜드 홈페이지로 이동</title>
-  <meta name="description" content="LABDAM 홈페이지는 로그인 없이 둘러볼 수 있습니다. REPODAM은 Google 로그인 및 관리자 승인 후 이용할 수 있습니다.">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0E1B24" media="(prefers-color-scheme: dark)">
+  <title>랩담 LABDAM | 검진 결과, 내 결과지 기준으로</title>
+  <meta name="description" content="검진 결과 숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요. 임상병리학 전공자가 만듭니다.">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="랩담 LABDAM">
+  <meta property="og:title" content="검진 결과, 내 결과지 기준으로 보세요">
+  <meta property="og:description" content="숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요.">
+  <meta property="og:url" content="https://haru-today.github.io/">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <style>
-    :root{color-scheme:light}
+    @font-face{font-family:"Wanted Sans";src:url("/assets/fonts/WantedSans-ExtraBold-home.woff2") format("woff2");font-weight:800;font-display:swap}
+    @font-face{font-family:"Wanted Sans";src:url("/assets/fonts/WantedSans-Bold-home.woff2") format("woff2");font-weight:700;font-display:swap}
+    @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-Regular-home.woff2") format("woff2");font-weight:400;font-display:swap}
+    @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-SemiBold-home.woff2") format("woff2");font-weight:600;font-display:swap}
+    :root{--ground:#FFFFFF;--tint:#EEF6F6;--line:#D6E2E3;--ink:#17324D;--ink-muted:#4E6275;--teal:#1F7F83;--on-teal:#FFFFFF;
+      --display:"Wanted Sans","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+      --body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
+    @media(prefers-color-scheme:dark){:root{--ground:#0E1B24;--tint:#16303A;--line:#29404B;--ink:#E8F0F2;--ink-muted:#A3B4BF;--teal:#5FB8BB;--on-teal:#0E1B24}}
     *{box-sizing:border-box}
-    body{margin:0;background:#f4f7f9;color:#172d3d;font:16px/1.65 system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
-    .skip{position:absolute;left:-9999px;top:0;background:#fff;color:#153e59;padding:10px}
+    body{margin:0;background:var(--ground);color:var(--ink);font:400 16px/1.6 var(--body);word-break:keep-all;overflow-wrap:break-word}
+    .skip{position:absolute;left:-9999px;top:0;background:var(--ground);color:var(--ink);padding:10px}
     .skip:focus{left:10px;z-index:2}
-    main{width:min(560px,calc(100% - 32px));margin:12vh auto;padding:38px 34px;border:1px solid #d7e3e9;border-radius:18px;background:white;box-shadow:0 8px 28px rgba(15,41,63,.05)}
-    .brand{font-size:1.25rem;letter-spacing:.05em;font-weight:850;color:#102b50}
-    .eyebrow{color:#32737c;text-transform:uppercase;font-size:.75rem;font-weight:800;letter-spacing:.1em}
-    h1{font-size:clamp(1.55rem,4.8vw,2.1rem);line-height:1.35;letter-spacing:-.04em;margin:16px 0}
-    p{color:#4a6272}
-    .primary{display:inline-block;padding:12px 18px;border-radius:9px;color:white;background:#102b50;font-weight:750;text-decoration:none;min-height:44px}
-    a:not(.primary){color:#185a70}
-    a:focus-visible{outline:3px solid #2b849d;outline-offset:4px}
-    .links{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:26px 0}
-    .notice{border-top:1px solid #e0e8eb;padding-top:18px;font-size:.86rem}
-    @media(max-width:440px){main{margin:6vh auto;padding:26px 22px}.links{align-items:stretch;flex-direction:column}.primary{text-align:center}}
+    .page{max-width:480px;margin:0 auto;padding:20px 16px 40px;display:flex;flex-direction:column;gap:48px}
+    header,main,section{display:flex;flex-direction:column}
+    main{gap:48px}
+    header{gap:28px}
+    .logo{display:block;height:22px;width:auto;align-self:flex-start}
+    .hero{gap:16px}
+    h1,h2,p,ol,ul{margin:0}
+    h1{font:800 28px/36px var(--display);letter-spacing:-.01em;text-wrap:balance}
+    h2{font:700 22px/30px var(--display)}
+    section{gap:16px}
+    .muted{color:var(--ink-muted)}
+    .small{font-size:13px;line-height:20px;color:var(--ink-muted)}
+    .button{display:flex;align-items:center;justify-content:center;min-height:52px;border-radius:12px;background:var(--teal);color:var(--on-teal);font-weight:600;text-decoration:none}
+    a{color:var(--teal)}
+    a:focus-visible{outline:3px solid var(--teal);outline-offset:3px}
+    .people{list-style:none;padding:0;display:flex;flex-direction:column;gap:8px}
+    .people li{background:var(--tint);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:2px}
+    strong{font-weight:600}
+    .note{color:var(--ink-muted);font-size:15px}
+    .title-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+    .badge{font-size:13px;line-height:20px;padding:2px 10px;border-radius:999px;border:1px solid var(--teal);color:var(--teal)}
+    .steps{list-style:none;padding:0;display:flex;flex-direction:column;gap:14px;counter-reset:step}
+    .steps li{display:flex;gap:12px;align-items:flex-start;counter-increment:step}
+    .steps li::before{content:counter(step);flex:none;width:28px;height:28px;border-radius:999px;background:var(--teal);color:var(--on-teal);font-weight:600;font-size:14px;display:flex;align-items:center;justify-content:center}
+    .how{gap:12px}
+    .how ul{padding-left:20px;display:flex;flex-direction:column;gap:8px}
+    .contact{gap:12px;background:var(--tint);border-radius:12px;padding:20px 16px}
+    .contact .muted{color:var(--ink-muted)}
+    .email{font-size:15px;text-align:center;user-select:all}
+    footer{display:flex;flex-direction:column;gap:4px;font-size:13px;line-height:20px;color:var(--ink-muted);border-top:1px solid var(--line);padding-top:20px}
+    footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:8px}
+    footer a{color:var(--ink-muted);display:inline-block;padding:4px 0}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
   </style>
 </head>
 <body>
 <a class="skip" href="#main">본문으로 바로가기</a>
-<main id="main">
-  <div class="brand">LABDAM</div>
-  <p class="eyebrow">Personal Health Atlas</p>
-  <h1>랩담 홈페이지로 이동합니다.</h1>
-  <p>랩담의 브랜드와 서비스 소개는 로그인 없이 둘러볼 수 있습니다. 홈페이지에서 Google 로그인 후 리포담을 이용하세요. 리포담은 관리자 승인 후 이용할 수 있습니다.</p>
-  <div class="links">
-    <a class="primary" href="https://labdam-free-approval.jleegenomics.workers.dev/">LABDAM 홈페이지 열기 <span aria-hidden="true">→</span></a>
-    <a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">REPODAM 바로가기</a>
-  </div>
-  <p class="notice">이미 로그인한 경우 별도 인증 없이 서비스가 열릴 수 있습니다. 로그인 여부를 확인하려면 시크릿 창에서 접속하세요.</p>
-  <p class="notice">Caffeine Atlas는 <a href="https://haru-today.github.io/caffeine-atlas/">로그인 없이 공개 이용</a>할 수 있습니다. 개인정보 안내와 이용 조건은 <a href="/privacy.html">개인정보 처리 안내</a> 및 <a href="/terms.html">서비스 이용 안내</a>를 참고하세요.</p>
-</main>
+<div class="page">
+  <header>
+    <img class="logo" src="/assets/labdam-logo.svg" alt="LABDAM" width="95" height="22">
+    <section class="hero" aria-labelledby="hero-title">
+      <h1 id="hero-title">검진 결과, 내 결과지 기준으로 보세요</h1>
+      <p class="muted">숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요.</p>
+      <a class="button" href="mailto:jleegenomics@gmail.com">궁금한 점 물어보기</a>
+      <p class="small">임상병리학 전공자가 만듭니다</p>
+    </section>
+  </header>
+
+  <main id="main">
+    <section aria-labelledby="about-title">
+      <h2 id="about-title">내가 하는 일</h2>
+      <p>임상병리학을 전공하며 검사 수치와 참고범위를 공부하고 있습니다. 같은 수치도 검진기관마다 기준이 다를 수 있다는 것을, 결과지를 받은 사람이 쉽게 알 수 있도록 돕습니다.</p>
+      <ul class="people">
+        <li><strong>첫 검진을 받은 20~30대</strong><span class="note">"이 숫자가 높은 건가요?"</span></li>
+        <li><strong>매년 검진을 받는 40대 이상</strong><span class="note">"작년보다 올랐는데 괜찮은 건가요?"</span></li>
+        <li><strong>가족 건강을 챙기는 분</strong><span class="note">부모님 결과지를 대신 봐 드리는 자녀, 가족 검진을 챙기는 신혼부부</span></li>
+      </ul>
+    </section>
+
+    <section aria-labelledby="repodam-title">
+      <div class="title-row">
+        <h2 id="repodam-title">리포담</h2>
+        <span class="badge">출시 준비 중</span>
+      </div>
+      <p>랩담의 첫 서비스입니다. 결과지 한 장으로 네 단계면 됩니다.</p>
+      <ol class="steps">
+        <li><span><strong>결과지 찍기</strong><br><span class="note">종이 결과지를 사진으로 올리면 수치를 읽어요.</span></span></li>
+        <li><span><strong>확인하기</strong><br><span class="note">읽은 수치를 원본과 대조하고, 결과지의 참고범위를 옮겨 적어요.</span></span></li>
+        <li><span><strong>설명 보기</strong><br><span class="note">옮겨 적은 결과지 기준으로 항목마다 풀어 드려요.</span></span></li>
+        <li><span><strong>물어볼 질문</strong><br><span class="note">병원에서 의사에게 물어볼 질문을 정리해요.</span></span></li>
+      </ol>
+    </section>
+
+    <section class="how" aria-labelledby="how-title">
+      <h2 id="how-title">이렇게 만듭니다</h2>
+      <ul>
+        <li>진단하지 않습니다. 결과를 이해하고 상담을 준비하도록 돕습니다.</li>
+        <li>앱이 읽은 숫자는 원본 사진과 나란히 확인합니다.</li>
+        <li>결과지 기준이 없는 항목은 섣부르게 판단하지 않고 확인이 필요하다고 알려 드려요.</li>
+      </ul>
+    </section>
+
+    <section class="contact" aria-labelledby="contact-title">
+      <h2 id="contact-title">궁금한 점이 있으신가요?</h2>
+      <p class="muted">출시 소식이나 서비스에 대한 질문을 이메일로 보내 주세요.</p>
+      <a class="button" href="mailto:jleegenomics@gmail.com">궁금한 점 물어보기</a>
+      <p class="email">jleegenomics@gmail.com</p>
+    </section>
+  </main>
+
+  <footer>
+    <span>랩담 LABDAM · 리포담은 랩담의 첫 서비스입니다</span>
+    <span>리포담은 의료 진단을 대신하지 않습니다.</span>
+    <nav aria-label="안내">
+      <a href="/privacy.html">개인정보 처리 안내</a>
+      <a href="/terms.html">서비스 이용 안내</a>
+      <a href="https://labdam-free-approval.jleegenomics.workers.dev/">승인된 사용자 로그인</a>
+    </nav>
+  </footer>
+</div>
 </body>
 </html>

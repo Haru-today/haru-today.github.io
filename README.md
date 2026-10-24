@@ -37,3 +37,12 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 - Caffeine Atlas 프로젝트 Pages와 학회 포스터 QR은 그대로 공개됩니다. root `robots.txt`는 Caffeine Atlas의 크롤링까지 막지 않도록 유지합니다.
 - 검색엔진 결과/스니펫 캐시는 즉시 사라지지 않을 수 있습니다. 로그인 차단의 근거는 검색 결과가 아니라 **Worker 서버의 세션 검증**입니다.
 - GitHub 공개 저장소 과거 코드와 사용자 기기에서 이미 캐시된 페이지는 URL 이동이나 Google 검색 비노출만으로 삭제되지 않습니다.
+
+## 2026-10-25 공개 루트를 랩담 원페이지 홈페이지로 전환
+
+- `https://haru-today.github.io/`는 더 이상 Worker로 자동 이동하지 않고, 랩담 원페이지 홈페이지(인스타 프로필 링크용, 390px 모바일 기준)를 보여 줍니다. 위 2026-10-16 항목의 자동 이동은 이 변경으로 대체됩니다.
+- 문구·색·글꼴은 LABDAM 디자인 시스템(2026-10-24 첫 판)과 원페이지 시안을 따릅니다. 연락처는 `jleegenomics@gmail.com` 하나입니다.
+- 이미 승인된 사용자는 페이지 아래 **승인된 사용자 로그인** 링크로 Worker에 들어갑니다. REPODAM 보호(Worker 세션 검증)는 바뀌지 않습니다.
+- Caffeine Atlas는 브랜드 기준에 따라 홈페이지에서 링크하지 않습니다. 학회 포스터 QR 주소와 `robots.txt`·`sitemap.xml`은 그대로입니다.
+- 검색 노출은 기존처럼 `noindex,nofollow`를 유지합니다. 검색에 노출하려면 메타 태그와 `sitemap.xml`을 함께 바꿔야 합니다.
+- 글꼴은 Pretendard·Wanted Sans(OFL)를 페이지에 쓰인 글자만 남겨 `assets/fonts/`에 직접 둡니다(4개 합계 약 120KB, 외부 요청 없음). 문구를 바꾸면 `python scripts/subset-home-fonts.py <전체 woff2 폴더>`를 다시 실행하세요. 빠진 글자는 시스템 글꼴로 보입니다.
