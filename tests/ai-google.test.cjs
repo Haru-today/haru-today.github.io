@@ -225,3 +225,46 @@ test('proof profile changes only the executable allowance, retaining every files
   assert.equal(runtime.includes('/usr/local/bin/node'), false);
   assert.equal(proof.includes('(require-not (literal "/usr/local/bin/node"))'), true);
 });
+
+
+test('configuration replaced after open is rejected before reading its replacement', async () => {
+  const { inspectGoogleConfiguration } = await googleModule;
+  const fs = require('node:fs'), { syncBuiltinESMExports } = require('node:module');
+  const f = fixture(); f.put('.gemini/antigravity-cli/settings.json', { useG1Credits: false });
+  const target = join(f.home, '.gemini/antigravity-cli/settings.json'), open = fs.openSync, read = fs.readSync;
+  let replaced = false, descriptor, reads = 0;
+  fs.openSync = (path, flags, ...rest) => {
+    const fd = open(path, flags, ...rest);
+    if (path === target && !replaced) {
+      replaced = true; descriptor = fd; fs.renameSync(target, target + '.old');
+      writeFileSync(target, JSON.stringify({ useG1Credits: true, apiKey: SECRET }));
+    }
+    return fd;
+  };
+  fs.readSync = (fd, ...args) => { if (fd === descriptor) reads++; return read(fd, ...args); };
+  syncBuiltinESMExports();
+  try {
+    assert.equal(inspectGoogleConfiguration(f.home), 'config_unverified');
+    assert.equal(reads, 0);
+    assert.throws(() => fs.fstatSync(descriptor), { code: 'EBADF' });
+  } finally { fs.openSync = open; fs.readSync = read; syncBuiltinESMExports(); f.cleanup(); }
+});
+
+test('unexpected verifier artifacts are only reported and never read or removed', async () => {
+  const { inspectGoogleVerifierArtifacts } = await googleModule;
+  const fs = require('node:fs'); const f = fixture();
+  try {
+    const source = join(f.home, 'source-proof'), outside = join(f.home, 'outside-proof');
+    writeFileSync(source, SECRET);
+    const report = inspectGoogleVerifierArtifacts([source, outside]);
+    assert.deepEqual(report, { manualInspectionRequired: true, artifacts: [{ scope: 'checkout', status: 'present' }] });
+    assert.equal(JSON.stringify(report).includes(f.home), false);
+    assert.equal(JSON.stringify(report).includes(SECRET), false);
+    assert.equal(fs.readFileSync(source, 'utf8'), SECRET);
+    fs.renameSync(source, outside); writeFileSync(source, 'unrelated replacement');
+    assert.equal(inspectGoogleVerifierArtifacts([source, outside]).artifacts.length, 2);
+    assert.equal(fs.readFileSync(source, 'utf8'), 'unrelated replacement');
+    assert.equal(fs.readFileSync(outside, 'utf8'), SECRET);
+    assert.equal(inspectGoogleVerifierArtifacts([]).manualInspectionRequired, false);
+  } finally { f.cleanup(); }
+});

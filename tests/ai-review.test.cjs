@@ -385,3 +385,101 @@ test('invalid provider and mixing probe with source files fail without requestin
     assert.equal(result.reason, 'invalid_arguments');
   }
 });
+
+
+test('opened-file replacement is rejected before bytes are read, including without O_NOFOLLOW', async (t) => {
+  const { readBoundedRegularFile } = await reviewModule;
+  const fs = require('node:fs'), { syncBuiltinESMExports } = require('node:module');
+  const f = fixture(t), target = join(f.root, 'draft.mjs');
+  const open = fs.openSync, read = fs.readSync;
+  let descriptor, reads = 0, replaced = false;
+  fs.openSync = (path, flags, ...rest) => {
+    // Exercise the descriptor/identity fallback also on systems with O_NOFOLLOW.
+    const fd = open(path, path === target ? flags & ~(fs.constants.O_NOFOLLOW ?? 0) : flags, ...rest);
+    if (path === target && !replaced) {
+      replaced = true; descriptor = fd;
+      fs.renameSync(target, target + '.old');
+      fs.writeFileSync(target, 'replacement must not be transmitted');
+    }
+    return fd;
+  };
+  fs.readSync = (fd, ...args) => { if (fd === descriptor) reads++; return read(fd, ...args); };
+  syncBuiltinESMExports();
+  try {
+    assert.throws(() => readBoundedRegularFile(target, 4096), /file_changed_during_read/);
+    assert.equal(reads, 0);
+    assert.throws(() => fs.fstatSync(descriptor), { code: 'EBADF' });
+  } finally { fs.openSync = open; fs.readSync = read; syncBuiltinESMExports(); }
+});
+
+test('growth during a descriptor read is bounded and rejected', async (t) => {
+  const { readBoundedRegularFile } = await reviewModule;
+  const fs = require('node:fs'), { syncBuiltinESMExports } = require('node:module');
+  const f = fixture(t), target = join(f.root, 'bounded.mjs');
+  writeFileSync(target, 'safe');
+  const read = fs.readSync;
+  let mutated = false, total = 0;
+  fs.readSync = (fd, ...args) => {
+    const count = read(fd, ...args); total += count;
+    if (!mutated) { mutated = true; writeFileSync(target, 'x'.repeat(100)); }
+    return count;
+  };
+  syncBuiltinESMExports();
+  try {
+    assert.throws(() => readBoundedRegularFile(target, 32), /file_changed_during_read/);
+    assert.ok(total <= 33);
+  } finally { fs.readSync = read; syncBuiltinESMExports(); }
+});
+
+test('a source ancestor swapped for a symlink before open never reaches the provider', async (t) => {
+  const { runReview } = await reviewModule;
+  const fs = require('node:fs'), { syncBuiltinESMExports } = require('node:module');
+  const f = fixture(t), source = join(f.root, 'src'), replacement = join(f.root, 'replacement');
+  mkdirSync(replacement); writeFileSync(join(replacement, 'tracked.mjs'), 'UNSELECTED_SOURCE');
+  const link = join(f.root, 'replacement-link');
+  try { symlinkSync(replacement, link, process.platform === 'win32' ? 'junction' : 'dir'); }
+  catch (error) { if (['EPERM', 'EACCES'].includes(error.code)) { t.skip('OS cannot create a fixture directory link'); return; } throw error; }
+  const open = fs.openSync;
+  let swapped = false, requested = false;
+  fs.openSync = (path, flags, ...rest) => {
+    if (typeof path === 'string' && path.replaceAll('\\', '/').endsWith('/src/tracked.mjs') && !swapped) {
+      swapped = true; fs.renameSync(source, source + '-old'); fs.renameSync(link, source);
+    }
+    return open(path, flags, ...rest);
+  };
+  syncBuiltinESMExports();
+  try {
+    const result = await runReview({ cwd: f.root, files: ['src/tracked.mjs'], provider: 'claude', send: true,
+      request: () => { requested = true; return completed(); } });
+    assert.equal(swapped, true); assert.equal(requested, false);
+    assert.equal(result.state, 'blocked'); assert.equal(result.requestAttempted, false);
+    assert.equal(JSON.stringify(result).includes('UNSELECTED_SOURCE'), false);
+  } finally { fs.openSync = open; syncBuiltinESMExports(); }
+});
+
+
+test('a FIFO cannot hang the bounded-file reader', async (t) => {
+  if (process.platform === 'win32') { t.skip('POSIX FIFO is not available on Windows'); return; }
+  const f = fixture(t), fifo = join(f.root, 'input.fifo');
+  const created = spawnSync('mkfifo', [fifo], { encoding: 'utf8', timeout: 1000 });
+  assert.equal(created.status, 0, 'Synthetic FIFO creation failed');
+  const moduleUrl = require('node:url').pathToFileURL(require('node:path').resolve(__dirname, '../developer/ai-review.mjs')).href;
+  const script = `import { readBoundedRegularFile } from ${JSON.stringify(moduleUrl)};
+    try { readBoundedRegularFile(process.argv[1], 32); process.exitCode = 2; }
+    catch (error) { if (error.message !== 'file_size_or_type') process.exitCode = 3; }`;
+  const result = spawnSync(process.execPath, ['--input-type=module', '-e', script, fifo], { encoding: 'utf8', timeout: 3000 });
+  assert.equal(result.error, undefined); assert.equal(result.status, 0);
+});
+
+
+test('Google CLI adapter imports without a circular top-level await and blocks before any request', (t) => {
+  const f = fixture(t), script = require('node:path').resolve(__dirname, '../developer/ai-review.mjs');
+  const result = spawnSync(process.execPath, [script, '--provider', 'google', '--probe', '--send'], {
+    cwd: f.root, env: { ...process.env, GEMINI_API_KEY: 'SYNTHETIC_BLOCK_BEFORE_AUTH' },
+    encoding: 'utf8', timeout: 3000,
+  });
+  assert.equal(result.error, undefined); assert.equal(result.status, 1);
+  const report = JSON.parse(result.stdout);
+  assert.equal(report.state, 'blocked'); assert.equal(report.requestAttempted, false);
+  assert.equal(report.reason, process.platform === 'darwin' ? 'provider_environment' : 'macos_sandbox_required');
+});

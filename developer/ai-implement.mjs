@@ -3,8 +3,8 @@
 // proposals. The caller/Codex reviews and applies changes separately. Never apply
 // provider output, run suggested commands, or edit the source repository here.
 import { createHash } from 'node:crypto';
-import { closeSync, fstatSync, lstatSync, openSync, readFileSync, realpathSync,
-  unlinkSync, writeFileSync } from 'node:fs';
+import { readBoundedRegularFile } from './ai-files.mjs';
+import { closeSync, openSync, realpathSync, writeFileSync } from 'node:fs';
 import { basename, dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { containsCredential, MAX_INPUT_BYTES, prepareReview, requestClaude, sourceUnchanged } from './ai-review.mjs';
@@ -28,10 +28,11 @@ function taskSnapshot({ root, taskText, taskFile }) {
   let text = taskText;
   if (taskFile !== undefined) {
     if (typeof taskFile !== 'string') throw new Error('invalid_task_file');
-    const path = resolve(taskFile), info = lstatSync(path);
-    if (info.isSymbolicLink() || !info.isFile() || info.size > MAX_TASK_BYTES ||
-        within(root, realpathSync.native(path))) throw new Error('invalid_task_file');
-    text = new TextDecoder('utf-8', { fatal: true }).decode(readFileSync(path));
+    const path = resolve(taskFile);
+    const bytes = readBoundedRegularFile(path, MAX_TASK_BYTES, { validatePath: () => {
+      if (within(root, realpathSync.native(path))) throw new Error('invalid_task_file');
+    } });
+    text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   }
   if (!safeText(text, MAX_TASK_BYTES)) throw new Error('invalid_task');
   return { text, sha256: hash(text), bytes: Buffer.byteLength(text), source: taskFile === undefined ? 'explicit_text' : 'external_file' };
@@ -181,24 +182,20 @@ export function reserveImplementationOutputs({ root, output, diffOutput }) {
       if (within(canonicalRoot, parent)) throw new Error('output_inside_repository');
       const path = resolve(parent, basename(name));
       const descriptor = openSync(path, 'wx', 0o600);
-      reserved.push({ kind, path, descriptor, identity: fstatSync(descriptor) });
+      reserved.push({ kind, path, descriptor });
     }
     return reserved;
   } catch {
-    releaseImplementationOutputs(reserved, true);
+    releaseImplementationOutputs(reserved);
     throw new Error('output_reservation_failed');
   }
 }
 
-export function releaseImplementationOutputs(outputs, removeEmpty = false) {
+export function releaseImplementationOutputs(outputs) {
+  // A path may have been replaced since reservation. Close owned descriptors;
+  // never unlink by path. An output error can leave a new, empty artifact.
   for (const item of outputs) {
     try { closeSync(item.descriptor); } catch { /* Nothing private is printed. */ }
-    if (removeEmpty) {
-      try {
-        const current = lstatSync(item.path);
-        if (current.isFile() && current.size === 0 && current.ino === item.identity.ino && current.dev === item.identity.dev) unlinkSync(item.path);
-      } catch { /* Never remove an unrelated path. */ }
-    }
   }
 }
 
@@ -239,7 +236,7 @@ async function main() {
   } catch {
     result = result && result.requestAttempted !== false ? { ...result, outputError: 'artifact_write_failed', exitCode: 1 } :
       { schemaVersion: 1, state: 'blocked', reason: 'invalid_arguments_or_output', requestAttempted: false, applied: false, exitCode: 2 };
-  } finally { releaseImplementationOutputs(reserved, true); }
+  } finally { releaseImplementationOutputs(reserved); }
   // Source/proposed code and task text are saved only in the explicit artifacts.
   const { diff, proposal, ...summary } = result;
   if (proposal) summary.proposal = { changeCount: proposal.changes.length,

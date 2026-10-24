@@ -169,17 +169,22 @@ test('unified diffs preserve insertion, removal, CRLF, empty files and missing f
   } finally { f.cleanup(); }
 });
 
-test('artifacts require new outside-repository files and reservation failure cleans only owned empty files', async () => {
+test('artifacts require new outside-repository files and cleanup preserves partial files and replacements', async () => {
   const { reserveImplementationOutputs, releaseImplementationOutputs } = await implementationModule; const f = fixture();
   try {
     assert.throws(() => reserveImplementationOutputs({ root: f.root, output: join(f.root, 'inside.json') }));
-    const output = join(f.output, 'proposal.json'), diffOutput = join(f.output, 'existing.patch');
+    const partial = join(f.output, 'partial.json'), output = join(f.output, 'proposal.json'), diffOutput = join(f.output, 'existing.patch');
     writeFileSync(diffOutput, 'preserve');
-    assert.throws(() => reserveImplementationOutputs({ root: f.root, output, diffOutput }));
-    assert.equal(existsSync(output), false); assert.equal(readFileSync(diffOutput, 'utf8'), 'preserve');
+    assert.throws(() => reserveImplementationOutputs({ root: f.root, output: partial, diffOutput }));
+    assert.equal(readFileSync(partial, 'utf8'), ''); assert.equal(readFileSync(diffOutput, 'utf8'), 'preserve');
     const files = reserveImplementationOutputs({ root: f.root, output });
-    assert.equal(files.length, 2); releaseImplementationOutputs(files, true);
-    assert.equal(existsSync(output), false); assert.equal(existsSync(output + '.patch'), false);
+    assert.equal(files.length, 2);
+    require('node:fs').renameSync(output, output + '.reserved');
+    writeFileSync(output, 'unrelated user replacement');
+    releaseImplementationOutputs(files);
+    assert.equal(readFileSync(output, 'utf8'), 'unrelated user replacement');
+    assert.equal(readFileSync(output + '.reserved', 'utf8'), '');
+    assert.equal(readFileSync(output + '.patch', 'utf8'), '');
   } finally { f.cleanup(); }
 });
 
@@ -204,4 +209,39 @@ test('CLI defaults to prepare, requires output before send, and offers no automa
     }
     assert.equal(readFileSync(join(f.root, 'src/app.js'), 'utf8'), 'export const answer = 1;\n');
   } finally { f.cleanup(); }
+});
+
+
+test('an external task swapped for a symlink after open is blocked before transmission', async (t) => {
+  const { runImplementation } = await implementationModule;
+  const fs = require('node:fs'), { syncBuiltinESMExports } = require('node:module');
+  const f = fixture(), target = join(f.output, 'task.txt'), replacement = join(f.output, 'replacement.txt');
+  writeFileSync(target, TASK); writeFileSync(replacement, 'UNREQUESTED_TASK_CONTENT');
+  const link = join(f.output, 'task-link.txt');
+  try { symlinkSync(replacement, link, 'file'); }
+  catch (error) {
+    f.cleanup();
+    if (['EPERM', 'EACCES'].includes(error.code)) { t.skip('OS cannot create a fixture file symlink'); return; }
+    throw error;
+  }
+  const open = fs.openSync, read = fs.readSync, close = fs.closeSync;
+  let replaced = false, requested = false, descriptor, reads = 0, taskOpen = false;
+  fs.openSync = (path, flags, ...rest) => {
+    const fd = open(path, flags, ...rest);
+    if (path === target && !replaced) {
+      replaced = true; descriptor = fd; taskOpen = true; fs.renameSync(target, target + '.old'); fs.renameSync(link, target);
+    }
+    return fd;
+  };
+  fs.readSync = (fd, ...args) => { if (taskOpen && fd === descriptor) reads++; return read(fd, ...args); };
+  fs.closeSync = (fd) => { if (fd === descriptor) taskOpen = false; return close(fd); };
+  syncBuiltinESMExports();
+  try {
+    const result = await runImplementation({ cwd: f.root, files: ['src/app.js'], taskFile: target, send: true,
+      request: () => { requested = true; return completed(response()); } });
+    assert.equal(replaced, true); assert.equal(requested, false); assert.equal(reads, 0);
+    assert.equal(result.state, 'blocked'); assert.equal(result.requestAttempted, false);
+    assert.equal(JSON.stringify(result).includes('UNREQUESTED_TASK_CONTENT'), false);
+    assert.throws(() => fs.fstatSync(descriptor), { code: 'EBADF' });
+  } finally { fs.openSync = open; fs.readSync = read; fs.closeSync = close; syncBuiltinESMExports(); f.cleanup(); }
 });

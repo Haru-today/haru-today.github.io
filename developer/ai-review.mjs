@@ -3,12 +3,15 @@
 // This program never edits, stages, commits, or applies model-supplied code.
 import { spawnSync } from 'node:child_process';
 import { createHash, randomBytes } from 'node:crypto';
-import { closeSync, lstatSync, openSync, readFileSync, realpathSync, writeFileSync } from 'node:fs';
+import { closeSync, lstatSync, openSync, realpathSync, writeFileSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { runDoctor, runProcess, classifyAuthentication, configuredProviderEnvironment, createProbeDirectory } from './ai-doctor.mjs';
 
-export const MAX_INPUT_BYTES = 128 * 1024;
+import { MAX_SAFE_READ_BYTES, readBoundedRegularFile } from './ai-files.mjs';
+export { readBoundedRegularFile } from './ai-files.mjs';
+
+export const MAX_INPUT_BYTES = MAX_SAFE_READ_BYTES;
 export const MAX_REVIEW_BYTES = 64 * 1024;
 const hash = (data) => createHash('sha256').update(data).digest('hex');
 const failure = (reason, state = 'blocked') => ({ state, reason, requestAttempted: false });
@@ -59,7 +62,7 @@ export function prepareReview({ cwd = process.cwd(), files }) {
   if (relative(root, realpathSync.native(cwd)) !== '') throw new Error('run_from_repository_root');
   const before = repositoryState(root);
   const snapshots = files.map((path) => {
-    const bytes = readFileSync(safeFile(root, path));
+    const bytes = readBoundedRegularFile(safeFile(root, path), MAX_INPUT_BYTES, { validatePath: () => safeFile(root, path) });
     const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
     if (text.includes('\0') || containsCredential(text)) throw new Error('sensitive_or_binary_input');
     const lines = text.length === 0 ? 0 : text.split('\n').length - Number(text.endsWith('\n'));
@@ -77,7 +80,8 @@ export function prepareReview({ cwd = process.cwd(), files }) {
 export function sourceUnchanged(bundle) {
   try {
     return JSON.stringify(repositoryState(bundle.root)) === JSON.stringify(bundle.before) &&
-      bundle.snapshots.every((f) => hash(readFileSync(safeFile(bundle.root, f.path))) === f.sha256);
+      bundle.snapshots.every((f) => hash(readBoundedRegularFile(safeFile(bundle.root, f.path), MAX_INPUT_BYTES,
+        { validatePath: () => safeFile(bundle.root, f.path) })) === f.sha256);
   } catch { return false; }
 }
 

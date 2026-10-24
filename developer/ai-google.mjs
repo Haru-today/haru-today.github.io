@@ -3,9 +3,10 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { accessSync, constants, existsSync, lstatSync, mkdirSync, mkdtempSync,
-  readFileSync, readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
+  readdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { delimiter, isAbsolute, join, relative, sep } from 'node:path';
+import { readBoundedRegularFile } from './ai-files.mjs';
 
 export const GOOGLE_AGENT = 'labdam-review-only';
 // Verified against the installed 1.4.6 init catalog. A changed catalog needs a new
@@ -52,10 +53,9 @@ const within = (root, path) => {
 };
 
 function readConfig(path, allowEmpty = false) {
-  if (!existsSync(path)) return {};
-  const stat = lstatSync(path);
-  if (!stat.isFile() || stat.isSymbolicLink() || stat.size > MAX_CONFIG) throw new Error('config_unverified');
-  const text = readFileSync(path, 'utf8');
+  const bytes = readBoundedRegularFile(path, MAX_CONFIG, { allowMissing: true });
+  if (bytes === null) return {};
+  const text = new TextDecoder('utf-8', { fatal: true }).decode(bytes);
   if (allowEmpty && !text.trim()) return {};
   const value = JSON.parse(text);
   if (!isObject(value)) throw new Error('config_unverified');
@@ -281,13 +281,36 @@ export function runGoogleStream({ command, args, options, prompt, timeoutMs, spa
   });
 }
 
+// Failed sandbox probes can leave a new file outside our private temporary
+// directory. Path-based deletion could remove a later replacement, so report
+// only the affected scope and leave any such artifact for explicit inspection.
+export function inspectGoogleVerifierArtifacts(paths) {
+  const artifacts = [];
+  for (const [index, path] of paths.entries()) {
+    const scope = index === 0 ? 'checkout' : 'temporary_base';
+    try { lstatSync(path); artifacts.push({ scope, status: 'present' }); }
+    catch (error) { if (error.code !== 'ENOENT') artifacts.push({ scope, status: 'unverified' }); }
+  }
+  return { manualInspectionRequired: artifacts.length > 0, artifacts };
+}
+
 export async function requestGoogle({ prompt, cwd = process.cwd(), env = process.env, timeoutMs = 180000 } = {}) {
   const startedAt = new Date().toISOString();
   const deadline = Date.now() + timeoutMs;
   let version = null, temporary;
   const denialPaths = [], marker = `LABDAM_BOUNDARY_${randomBytes(16).toString('hex')}`;
-  const result = (state, reason, extra = {}) => ({ state, reason, requestAttempted: false,
-    version, startedAt, finishedAt: new Date().toISOString(), ...extra });
+  const result = (state, reason, extra = {}) => {
+    const report = { state, reason, requestAttempted: false,
+      version, startedAt, finishedAt: new Date().toISOString(), ...extra };
+    const verifierArtifacts = inspectGoogleVerifierArtifacts(denialPaths);
+    if (verifierArtifacts.manualInspectionRequired) {
+      report.state = report.requestAttempted ? 'failed' : 'blocked';
+      report.reason = 'sandbox_verifier_artifact_needs_inspection';
+      report.verifierArtifacts = verifierArtifacts;
+      delete report.response;
+    }
+    return report;
+  };
   try {
     if (process.platform !== 'darwin') return result('blocked', 'macos_sandbox_required');
     if (typeof prompt !== 'string' || !prompt.trim() || Buffer.byteLength(prompt) > MAX_PROMPT ||
@@ -360,11 +383,6 @@ export async function requestGoogle({ prompt, cwd = process.cwd(), env = process
         permissionScopesWithoutGrants: 3, verifiedToolCatalogSize: GOOGLE_TOOL_CATALOG.length } });
   } catch { return result('blocked', 'preflight_failed'); }
   finally {
-    // Only remove an unexpectedly created verifier file if its exact random
-    // contents prove ownership. Never remove an existing unrelated path.
-    for (const path of denialPaths) {
-      try { if (lstatSync(path).isFile() && !lstatSync(path).isSymbolicLink() && readFileSync(path, 'utf8') === marker) rmSync(path); } catch { /* Normally absent. */ }
-    }
     if (temporary) { try { rmSync(temporary, { recursive: true, force: true }); } catch { /* Do not expose paths. */ } }
   }
 }
