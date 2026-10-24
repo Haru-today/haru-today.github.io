@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: aab3aeb8b9557fcff3f2827e95e8b724a0718695
+          ref: 55c1843e5dac79059fb468a1e1a29917bcd96c21
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
@@ -64,7 +64,7 @@ jobs:
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: b444434317793270fe52a96d23320edca99c3ad5
-          LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695
+          LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -148,7 +148,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"labdam-auth-20261023-public-brand"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"repodam-auth-20261025-dedicated-login"'; then
                 ready=1
                 break
               fi
@@ -160,11 +160,11 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release labdam-auth-20261023-public-brand with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release repodam-auth-20261025-dedicated-login with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
-      - name: Verify public brand homepage and private service login entry
+      - name: Verify dedicated REPODAM login and private service entry
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -172,7 +172,7 @@ jobs:
           import { createHash } from 'node:crypto';
           const origin = 'https://labdam-free-approval.jleegenomics.workers.dev';
           const hash = data => createHash('sha256').update(data).digest('hex');
-          for (const [route, file] of [['/', 'index.html'], ['/assets/portal-session.js', 'assets/portal-session.js']]) {
+          for (const [route, file] of [['/login.html', 'login.html']]) {
             const response = await fetch(origin + route, { redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000) });
             assert.equal(response.status, 200);
             assert.match(response.headers.get('cache-control') || '', /no-store/);
@@ -185,15 +185,18 @@ jobs:
           assert.equal(gated.status, 303);
           const target = new URL(gated.headers.get('location'), origin);
           assert.equal(target.origin, origin);
-          assert.equal(target.pathname, '/');
-          assert.equal(target.hash, '#login');
+          assert.equal(target.pathname, '/login.html');
+          assert.equal(target.hash, '');
           assert.equal(target.searchParams.get('next'), '/labinsight/');
-          console.log('Public LABDAM files match this build; anonymous REPODAM entry returns to homepage login.');
+          const root = await fetch(origin + '/', {redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000)});
+          assert.equal(root.status,303);
+          assert.equal(new URL(root.headers.get('location'),origin).pathname,'/login.html');
+          console.log('Dedicated REPODAM login matches this build; private entry and legacy root use the service login.');
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
           LABINSIGHT_RELEASE_SHA: b444434317793270fe52a96d23320edca99c3ad5
-          LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695
+          LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -222,8 +225,8 @@ jobs:
           ui_ready=0
           for attempt in 1 2 3 4 5; do
             login_html=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/login.html" || true)
-            if printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">LABDAM에 오신 것을</span>' &&
-               printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">환영합니다.</span>' &&
+            if printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">리포담을 시작하려면</span>' &&
+               printf '%s' "$login_html" | grep -Fq '<span class="welcome-line">로그인해 주세요.</span>' &&
                printf '%s' "$login_html" | grep -Fq 'class="caffeine-card"' &&
                printf '%s' "$login_html" | grep -Fq '로그인 불필요' &&
                printf '%s' "$login_html" | grep -Fq 'href="https://haru-today.github.io/caffeine-atlas/"' &&

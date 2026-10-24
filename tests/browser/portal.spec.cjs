@@ -35,7 +35,7 @@ test('homepage links work by keyboard and the page has no horizontal scroll', as
   const faq = page.getByText('진단해 주나요?');
   await faq.click();
   await expect(page.getByText('리포담은 진단하지 않습니다', { exact: false })).toBeVisible();
-  await expect(page.getByRole('link', { name: '승인된 사용자 로그인' })).toHaveAttribute('href', WORKER);
+  await expect(page.getByRole('link', { name: '리포담 로그인' })).toHaveAttribute('href', WORKER + 'login.html');
   await expect(page.getByRole('link', { name: '개인정보 처리 안내' })).toHaveAttribute('href', '/privacy.html');
   // WebKit skips links on Tab by default, so focus the skip link directly and check it appears.
   const skip = page.getByRole('link', { name: '본문으로 바로가기' });

@@ -13,7 +13,7 @@ export const CHECKS = [
   { path: "/labinsight/app.js", origin: ROOT, status: 404, kind: "gone" },
   { path: "/caffeine-atlas/", origin: ROOT, status: 200, kind: "caffeine" },
   { path: "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html", origin: ROOT, status: 200, kind: "caffeine" },
-  { path: "/", origin: WORKER, status: 200, kind: "public-brand" },
+  { path: "/", origin: WORKER, status: 303, kind: "worker-login" },
   { path: "/labinsight/", origin: WORKER, status: 303, kind: "worker-login" },
   { path: "/labinsight/app.js", origin: WORKER, status: 401, kind: "worker-deny" },
   { path: "/login.html", origin: WORKER, status: 200, kind: "public-login" }
@@ -37,7 +37,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
         const html = await response.text();
         ok = html.includes('검진 결과, 내 결과지 기준으로 보세요') &&
           html.includes('name="robots" content="noindex,nofollow"') &&
-          html.includes('href="' + WORKER + '/"') &&
+          html.includes('href="' + WORKER + '/labinsight/"') &&
           !html.includes('/labinsight/app.js') &&
           !/<(?:script|form|input)\b/i.test(html);
         if (!ok) detail = "public-root-home-mismatch";
@@ -55,7 +55,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
       } else if (ok && x.kind === "worker-login") {
         let location = null;
         try { location = new URL(response.headers.get("Location"), WORKER); } catch (_) {}
-        ok = location?.origin === WORKER && location?.pathname === "/" && location?.hash === "#login" &&
+        ok = location?.origin === WORKER && location?.pathname === "/login.html" && location?.searchParams.get("next") === "/labinsight/" &&
           /no-store/i.test(response.headers.get("Cache-Control") || "");
         if (!ok) detail = "worker-login-redirect-mismatch";
       } else if (ok && x.kind === "worker-deny") {
