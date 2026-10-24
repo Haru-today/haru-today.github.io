@@ -25,7 +25,7 @@ Caffeine Atlas의 기존 내부 기능 주소(`caffeine-sensitivity-app/`)는 �
 
 LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labdam-free-approval.jleegenomics.workers.dev/labinsight/`이며 Google 로그인과 D1의 관리자 승인 여부를 서버에서 확인합니다. `https://haru-today.github.io/`는 공개 브랜드·서비스 소개용으로 유지됩니다.
 
-**기존 `https://haru-today.github.io/labinsight/` 주소는 GitHub Pages에서 `main /docs`로 게시 폴더를 전환해야** 검사 입력 화면이 더 이상 정적으로 공개되지 않습니다. 설정 후 해당 주소는 승인제 Worker 안내만 제공합니다. REPODAM 설정: https://github.com/Haru-today/labinsight/settings/pages
+**기존 `https://haru-today.github.io/labinsight/` 주소는 GitHub Pages에서 `main /docs`로 게시 폴더를 전환해야** 검사 입력 화면이 더 이상 정적으로 공개되지 않습니다. 설정 후 해당 주소는 승인제 Worker 안내만 제공합니다. REPODAM 설정: https://github.com/Haru-today/repodam/settings/pages
 
 기존 Caffeine Atlas 학회 포스터 QR 및 `https://haru-today.github.io/caffeine-atlas/` 공개 이용은 유지합니다. GitHub Pages는 서버 인증을 수행하지 못하므로 공개 저장소 코드의 변경만으로 운영자 승인제가 적용되었다고 주장하지 않습니다.
 
@@ -37,6 +37,19 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 - Caffeine Atlas 프로젝트 Pages와 학회 포스터 QR은 그대로 공개됩니다. root `robots.txt`는 Caffeine Atlas의 크롤링까지 막지 않도록 유지합니다.
 - 검색엔진 결과/스니펫 캐시는 즉시 사라지지 않을 수 있습니다. 로그인 차단의 근거는 검색 결과가 아니라 **Worker 서버의 세션 검증**입니다.
 - GitHub 공개 저장소 과거 코드와 사용자 기기에서 이미 캐시된 페이지는 URL 이동이나 Google 검색 비노출만으로 삭제되지 않습니다.
+
+## 2026-10-23 REPODAM 저장소 이름 변경
+
+- REPODAM 앱 소스 저장소 이름을 `Haru-today/labinsight`에서 **`Haru-today/repodam`**으로 변경했습니다(비공개 유지). GitHub는 옛 저장소 주소를 새 이름으로 자동 연결하지만, 같은 계정에 `labinsight`라는 새 저장소를 만들면 그 연결이 끊기므로 만들지 않습니다.
+- 수동 배포 workflow의 앱 소스 checkout은 새 이름을 사용합니다. 고정된 앱 커밋 SHA, 읽기 전용 배포 키와 `LABINSIGHT_SOURCE_*` 비밀 이름은 그대로입니다.
+- 서비스 주소 경로 `/labinsight/`, 브라우저 저장 키, 앱 ID는 기존 사용자 기록·설치 앱 호환을 위해 바꾸지 않습니다.
+- 각 PC의 기존 복제본은 `git remote set-url origin https://github.com/Haru-today/repodam.git`으로 원격 주소를 갱신하세요.
+
+## 2026-10-25 REPODAM 새 화면 배포 준비
+
+- 수동 배포 workflow가 REPODAM `main`의 `b444434`(새 브랜드 화면 1·2단계, Haru-today/repodam#62·#63)를 가져오도록 고정값을 바꿨습니다.
+- 승인제 Worker 빌드 스냅숏은 `aab3aeb`입니다. 기존 `53bf3c8`에 REPODAM 브랜드 글꼴 4개(`fonts/*.subset.woff2`, OFL)를 `/labinsight/fonts/`로 복사하는 변경만 더했습니다. 글꼴도 다른 REPODAM 파일처럼 로그인과 승인을 거쳐야 받을 수 있습니다.
+- 배포는 여전히 Actions에서 확인 문구를 입력해야만 실행됩니다.
 
 ## 2026-10-25 공개 루트를 랩담 원페이지 홈페이지로 전환
 

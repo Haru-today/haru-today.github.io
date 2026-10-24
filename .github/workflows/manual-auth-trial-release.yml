@@ -25,27 +25,27 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
+          ref: aab3aeb8b9557fcff3f2827e95e8b724a0718695
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           HAS_SOURCE_DEPLOY_KEY: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY != '' }}
-          REVIEWED_APP_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
+          REVIEWED_APP_SHA: b444434317793270fe52a96d23320edca99c3ad5
         run: |
           if [ "$HAS_SOURCE_DEPLOY_KEY" = true ]; then
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
             exit 0
           fi
-          if ! gh api "repos/Haru-today/labinsight/commits/$REVIEWED_APP_SHA" --silent 2>/dev/null; then
-            echo "::error::Cannot read the pinned REPODAM source. For private source, configure the labdam-trial environment's LABINSIGHT_SOURCE_TOKEN with read-only Contents access to Haru-today/labinsight. No deployment was started."
+          if ! gh api "repos/Haru-today/repodam/commits/$REVIEWED_APP_SHA" --silent 2>/dev/null; then
+            echo "::error::Cannot read the pinned REPODAM source. For private source, configure the labdam-trial environment's LABINSIGHT_SOURCE_TOKEN with read-only Contents access to Haru-today/repodam (renamed from labinsight on 2026-10-23). No deployment was started."
             exit 1
           fi
       - name: Fetch fully reviewed REPODAM snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          repository: Haru-today/labinsight
-          ref: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
+          repository: Haru-today/repodam
+          ref: b444434317793270fe52a96d23320edca99c3ad5
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           ssh-key: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY }}
@@ -63,8 +63,8 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
-          LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
+          LABINSIGHT_RELEASE_SHA: b444434317793270fe52a96d23320edca99c3ad5
+          LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -192,8 +192,8 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: 8cbb8f195529eb050dd7e98f59c75cd669fc121c
-          LABDAM_AUTH_RELEASE_SHA: 53bf3c88a08f50de53ff5ea37b5c016140bbed24
+          LABINSIGHT_RELEASE_SHA: b444434317793270fe52a96d23320edca99c3ad5
+          LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718695
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';

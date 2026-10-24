@@ -32,8 +32,8 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 53bf3c88a08f50de53ff5ea37b5c016140bbed24/);
-  assert.match(yaml, /ref: 8cbb8f195529eb050dd7e98f59c75cd669fc121c/);
+  assert.match(yaml, /ref: aab3aeb8b9557fcff3f2827e95e8b724a0718695/);
+  assert.match(yaml, /ref: b444434317793270fe52a96d23320edca99c3ad5/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
@@ -147,4 +147,10 @@ test("supplement release requires the private module and checks its anonymous de
   assert.ok(block.includes("$TRIAL_ORIGIN/labinsight/supplement-guidance.js"));
   assert.ok(block.includes('test "$code" = 401'));
   assert.doesNotMatch(block, /auth\/start|auth\/callback|curl .*--data|d1 execute/);
+});
+
+test("manual release reads the renamed REPODAM source repository", () => {
+  assert.match(yaml, /^          repository: Haru-today\/repodam$/m);
+  assert.match(yaml, /gh api "repos\/Haru-today\/repodam\/commits\/\$REVIEWED_APP_SHA"/);
+  assert.doesNotMatch(yaml, /Haru-today\/labinsight/);
 });
