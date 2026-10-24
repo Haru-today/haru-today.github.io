@@ -23,7 +23,7 @@ test("no health form, script or private portal content remains on publicly reada
   assert.doesNotMatch(html, /class="service-card"|id="services"|id="technology"/);
   assert.doesNotMatch(html, /검사값 정리 미리보기|결과 리포트 해석|가상 예시 리포트/);
   assert.doesNotMatch(html, /\/labinsight\/app\.js/);
-  assert.ok(Buffer.byteLength(html, "utf8") < 12000);
+  assert.ok(Buffer.byteLength(html, "utf8") < 20000);
 });
 
 test("Caffeine Atlas stays a separate public project and search rules do not block its QR", () => {

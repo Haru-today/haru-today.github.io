@@ -21,7 +21,8 @@ test("homepage copy follows the LABDAM wording rules", () => {
 });
 
 test("homepage supports small screens, dark mode, accessible focus and reduced motion", () => {
-  assert.match(html, /max-width:480px/);
+  assert.match(html, /max-width:1080px/);
+  assert.match(html, /@media\(min-width:880px\)/);
   assert.match(html, /@media\(prefers-color-scheme:dark\)/);
   assert.match(html, /:focus-visible/);
   assert.match(html, /@media\(prefers-reduced-motion:reduce\)/);
