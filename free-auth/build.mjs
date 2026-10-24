@@ -110,6 +110,20 @@ async function copyIcons() {
     }
   }
 }
+// Brand font subsets (OFL) referenced by styles.css. Older reviewed snapshots
+// have no fonts folder and fall back to system fonts.
+async function copyFonts() {
+  const from = guarded(lab, "fonts");
+  if (!existsSync(from)) return;
+  const allowed = new Set(["Pretendard-Regular.subset.woff2", "Pretendard-SemiBold.subset.woff2",
+    "WantedSans-Bold.subset.woff2", "WantedSans-ExtraBold.subset.woff2"]);
+  await mkdir(join(labOutput, "fonts"), { recursive: true });
+  for (const e of await readdir(from, { withFileTypes: true })) {
+    if (e.isFile() && allowed.has(e.name)) {
+      await copyFile(guarded(from, e.name), join(labOutput, "fonts", e.name));
+    }
+  }
+}
 async function build() {
   if (existsSync(output)) throw new Error("dist exists; refusing unsafe overwrite");
   if (!existsSync(guarded(portal, "index.html")) || !existsSync(guarded(lab, "index.html"))) {
@@ -142,6 +156,7 @@ async function build() {
   }
   await copy(here, "account.html", join(labOutput, "account.html"));
   await copyIcons();
+  await copyFonts();
   // Never leave private REPODAM resources in offline CacheStorage after logout.
   await writeFile(join(labOutput, "service-worker.js"),
     'self.addEventListener("install", e => e.waitUntil(self.skipWaiting()));\n' +
