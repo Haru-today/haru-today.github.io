@@ -8,6 +8,8 @@ import { resolve } from 'node:path';
 
 const CAFFEINE_ORIGIN = 'https://haru-today.github.io';
 const PRIVATE = [
+  ['/','303','login'],
+  ['/index.html','303','login'],
   ['/labinsight/','303','login'],
   ['/labinsight/checkup.html','303','login'],
   ['/labinsight/report.html','303','login'],
@@ -23,7 +25,7 @@ const PRIVATE = [
   ['/caffeine-atlas/','404','notfound']
 ];
 const PUBLIC = [
-  '/','/index.html','/assets/portal-redesign.css','/assets/portal-session.js','/favicon.svg',
+  '/assets/portal-redesign.css','/assets/portal-session.js','/favicon.svg',
   '/privacy.html','/terms.html','/api/session-status','/login.html','/pending.html','/membership-privacy.html'
 ];
 const CAFFEINE = [
@@ -68,10 +70,11 @@ export async function probeTrialWorker(input, fetchImpl=fetch) {
       const cacheControl=response.headers.get('Cache-Control')||'';
       let ok=status===expected;
       if (kind==='login') {
-        const expectedRedirect=new URL('/#login',origin);
+        const expectedRedirect=new URL('/login.html',origin);
         let resolved;
         try { resolved=new URL(location,origin); } catch (_) {}
-        ok=ok && resolved?.origin===origin && resolved?.pathname===expectedRedirect.pathname && resolved?.hash===expectedRedirect.hash;
+        const expectedNext=['/','/index.html'].includes(path)?'/labinsight/':path;
+        ok=ok && resolved?.origin===origin && resolved?.pathname===expectedRedirect.pathname && resolved?.hash===expectedRedirect.hash && resolved?.searchParams.get('next')===expectedNext;
       }
       if (kind==='deny'||kind==='login') {
         ok=ok && /no-store/i.test(cacheControl);

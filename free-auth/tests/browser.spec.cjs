@@ -1,53 +1,36 @@
 const { test, expect } = require("@playwright/test");
+test.beforeEach(async ({page}) => { await page.route("**/api/session-status", r => r.fulfill({json:{authenticated:false}})); });
 
-test("public brand browsing preserves reports and the in-page login clears only service data before safe return", async ({ page }) => {
-  await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated: false } }));
-  await page.goto('/');
-  await expect(page.locator('#portalAccountLink')).toHaveText('로그인');
-  await expect(page.locator('#portalAccountLink')).toHaveAttribute('href', '#login');
-  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href', '/auth/start?next=%2F');
-  await page.evaluate(() => {
-    sessionStorage.setItem('labinsight-latest-report', 'SYNTHETIC-REPORT');
-    localStorage.setItem('labinsight-carepath-session-v1', 'SYNTHETIC-HISTORY');
-    localStorage.setItem('unrelated-setting', 'keep');
-  });
-  await page.goto('/?next=%2Flabinsight%2Freport.html%3Fview%3Dsample#login');
-  expect(await page.evaluate(() => sessionStorage.getItem('labinsight-latest-report'))).toBe('SYNTHETIC-REPORT');
-  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href', '/auth/start?next=%2Flabinsight%2Freport.html%3Fview%3Dsample');
-  await page.route('**/auth/start?**', route => route.fulfill({ contentType:'text/html', body:'<h1>Synthetic OAuth destination</h1>' }));
-  await page.locator('#portalGoogleStart').click();
-  await expect(page.getByRole('heading', { name:'Synthetic OAuth destination' })).toBeVisible();
-  const stored = await page.evaluate(() => ({ report:sessionStorage.getItem('labinsight-latest-report'), history:localStorage.getItem('labinsight-carepath-session-v1'), other:localStorage.getItem('unrelated-setting') }));
-  expect(stored).toEqual({ report:null, history:null, other:'keep' });
+test("dedicated login resumes approved sessions and keeps pending users out of the app", async ({page}) => {
+  for(const status of ['approved','pending','rejected']){
+    await page.route('**/api/session-status', r=>r.fulfill({json:{authenticated:true,status}}));
+    await page.route('**/labinsight/report.html*',r=>r.fulfill({body:'Synthetic approved app'}));
+    await page.route('**/pending.html',r=>r.fulfill({body:'Synthetic approval page'}));
+    await page.goto('/login.html?next=%2Flabinsight%2Freport.html');
+    await expect(page).toHaveURL(status==='approved'?/\/labinsight\/report.html$/:/\/pending.html$/);
+    await page.goto('/login.html?switch=1');
+    await expect(page.locator('#googleStart')).toBeVisible();
+    await expect(page).toHaveURL(/switch=1/);
+  }
 });
 
-for (const status of ['approved', 'pending', 'rejected']) {
-  test(`brand account controls reflect ${status} without another login or a false approval`, async ({ page }) => {
-    await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated:true, status } }));
-    await page.goto('/');
-    await expect(page.locator('#portalAccountLink')).toHaveText('내 계정');
-    await expect(page.locator('#portalAccountLink')).toHaveAttribute('href','/account.html');
-    await expect(page.locator('#portalGoogleStart')).toBeHidden();
-    await expect(page.locator('#portalMemberAction')).toHaveAttribute('href',status==='approved'?'/labinsight/':'/pending.html');
-    expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
-  });
-}
-
-test("brand login rejects off-site return paths and does not navigate when old local data cannot be cleared", async ({ page }) => {
-  await page.route('**/api/session-status', route => route.fulfill({ json: { authenticated:false } }));
-  await page.goto('/?next=https%3A%2F%2Fattacker.invalid%2F#login');
-  await expect(page.locator('#portalGoogleStart')).toHaveAttribute('href','/auth/start?next=%2F');
-  await page.evaluate(() => { Storage.prototype.removeItem = () => { throw new Error('synthetic storage failure'); }; });
-  await page.locator('#portalGoogleStart').click();
-  await expect(page.locator('#portalSessionStatus')).toContainText('기존 임시 검사결과를 지우지 못했습니다');
-  await expect(page).not.toHaveURL(/\/auth\/start/);
+test("service login preserves temporary records until explicit account switch and blocks unsafe next", async ({page}) => {
+  await page.goto('/login.html');
+  await page.evaluate(()=>{sessionStorage.setItem('labinsight-latest-report','SYNTHETIC');localStorage.setItem('unrelated-setting','keep');});
+  await page.goto('/login.html?next=%2F%5Cevil.invalid');
+  await expect(page.locator('#googleStart')).toHaveAttribute('href','/auth/start?next=%2Flabinsight%2F');
+  expect(await page.evaluate(()=>sessionStorage.getItem('labinsight-latest-report'))).toBe('SYNTHETIC');
+  await page.route('**/auth/start?**',r=>r.fulfill({body:'Synthetic OAuth'}));
+  await page.locator('#googleStart').click();
+  await expect(page).toHaveURL(/\/auth\/start\?/);
+  expect(await page.evaluate(()=>sessionStorage.getItem('labinsight-latest-report'))).toBeNull();
+  expect(await page.evaluate(()=>localStorage.getItem('unrelated-setting'))).toBe('keep');
 });
-
 test("free approval signup explains restrictions and exposes privacy before any Google OAuth request", async ({ page }, info) => {
   await page.goto("/login.html");
   await expect(page).toHaveTitle(/LABDAM/);
   await expect(page.getByRole("heading", { name: "Google 계정으로 가입 신청" })).toBeVisible();
-  await expect(page.getByRole("link", { name: "Google 계정으로 계속하기" })).toHaveAttribute("href", "/auth/start");
+  await expect(page.getByRole("link", { name: "Google 계정으로 계속하기" })).toHaveAttribute("href", "/auth/start?next=%2Flabinsight%2F");
   await expect(page.getByRole("link", { name: "회원가입 개인정보 처리 안내" })).toHaveAttribute("href", "/membership-privacy.html");
   await expect(page.getByText("관리자가 승인한 회원만 이용", { exact: false })).toBeVisible();
   await expect(page.getByRole("link", { name: "Caffeine Atlas 공개 체험 열기" }))
@@ -72,10 +55,10 @@ test("refined LABDAM login stays compact, readable and usable across screen widt
   await page.goto("/login.html");
   const panel = page.locator(".login-panel");
   const cta = page.locator("#googleStart");
-  await expect(page.getByRole("heading", { name: /LABDAM에 오신 것을 환영합니다/ })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /리포담을 시작하려면/ })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Google 계정으로 가입 신청" })).toBeVisible();
   await expect(cta).toBeVisible();
-  await expect(cta).toHaveAttribute("href", "/auth/start");
+  await expect(cta).toHaveAttribute("href", "/auth/start?next=%2Flabinsight%2F");
   await expect(page.locator('input[type="password"]')).toHaveCount(0);
   await expect(page.getByRole("link", { name: "회원가입 개인정보 처리 안내" })).toBeVisible();
   const sizes = await page.evaluate(() => {
@@ -118,7 +101,7 @@ test("Korean welcome message keeps complete words on narrow 320px phones", async
         wraps, overflow: document.documentElement.scrollWidth > window.innerWidth + 1
       };
     });
-    expect(layout.text).toBe("LABDAM에 오신 것을 환영합니다.");
+    expect(layout.text).toBe("리포담을 시작하려면 로그인해 주세요.");
     expect(layout.wraps).toHaveLength(2);
     expect(layout.wraps[0].rows, "first line split at " + width).toBe(1);
     expect(layout.wraps[1].rows, "word '환영합니다.' split at " + width).toBe(1);
@@ -158,7 +141,7 @@ test("redesigned Google CTA preserves protected destination and rejects external
   await expect(page.locator("#googleStart")).toHaveAttribute("href",
     "/auth/start?next=%2Flabinsight%2Fcarepath.html");
   await page.goto("/login.html?next=%2F%2Fevil.example%2Ffake-login");
-  await expect(page.locator("#googleStart")).toHaveAttribute("href", "/auth/start");
+  await expect(page.locator("#googleStart")).toHaveAttribute("href", "/auth/start?next=%2Flabinsight%2F");
   await expect(page.getByRole("link", { name: "Caffeine Atlas 공개 체험 열기" }))
     .toHaveAttribute("href", "https://haru-today.github.io/caffeine-atlas/");
 });

@@ -252,12 +252,27 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
     return { start, callback, browserCookie, result };
   };
 }
-test("anonymous visitor can browse LABDAM but REPODAM and account data remain protected", async () => {
+test("legacy service roots go to REPODAM login and cannot redirect off-site", async () => {
+  const f=fixture();
+  for(const path of ["/", "/index.html", "/login", "/?next=https://evil.invalid", "/?next=%2Flogin.html"]){
+    const r=await handleRequest(req(path), {...f.env, DB:undefined}, f.opts);
+    assert.equal(r.status,303);
+    const target=new URL(r.headers.get("Location"));
+    assert.equal(target.origin,ORIGIN);
+    assert.equal(target.pathname,"/login.html");
+    assert.equal(target.searchParams.get("next"),"/labinsight/");
+    assert.match(r.headers.get("Cache-Control"),/no-store/);
+  }
+  for(const value of ["//evil.invalid", "/\\evil.invalid", "/%2f%2fevil.invalid", "/labinsight/%0d%0aLocation:evil", "/login.html", "/auth/start", "/labinsight/../login.html"])
+    assert.equal(safeNext(value),"/labinsight/",value);
+});
+
+test("anonymous visitor uses dedicated login while REPODAM and account data remain protected", async () => {
   const f = fixture();
   for (const path of ["/labinsight/", "/labinsight/report.html"]) {
     const res = await handleRequest(req(path), f.env, f.opts);
     assert.equal(res.status, 303);
-    assert.match(res.headers.get("location"), /\/\?next=.*#login$/);
+    assert.match(res.headers.get("location"), /\/login\.html\?next=/);
   }
   for (const path of ["/labinsight/app.js",
     "/labinsight/supplement-guidance.js", "/account.html?file=x"]) {
@@ -277,7 +292,7 @@ test("the public brand exact allowlist works without OAuth or D1 and rejects wri
   for (const path of ["/", "/index.html", "/favicon.svg", "/assets/portal-redesign.css",
     "/assets/portal-session.js", "/privacy.html", "/terms.html"]) {
     const response = await handleRequest(req(path), env, f.opts);
-    assert.equal(response.status, 200, path);
+    assert.equal(response.status, ["/", "/index.html"].includes(path) ? 303 : 200, path);
     assert.match(response.headers.get("Cache-Control"), /no-store/);
     assert.equal((await handleRequest(req(path, { method: "POST" }), env, f.opts)).status, 405);
   }
@@ -290,6 +305,10 @@ test("the public brand exact allowlist works without OAuth or D1 and rejects wri
 test("public session status reveals only the current session approval state, never profile or CSRF", async () => {
   for (const status of ["approved", "pending", "rejected"]) {
     const f = fixture(), member = seedMember(f, { status });
+    const login = await handleRequest(req("/login.html?next=%2Flabinsight%2Freport.html", {cookie:member.cookie}), f.env, f.opts);
+    assert.equal(login.status,303);
+    assert.equal(new URL(login.headers.get("Location")).pathname,status==="approved"?"/labinsight/report.html":"/pending.html");
+    assert.equal((await handleRequest(req("/login.html?switch=1",{cookie:member.cookie}),f.env,f.opts)).status,200);
     const response = await handleRequest(req("/api/session-status", { cookie: member.cookie }), f.env, f.opts);
     assert.equal(response.status, 200);
     assert.equal(response.headers.get("Vary"), "Cookie");
@@ -306,13 +325,13 @@ test("anonymous service entry returns to the brand login section with the origin
   assert.equal(response.status, 303);
   const location = new URL(response.headers.get("Location"));
   assert.equal(location.origin, ORIGIN);
-  assert.equal(location.pathname, "/");
-  assert.equal(location.hash, "#login");
+  assert.equal(location.pathname, "/login.html");
+  assert.equal(location.hash, "");
   assert.equal(location.searchParams.get("next"), "/labinsight/report.html?view=sample");
 });
 test("approved Google member can open LABDAM homepage and REPODAM without signing in twice", async () => {
   const f = fixture(), member = seedMember(f);
-  for (const path of ["/", "/index.html", "/labinsight/", "/labinsight/app.js", "/labinsight/supplement-guidance.js",
+  for (const path of ["/labinsight/", "/labinsight/app.js", "/labinsight/supplement-guidance.js",
     "/labinsight/report.html", "/assets/portal-redesign.css"]) {
     const res = await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts);
     assert.equal(res.status, 200, path);
@@ -329,7 +348,7 @@ test("approved Google member can open LABDAM homepage and REPODAM without signin
 test("pending and rejected applicants never receive protected content, even with session", async () => {
   for (const status of ["pending", "rejected"]) {
     const f = fixture(), user = seedMember(f, { status });
-    assert.equal((await handleRequest(req("/", { cookie: user.cookie }), f.env, f.opts)).status, 200);
+    assert.equal((await handleRequest(req("/", { cookie: user.cookie }), f.env, f.opts)).status, 303);
     assert.equal((await handleRequest(req("/labinsight/app.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
     assert.equal((await handleRequest(req("/labinsight/supplement-guidance.js", { cookie: user.cookie }), f.env, f.opts)).status, 403);
     assert.equal((await handleRequest(req("/labinsight/report.html", { cookie: user.cookie }), f.env, f.opts)).status, 303);
@@ -535,7 +554,7 @@ test("healthz reports readiness only when auth configuration and private assets 
   const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
   assert.equal(healthy.status, 200);
   assert.match(healthy.headers.get("Cache-Control"), /no-store/);
-  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "labdam-auth-20261023-public-brand" });
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "repodam-auth-20261025-dedicated-login" });
   for (const overrides of [
     { GOOGLE_CLIENT_SECRET: undefined },
     { GOOGLE_CLIENT_ID: "" },
@@ -562,9 +581,9 @@ test("missing config, malicious paths and credential-bearing unsupported routes 
   }
   assert.equal((await handleRequest(req("/auth/start", { method: "POST" }), f.env, f.opts)).status, 404);
   assert.equal((await handleRequest(req("/labinsight/", { method: "POST" }), f.env, f.opts)).status, 401);
-  assert.equal(safeNext("//evil.example"), "/");
-  assert.equal(safeNext("/caffeine-atlas/"), "/");
-  assert.equal(safeNext("https://evil.example"), "/");
+  assert.equal(safeNext("//evil.example"), "/labinsight/");
+  assert.equal(safeNext("/caffeine-atlas/"), "/labinsight/");
+  assert.equal(safeNext("https://evil.example"), "/labinsight/");
   assert.equal(safeNext("/labinsight/report.html?view=1"), "/labinsight/report.html?view=1");
 });
 test("fixed-duration sessions expire, no CSRF bypass and private admin-only static UI", async () => {
@@ -598,7 +617,7 @@ test("bootstrap admin cannot accidentally delete the only administration account
     cookie: admin.cookie, origin: ORIGIN, csrf: admin.csrf }), f.env, f.opts);
   assert.equal(res.status, 403);
   assert.equal(f.DB.members.size, 1);
-  assert.equal((await handleRequest(req("/", { cookie: admin.cookie }), f.env, f.opts)).status, 200);
+  assert.equal((await handleRequest(req("/", { cookie: admin.cookie }), f.env, f.opts)).status, 303);
 });
 
 test("daily free D1 cleanup removes only expired OAuth states, sessions and rate limit records", async () => {

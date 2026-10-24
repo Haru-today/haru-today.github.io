@@ -1,9 +1,12 @@
-# LABDAM public brand and protected REPODAM
+# LABDAM homepage and REPODAM service login
 
-LABDAM / and /index.html are public, read-only brand pages. The header login link opens the homepage login section. Google OAuth remains server-side and existing accounts and approval records are reused.
+The canonical public LABDAM homepage is https://haru-today.github.io/.
+The Worker host serves REPODAM. Its root, /index.html and /login are legacy aliases for /login.html?next=/labinsight/; they no longer display the older duplicate LABDAM portal. Existing /#login bookmarks still reach REPODAM login.
 
-REPODAM HTML, scripts, styles, data files, account pages and administration APIs require the existing session and approval checks. Anonymous HTML requests return to /?next=...#login; approved OAuth callbacks return to the original safe destination. Pending and rejected applicants can browse the brand page but cannot enter REPODAM. Logout returns to the brand login section.
+Anonymous protected HTML redirects to the dedicated /login.html with a validated next destination. Scripts, fonts, data, APIs and non-HTML resources remain denied (401); pending/rejected members remain denied (403), and HTML goes to /pending.html. No REPODAM home or private application source is made public.
 
-Only the exact brand page, favicon, portal stylesheet, portal-session.js and brand policy pages are public. Arbitrary /assets paths and private app resources are never allowlisted. The minimal /api/session-status response contains no identity, profile, CSRF token or health information, uses no-store and varies by Cookie. Public brand browsing does not require working OAuth credentials or D1.
+The dedicated login checks the minimal session-status endpoint. Existing approved sessions resume the validated destination; pending/rejected sessions go to the approval page. The explicit switch=1 link allows another Google account without a redirect loop. Reports are cleared only on explicit account switch/logout, using the existing scoped keys.
 
-Browsing the homepage preserves temporary reports. Explicit login/account switching removes only known REPODAM health/demo keys before OAuth starts; failure blocks navigation. Unrelated browser settings are untouched. The legacy /login.html remains a compatibility entry, while primary navigation and logout use the brand homepage.
+OAuth callback URI, Google client, D1 binding, cookie attributes, administrator approval and application IDs are unchanged. Unsafe return targets fall back to /labinsight/. Logout and expired sessions return to /login.html, while LABDAM home links use the canonical public URL. Caffeine Atlas retains its public URLs and QR destinations.
+
+Release from a separately reviewed immutable Worker commit. Rollback source: aab3aeb8b9557fcff3f2827e95e8b724a0718695. Do not merge this source-snapshot branch into public homepage main; main release configuration pins it explicitly.

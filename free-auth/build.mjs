@@ -40,11 +40,18 @@ function noIndex(html) {
   return s.replace("<head>", '<head>\n<meta name="robots" content="noindex,nofollow">');
 }
 function rewritePaths(text) {
-  return text
+  const rewritten = text
     .replaceAll("https://haru-today.github.io/labinsight/", "/labinsight/")
-    .replace(/https:\/\/haru-today\.github\.io\/(?!caffeine-atlas\/)/g, "/")
     .replace(/(href|src)=(["'])\/caffeine-atlas\//g,
       '$1=$2https://haru-today.github.io/caffeine-atlas/');
+  // Keep intentional public home/legal/Atlas links external, never auth or API calls.
+  for (const value of rewritten.match(/https:\/\/haru-today\.github\.io\/[^\s"'<>)]*/g) || []) {
+    const u = new URL(value);
+    if (!["/", "/privacy.html", "/terms.html"].includes(u.pathname) && !u.pathname.startsWith("/caffeine-atlas/")) {
+      throw new Error("Unexpected public Pages destination in protected bundle");
+    }
+  }
+  return rewritten;
 }
 function portalHtml(src) {
   const text = noIndex(rewritePaths(src));
@@ -81,7 +88,7 @@ function labHtml(src) {
   const text = noIndex(rewritePaths(src));
   const anchor = '<a class="nav-cta"';
   if (!text.includes(anchor)) throw new Error("Cannot safely add REPODAM account navigation");
-  return text.replace(anchor, '<a href="./account.html">내 계정</a>' + anchor);
+  return text.replace(anchor, '<a href="./account.html">내 계정</a><a href="https://haru-today.github.io/">랩담 홈페이지</a>' + anchor);
 }
 function protectedLabScript(src) {
   const text = rewritePaths(src);

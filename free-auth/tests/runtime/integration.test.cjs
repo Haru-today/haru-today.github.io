@@ -85,11 +85,11 @@ async function review(admin, status, candidate = sub) {
 }
 
 test("public LABDAM stays readable while the real Worker gates REPODAM and exposes no anonymous account data", async () => {
-  const home = await request("/");
+  const home = await request("/login.html");
   assert.equal(home.status, 200);
   const html = await home.text();
-  assert.match(html, /id="portalAccountLink"/);
-  assert.match(html, /id="portalGoogleStart"/);
+  assert.match(html, /리포담/);
+  assert.match(html, /id="googleStart"/);
   assert.doesNotMatch(html, /id="healthForm"|labinsight\/app\.js/);
   assert.equal((await request("/assets/portal-session.js")).status, 200);
   assert.deepEqual(await (await request("/api/session-status")).json(), { authenticated: false });
@@ -97,14 +97,14 @@ test("public LABDAM stays readable while the real Worker gates REPODAM and expos
     const response = await request(path);
     assert.equal(response.status, 303, path);
     const target = new URL(response.headers.get("location"));
-    assert.equal(target.pathname, "/");
-    assert.equal(target.hash, "#login");
+    assert.equal(target.pathname, "/login.html");
+    assert.equal(target.hash, "");
     assert.equal(target.searchParams.get("next"), path);
   }
   assert.equal((await request("/labinsight/app.js")).status, 401);
   assert.equal((await request("/api/me")).status, 401);
   const candidate = await login();
-  assert.equal((await request("/", candidate.cookie)).status, 200);
+  assert.equal((await request("/", candidate.cookie)).status, 303);
   assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: true, status: "pending" });
   const admin = await login(true);
   await review(admin, "approved");
@@ -148,7 +148,7 @@ test("workerd OAuth + D1: pending, shared approval, revocation, rejection and fr
   assert.equal((await request("/labinsight/app.js", applicant.cookie)).status, 403);
   assert.equal((await request(applicant.path, applicant.oauthCookie)).status, 400);
   assert.equal((await review(admin, "approved")).status, 200);
-  for (const path of ["/", "/labinsight/", "/labinsight/app.js", "/labinsight/carepath.html", "/labinsight/carepath.js", "/labinsight/carepath-data.js"]) {
+  for (const path of ["/labinsight/", "/labinsight/app.js", "/labinsight/carepath.html", "/labinsight/carepath.js", "/labinsight/carepath-data.js"]) {
     const response = await request(path, applicant.cookie);
     assert.equal(response.status, 200, path);
     assert.match(response.headers.get("cache-control"), /no-store/);
@@ -298,7 +298,7 @@ test("real D1 session expiry, CSRF and account deletion block protected assets",
   assert.equal((await request("/api/account/delete", applicant.cookie, "POST", {}, "bad-csrf")).status, 403);
   await db.prepare("UPDATE sessions SET expires_at=? WHERE google_sub=?").bind(now() - 1, sub).run();
   assert.equal((await request("/api/me", applicant.cookie)).status, 401);
-  assert.equal((await request("/", applicant.cookie)).status, 200);
+  assert.equal((await request("/", applicant.cookie)).status, 303);
   const fresh = await login();
   const freshMe = await (await request("/api/me", fresh.cookie)).json();
   assert.equal((await request("/auth/logout", fresh.cookie, "POST", {}, freshMe.csrf)).status, 303);
