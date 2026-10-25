@@ -25,9 +25,9 @@ test('public root HTML has no app forms or scripts, and its own files load', asy
 
 test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
   await page.goto('/');
-  const ask = page.getByRole('link', { name: '리포담', exact: true });
+  const ask = page.getByRole('link', { name: '리포담 시작하기', exact: true });
   await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
-  await expect(page.getByRole('link', { name: '카페인 아틀라스', exact: true }))
+  await expect(page.getByRole('navigation', { name: '랩담의 다른 도구' }).getByRole('link', { name: /^카페인 아틀라스/ }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
   for (const name of ['문의하기', '이메일로 물어보기']) {
     await expect(page.getByRole('link', { name })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
@@ -53,8 +53,8 @@ test('homepage links work by keyboard and the page has no horizontal scroll', as
 test('the hero fits in the first screen on phones', async ({ page }, testInfo) => {
   test.skip(!['android-chromium', 'iphone-webkit'].includes(testInfo.project.name), 'phone viewports only');
   await page.goto('/');
-  const trust = page.getByText('임상병리학 전공자가 만듭니다', { exact: true });
-  const box = await trust.boundingBox();
+  const start = page.getByRole('link', { name: '리포담 시작하기', exact: true });
+  const box = await start.boundingBox();
   expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
 });
 
