@@ -56,6 +56,6 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 - `https://haru-today.github.io/`는 더 이상 Worker로 자동 이동하지 않고, 랩담 원페이지 홈페이지(인스타 프로필 링크용, 390px 모바일 기준)를 보여 줍니다. 위 2026-10-16 항목의 자동 이동은 이 변경으로 대체됩니다.
 - 문구·색·글꼴은 LABDAM 디자인 시스템(2026-10-24 첫 판)과 원페이지 시안을 따릅니다. 연락처는 `jleegenomics@gmail.com` 하나입니다.
 - 상단 **리포담** 버튼은 리포담 서비스로 연결합니다. 미로그인 사용자는 리포담 전용 로그인, 승인된 세션은 리포담 홈으로 이어집니다. 아래 **리포담 로그인** 링크도 전용 로그인으로 연결합니다. Google 로그인·관리자 승인 보호는 유지합니다.
-- 홈페이지 첫 화면은 리포담 하나에 집중합니다. **리포담 시작하기** 버튼은 기존 로그인·관리자 승인 경로로, 그 아래 **랩담의 다른 도구** 카드는 카페인 아틀라스 기존 공개 주소로 연결합니다. 학회 포스터 QR 주소와 `robots.txt`·`sitemap.xml`은 그대로입니다.
+- 홈페이지 첫 화면은 리포담 하나에 집중합니다. **리포담 시작하기** 버튼은 기존 로그인·관리자 승인 경로로, 그 아래 **랩담의 다른 도구** 카드는 카페인 아틀라스 홈(`caffeine-atlas/caffeine-sensitivity-app/index.html`)으로 바로 연결합니다. 포스터 QR용 `caffeine-atlas/` 주소는 이동 안내 화면을 거치므로 홈페이지 링크에는 쓰지 않습니다. 학회 포스터 QR 주소와 `robots.txt`·`sitemap.xml`은 그대로입니다.
 - 검색 노출은 기존처럼 `noindex,nofollow`를 유지합니다. 검색에 노출하려면 메타 태그와 `sitemap.xml`을 함께 바꿔야 합니다.
 - 글꼴은 Pretendard·Wanted Sans(OFL)를 페이지에 쓰인 글자만 남겨 `assets/fonts/`에 직접 둡니다(4개 합계 약 120KB, 외부 요청 없음). 문구를 바꾸면 `python scripts/subset-home-fonts.py <전체 woff2 폴더>`를 다시 실행하세요. 빠진 글자는 시스템 글꼴로 보입니다.
