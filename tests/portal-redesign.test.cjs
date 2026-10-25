@@ -8,7 +8,7 @@ test("the root is the LABDAM one-page homepage, not a redirect", () => {
   assert.match(html, /검진 결과, 내 결과지 기준으로 보세요/);
   assert.match(html, /임상병리학 전공자가 만듭니다/);
   assert.match(html, /랩담의 첫 서비스입니다/);
-  assert.match(html, /출시 준비 중/);
+  assert.match(html, /승인제 시범 운영 중/);
   assert.doesNotMatch(html, /http-equiv="refresh"/);
   assert.doesNotMatch(html, /class="hero-grid"|class="service-card"|id="services"|class="atlas-board"/);
 });
