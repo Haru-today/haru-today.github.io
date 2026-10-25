@@ -25,11 +25,11 @@ test('public root HTML has no app forms or scripts, and its own files load', asy
 
 test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
   await page.goto('/');
-  const ask = page.getByRole('link', { name: '리포담', exact: true });
+  const ask = page.getByRole('link', { name: '리포담 시작하기', exact: true });
   await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
-  await expect(page.getByRole('link', { name: '카페인 아틀라스', exact: true }))
+  await expect(page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '카페인 아틀라스', exact: true }))
     .toHaveAttribute('href', 'https://haru-today.github.io/caffeine-atlas/');
-  for (const name of ['문의하기', '이메일로 물어보기']) {
+  for (const name of ['문의', '이메일로 물어보기']) {
     await expect(page.getByRole('link', { name })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
   }
   const faq = page.getByText('진단해 주나요?');
