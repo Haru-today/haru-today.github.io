@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 55c1843e5dac79059fb468a1e1a29917bcd96c21
+          ref: db9e9da6954c80f647abece1d5d480822db28c62
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
@@ -64,7 +64,7 @@ jobs:
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21
+          LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28c62
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -196,7 +196,7 @@ jobs:
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21
+          LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28c62
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -230,8 +230,8 @@ jobs:
                printf '%s' "$login_html" | grep -Fq 'class="caffeine-card"' &&
                printf '%s' "$login_html" | grep -Fq '로그인 불필요' &&
                printf '%s' "$login_html" | grep -Fq 'href="https://haru-today.github.io/caffeine-atlas/"' &&
-               printf '%s' "$login_html" | grep -Fq '.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}' &&
-               printf '%s' "$login_html" | grep -Fq '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}' &&
+               printf '%s' "$login_html" | grep -Fq 'class="login-logo"' &&
+               printf '%s' "$login_html" | grep -Fq 'id="loginSteps"' &&
                printf '%s' "$login_html" | grep -Fq '"labinsight-demo-bookings-v2"' &&
                printf '%s' "$login_html" | grep -Fq '"labinsight-bookings"' &&
                printf '%s' "$login_html" | grep -Fq 'REPODAM' &&

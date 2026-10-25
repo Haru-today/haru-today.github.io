@@ -19,3 +19,8 @@ regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: aab3aeb8b9557fcff3f2827e95e8b724a0718
 description = "Verified public dedicated REPODAM login source commit"
 regexTarget = "line"
 regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 55c1843e5dac79059fb468a1e1a29917bcd96c21\s*$''']
+
+[[rules.allowlists]]
+description = "Verified public REPODAM login redesign source commit used by release PR 60"
+regexTarget = "line"
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28c62\s*$''']

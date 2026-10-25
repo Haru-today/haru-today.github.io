@@ -32,7 +32,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 55c1843e5dac79059fb468a1e1a29917bcd96c21/);
+  assert.match(yaml, /ref: db9e9da6954c80f647abece1d5d480822db28c62/);
   assert.match(yaml, /ref: deede09d8c2fa05305e7ed35bf66b366cb015212/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -113,8 +113,8 @@ test("new compact login markup is checked after live deployment, not only in bun
   for (const fragment of [
     'welcome-line', '리포담을 시작하려면', '로그인해 주세요.',
     'class="caffeine-card"', '로그인 불필요',
-    '.privacy-copy{margin-top:11px;font-size:12px;line-height:1.65;color:#52657d}',
-    '#localDataStatus{margin-top:9px;font-size:12px;color:#52657d}',
+    'class="login-logo"',
+    'id="loginSteps"',
     '"labinsight-demo-bookings-v2"', '"labinsight-bookings"',
     'https://haru-today.github.io/caffeine-atlas/', 'href="/auth/start"'
   ]) assert.ok(block.includes(fragment), "live UI audit missing " + fragment);
