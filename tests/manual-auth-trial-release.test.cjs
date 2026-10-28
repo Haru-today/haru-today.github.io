@@ -166,5 +166,7 @@ test("handoff and real-source local integration gates run before any deployment"
   const block = yaml.slice(integration, secrets);
   assert.match(block, /LABINSIGHT_SOURCE: \$\{\{ github\.workspace \}\}\/sources\/labinsight/);
   assert.match(block, /node --test free-auth\/tests\/bundle\.test\.cjs/);
+  assert.match(block, /npm ci --prefix free-auth\/tests\/runtime/);
   assert.match(block, /npm test --prefix free-auth\/tests\/runtime/);
+  assert.doesNotMatch(yaml.slice(unit, secrets), /continue-on-error:\s*true/);
 });
