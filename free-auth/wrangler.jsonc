@@ -4,6 +4,12 @@
   "main": "./worker.mjs",
   "compatibility_date": "2026-10-14",
   "workers_dev": true,
+  "routes": [
+    {
+      "pattern": "repodam.labdam.kr",
+      "custom_domain": true
+    }
+  ],
   "vars": {
     "AUTH_ORIGIN": "https://labdam-free-approval.jleegenomics.workers.dev",
     "REPODAM_CUSTOM_DOMAIN": "enabled",
