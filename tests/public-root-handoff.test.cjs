@@ -16,7 +16,7 @@ function fakeFetch(changes = {}) {
       return new Response(null, { status: 301, headers: { Location: ROOT + u.pathname + u.search } });
     }
     if (u.origin === ROOT && u.pathname === "/") {
-      return new Response('<meta name="robots" content="noindex,nofollow">' +
+      return new Response('<meta name="robots" content="index,follow"><link rel="canonical" href="https://labdam.kr/">' +
         '<h1>검진 결과, 내 결과지 기준으로 보세요</h1>' +
         '<a href="' + WORKER + '/labinsight/">리포담</a>', { status: 200 });
     }
@@ -31,9 +31,9 @@ function fakeFetch(changes = {}) {
       headers: { Location: WORKER + "/login.html?next=%2Flabinsight%2F", "Cache-Control": "no-store" }
     });
     if (u.origin === WORKER && u.pathname === "/labinsight/app.js") return new Response("", {
-      status: 401, headers: { "Cache-Control": "private, no-store" }
+      status: 401, headers: { "Cache-Control": "private, no-store", "X-Robots-Tag": "noindex, nofollow" }
     });
-    if (u.origin === WORKER && u.pathname === "/login.html") return new Response("", { status: 200 });
+    if (u.origin === WORKER && u.pathname === "/login.html") return new Response("", { status: 200, headers: { "X-Robots-Tag": "noindex, nofollow" } });
     throw Error("Unexpected route");
   };
 }
@@ -48,6 +48,14 @@ test("a root that is not the LABDAM homepage is detected, even if Worker itself 
   const a = await inspectPublicEntry(fakeFetch({
     [ROOT + "/"]: new Response('<main>old portal</main>', { status: 200 })
   }));
+  assert.equal(a.ok, false);
+  assert.equal(a.results[0].detail, "public-root-home-mismatch");
+});
+test("a homepage noindex header blocks the search-entry audit", async () => {
+  const { inspectPublicEntry } = await load();
+  const body = '<meta name="robots" content="index,follow"><link rel="canonical" href="https://labdam.kr/">' +
+    '<h1>검진 결과, 내 결과지 기준으로 보세요</h1><a href="' + WORKER + '/labinsight/">리포담</a>';
+  const a = await inspectPublicEntry(fakeFetch({ [ROOT + "/"]: new Response(body, { status: 200, headers: { "X-Robots-Tag": "noindex" } }) }));
   assert.equal(a.ok, false);
   assert.equal(a.results[0].detail, "public-root-home-mismatch");
 });

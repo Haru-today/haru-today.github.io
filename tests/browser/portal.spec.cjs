@@ -15,7 +15,8 @@ test('public root HTML has no app forms or scripts, and its own files load', asy
   const body = await res.text();
   expect(body).not.toContain('http-equiv="refresh"');
   expect(body).toContain('href="' + WORKER + 'login.html"');
-  expect(body).toContain('name="robots" content="noindex,nofollow"');
+  expect(body).toContain('name="robots" content="index,follow"');
+  expect(body).toContain('rel="canonical" href="https://labdam.kr/"');
   expect(body).not.toMatch(/<(?:form|input|script)\b/i);
   for (const path of ['/privacy.html', '/terms.html', '/assets/labdam-logo.svg',
     ...[...body.matchAll(/url\("([^"]+)"\)/g)].map(match => match[1])]) {

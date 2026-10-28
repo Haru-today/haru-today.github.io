@@ -11,7 +11,8 @@ test("public homepage keeps one contact address and the approved users' login en
   assert.match(html, /LABDAM/);
   assert.ok(html.includes('href="' + EMAIL + '"'));
   assert.ok(html.includes('href="' + WORKER + 'login.html"'));
-  assert.ok(html.includes('name="robots" content="noindex,nofollow"'));
+  assert.ok(html.includes('name="robots" content="index,follow"'));
+  assert.ok(html.includes('rel="canonical" href="https://labdam.kr/"'));
   assert.ok(html.includes('name="referrer" content="no-referrer"'));
   assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
   const mails = [...html.matchAll(/mailto:([^"]+)"/g)].map(match => match[1]);
@@ -33,13 +34,18 @@ test("Caffeine Atlas stays a separate public project and search rules do not blo
   assert.match(robots, /Allow: \//);
   assert.match(robots, /Sitemap:/);
   assert.match(map, /caffeine-atlas\/caffeine-sensitivity-app\/index\.html/);
+  assert.match(map, /<loc>https:\/\/labdam\.kr\/<\/loc>/);
   assert.doesNotMatch(map, /<loc>https:\/\/haru-today\.github\.io\/<\/loc>/);
   assert.doesNotMatch(map, /labinsight|workers\.dev/);
 });
 
 test("public privacy pages and verification metadata remain available", () => {
   assert.match(html, /name="naver-site-verification"/);
+  assert.match(html, /name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209"/);
+  assert.match(html, /name="naver-site-verification" content="0f44c35ebff0b9388c37a766a57761ba04ae667e"/);
   assert.match(html, /name="google-site-verification"/);
+  assert.match(html, /name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ"/);
+  assert.match(html, /name="google-site-verification" content="F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8"/);
   assert.match(html, /href="\/privacy\.html"/);
   assert.match(html, /href="\/terms\.html"/);
   const privacy = fs.readFileSync("privacy.html", "utf8");
