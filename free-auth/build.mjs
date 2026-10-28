@@ -85,6 +85,7 @@ function protectedPolicyHtml(src, kind) {
   return html;
 }
 function labHtml(src) {
+  if (!src.includes("</head>")) throw new Error("Cannot safely add REPODAM handoff script");
   const text = noIndex(rewritePaths(src)).replace("</head>", '<script src="/labinsight/handoff.js" defer></script>\n</head>');
   const anchor = '<a class="nav-cta"';
   if (!text.includes(anchor)) throw new Error("Cannot safely add REPODAM account navigation");

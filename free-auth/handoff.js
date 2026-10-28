@@ -175,7 +175,7 @@
       try {
         if (!readyId || await identity(nonce) !== readyId) throw Error("account changed");
         // Never overwrite results already present in this destination tab.
-        for (const key of Object.keys(m.records)) {
+        for (const key of KEYS) {
           if (sessionStorage.getItem(key) !== null) throw Error("destination exists");
         }
         for (const key of Object.keys(m.records)) {

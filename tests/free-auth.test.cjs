@@ -347,6 +347,17 @@ test("account deletion revokes sessions on both hosts", async () => {
   assert.equal(f.DB.sessions.size, 0);
   assert.equal((await handleRequest(new Request(neo + "/api/me", {headers:{Cookie:approved.cookie}}), f.env, f.opts)).status, 401);
 });
+test("custom-host logout revokes only its origin-bound session", async () => {
+  const f = fixture(), user = seedMember(f), neo = "https://repodam.labdam.kr";
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  f.DB.sessions.set(hash("repodam-origin-v1:" + neo + ":" + user.token), f.DB.sessions.get(hash(user.token)));
+  const res = await handleRequest(new Request(neo + "/auth/logout", {
+    method:"POST", headers:{Cookie:user.cookie, Origin:neo, "X-CSRF-Token":user.csrf}
+  }), f.env, f.opts);
+  assert.equal(res.status, 303);
+  assert.equal((await handleRequest(new Request(neo + "/api/me", {headers:{Cookie:user.cookie}}), f.env, f.opts)).status, 401);
+  assert.equal((await handleRequest(req("/api/me", {cookie:user.cookie}), f.env, f.opts)).status, 200);
+});
 test("legacy service roots go to REPODAM login and cannot redirect off-site", async () => {
   const f=fixture();
   for(const path of ["/", "/index.html", "/login", "/?next=https://evil.invalid", "/?next=%2Flogin.html"]){

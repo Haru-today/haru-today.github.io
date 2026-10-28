@@ -84,6 +84,19 @@ test("existing destination report is not overwritten even for the same account",
   assert.equal(old.sandbox.sessionStorage.getItem(REPORT), '{"glucose":100}');
   assert.equal(next.writes.length, 0);
 });
+test("destination with any other existing record is not mixed with the incoming report", async () => {
+  const old = page(OLD, "/labinsight/", store({[REPORT]:'{"glucose":100}'}));
+  const next = page(NEXT, "/labinsight/handoff.html", store({[CARE]:'{"existing":true}'}));
+  next.sandbox.location.hash = "#" + "11".repeat(32);
+  const popup = {postMessage:data => next.listeners.get("message")?.({origin:OLD, source:opener, data})};
+  const opener = {postMessage:data => old.listeners.get("message")?.({origin:NEXT, source:popup, data})};
+  old.win.open = () => popup; next.win.opener = opener;
+  vm.runInNewContext(script, old.sandbox); old.sandbox.click();
+  vm.runInNewContext(script, next.sandbox); await tick(); await tick();
+  assert.equal(next.sandbox.sessionStorage.getItem(REPORT), null);
+  assert.equal(next.sandbox.sessionStorage.getItem(CARE), '{"existing":true}');
+  assert.equal(old.sandbox.sessionStorage.getItem(REPORT), '{"glucose":100}');
+});
 test("malformed or script-bearing report is not transferred", async () => {
   for (const value of ['{"glucose":"<img src=x onerror=alert(1)>"}', '{"unexpected":"data"}', 'not json']) {
     const old = page(OLD, "/labinsight/", store({[REPORT]:value}));
