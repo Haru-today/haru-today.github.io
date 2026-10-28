@@ -5,7 +5,7 @@
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
 // Public build identifier for release verification; not a secret or credential.
-const RELEASE_ID = "repodam-auth-20261025-dedicated-login";
+const RELEASE_ID = "repodam-auth-20261028-dual-origin";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
@@ -46,6 +46,12 @@ function validOrigin(env) {
         url.hash || url.pathname !== "/" || url.origin !== value.replace(/\/$/, "")) return null;
     return url.origin;
   } catch (_) { return null; }
+}
+// Preserve legacy token digests so all existing sessions remain valid, while
+// binding newly-issued custom-host tokens and OAuth states to that host.
+async function originDigest(value, origin, env) {
+  const legacy = validOrigin(env);
+  return digest(origin === legacy ? value : "repodam-origin-v1:" + origin + ":" + value);
 }
 function configured(env) {
   if (!env?.DB || typeof env.DB.prepare !== "function" ||
@@ -196,7 +202,7 @@ async function oauthStart(request, env, origin, opts) {
   const next = safeNext(new URL(request.url).searchParams.get("next"));
   await env.DB.prepare(
     "INSERT INTO oauth_states(state_hash,code_verifier,nonce,next_path,expires_at) VALUES (?,?,?,?,?)"
-  ).bind(await digest(state), verifier, nonce, next, now + OAUTH_SECONDS).run();
+  ).bind(await originDigest(state, origin, env), verifier, nonce, next, now + OAUTH_SECONDS).run();
   const authorization = new URL("https://accounts.google.com/o/oauth2/v2/auth");
   const params = {
     client_id: env.GOOGLE_CLIENT_ID,
@@ -229,7 +235,7 @@ async function oauthCallback(request, env, origin, opts) {
   // if Google returns a network error. D1 DELETE RETURNING is atomic.
   const stored = await env.DB.prepare(
     "DELETE FROM oauth_states WHERE state_hash=? AND expires_at>? RETURNING code_verifier,nonce,next_path"
-  ).bind(await digest(state), now).first();
+  ).bind(await originDigest(state, origin, env), now).first();
   if (!stored) throw new LoginError(400, "로그인 요청이 만료되었거나 이미 사용됐습니다.");
   const params = new URLSearchParams({
     code,
@@ -305,7 +311,7 @@ async function oauthCallback(request, env, origin, opts) {
   }
   statements.push(env.DB.prepare(
     "INSERT INTO sessions(token_hash,google_sub,csrf_token,expires_at,created_at) VALUES (?,?,?,?,?)"
-  ).bind(await digest(rawSession), identity.sub, csrf, now + SESSION_SECONDS, now));
+  ).bind(await originDigest(rawSession, origin, env), identity.sub, csrf, now + SESSION_SECONDS, now));
   statements.push(env.DB.prepare(
     "SELECT google_sub,email,display_name,status,role FROM members WHERE google_sub=?"
   ).bind(identity.sub));
@@ -324,7 +330,7 @@ async function currentSession(request, env, opts) {
     "SELECT s.csrf_token,s.expires_at,m.google_sub,m.email,m.display_name,m.status,m.role,m.purpose " +
     "FROM sessions s JOIN members m ON s.google_sub=m.google_sub " +
     "WHERE s.token_hash=? AND s.expires_at>?"
-  ).bind(await digest(token), nowSecs(opts)).first();
+  ).bind(await originDigest(token, new URL(request.url).origin, env), nowSecs(opts)).first();
   return member || null;
 }
 function validCsrf(request, member, origin) {
@@ -468,8 +474,14 @@ async function assetFor(request, env, targetPath) {
 }
 async function handleRequest(request, env, opts = {}) {
   const url = new URL(request.url), path = url.pathname, method = request.method;
-  const origin = validOrigin(env);
-  if (!origin || url.origin !== origin) return simple(503, "허용된 로그인 서비스 주소가 설정되지 않았습니다.");
+  // Bind redirects, OAuth and CSRF to the incoming, explicitly allowed host.
+  // Cookies remain host-only; the original configured host remains valid.
+  const legacyOrigin = validOrigin(env);
+  const origin = url.origin;
+  if (!legacyOrigin || legacyOrigin === "https://repodam.labdam.kr" ||
+      (origin !== legacyOrigin && !(env.REPODAM_CUSTOM_DOMAIN === "enabled" && origin === "https://repodam.labdam.kr"))) {
+    return simple(503, "허용된 로그인 서비스 주소가 설정되지 않았습니다.");
+  }
   try {
     // This host is REPODAM; the public LABDAM homepage lives on Pages.
     // Legacy /#login bookmarks also reach the dedicated service login.
@@ -540,7 +552,7 @@ async function handleRequest(request, env, opts = {}) {
     if (path === "/auth/logout" && method === "POST") {
       if (!validCsrf(request, member, origin)) return json(403, { ok: false, code: "CSRF" });
       const token = cookieMap(request).get(COOKIE_SESSION);
-      await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await digest(token)).run();
+      await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await originDigest(token, origin, env)).run();
       return putCookie(redirect("/login.html", origin), COOKIE_SESSION, "", 0);
     }
     if (path === "/api/application" && method === "POST") {

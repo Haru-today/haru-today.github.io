@@ -57,8 +57,8 @@ export async function inspectStatic(root, { requireRealD1 = false, requireFinalP
   if (!vars || typeof vars !== 'object' || Array.isArray(vars) ||
       vars.AUTH_ORIGIN !== 'https://labdam-free-approval.jleegenomics.workers.dev' ||
       vars.GOOGLE_CLIENT_ID !== '226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com' ||
-      Object.keys(vars).length !== 2) {
-    errors.push('Only the confirmed AUTH_ORIGIN and GOOGLE_CLIENT_ID are allowed in public vars');
+      vars.REPODAM_CUSTOM_DOMAIN !== 'enabled' || Object.keys(vars).length !== 3) {
+    errors.push('Only the confirmed origins and GOOGLE_CLIENT_ID are allowed in public vars');
   }
   if (config.assets?.directory !== './dist' || config.assets?.binding !== 'ASSETS' ||
       config.assets?.run_worker_first !== true) {

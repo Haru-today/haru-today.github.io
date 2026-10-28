@@ -6,6 +6,7 @@
   "workers_dev": true,
   "vars": {
     "AUTH_ORIGIN": "https://labdam-free-approval.jleegenomics.workers.dev",
+    "REPODAM_CUSTOM_DOMAIN": "enabled",
     "GOOGLE_CLIENT_ID": "226050909035-egl6ftg6ba8n5hjpckc8t0hgrfr4qfdm.apps.googleusercontent.com"
   },
   "triggers": {

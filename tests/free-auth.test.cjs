@@ -252,6 +252,87 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
     return { start, callback, browserCookie, result };
   };
 }
+test("new hostname preserves the old gate and rejects unknown hosts and cross-host CSRF", async () => {
+  const f = fixture(), approved = seedMember(f), neo = "https://repodam.labdam.kr";
+  assert.equal((await handleRequest(new Request(neo + "/labinsight/"), f.env, f.opts)).status, 503);
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  assert.equal((await handleRequest(new Request(neo + "/healthz"), {...f.env, AUTH_ORIGIN: neo}, f.opts)).status, 503);
+  for (const host of [ORIGIN, neo]) {
+    const root = await handleRequest(new Request(host + "/labinsight/"), f.env, f.opts);
+    assert.equal(root.status, 303);
+    assert.equal(new URL(root.headers.get("location")).origin, host);
+    const js = await handleRequest(new Request(host + "/labinsight/app.js"), f.env, f.opts);
+    assert.equal(js.status, 401);
+  }
+  for (const host of ["https://repodam.labdam.kr.evil.invalid", "http://repodam.labdam.kr", "https://repodam.labdam.kr:8443", "https://foo.repodam.labdam.kr", "https://www.labdam.kr", "https://evil.invalid"]) {
+    assert.equal((await handleRequest(new Request(host + "/labinsight/"), f.env, f.opts)).status, 503);
+  }
+  // Legacy tokens do not authenticate on the custom host, even if presented manually.
+  assert.equal((await handleRequest(new Request(neo + "/api/me", {headers:{Cookie:approved.cookie}}), f.env, f.opts)).status, 401);
+  const injected = "__Host-labdam_session=repodam-origin-v1:" + neo + ":" + approved.token;
+  assert.equal((await handleRequest(req("/api/me", {cookie:injected}), f.env, f.opts)).status, 401);
+  f.DB.sessions.set(hash("repodam-origin-v1:" + neo + ":" + approved.token), f.DB.sessions.get(hash(approved.token)));
+  const wrongOrigin = new Request(neo + "/api/application", {
+    method: "POST", headers: { Cookie: approved.cookie, Origin: ORIGIN,
+      "X-CSRF-Token": approved.csrf, "Content-Type": "application/json" },
+    body: JSON.stringify({ purpose: "synthetic" })
+  });
+  assert.equal((await handleRequest(wrongOrigin, f.env, f.opts)).status, 403);
+});
+
+test("new hostname signs in the same approved member using an origin-bound callback", async () => {
+  const f = fixture(), approved = seedMember(f), neo = "https://repodam.labdam.kr";
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  let nonce;
+  f.opts.googleFetch = async (url, options) => {
+    if (url === "https://www.googleapis.com/oauth2/v3/certs") return new Response(JSON.stringify({keys:[JWK]}));
+    if (url === "https://oauth2.googleapis.com/token") {
+      assert.equal(new URLSearchParams(options.body).get("redirect_uri"), neo + "/auth/callback");
+      return new Response(JSON.stringify({id_token:signedIdToken({nonce})}));
+    }
+    throw Error("Unexpected external request");
+  };
+  const start = await handleRequest(new Request(neo + "/auth/start"), f.env, f.opts);
+  assert.equal(start.status, 302);
+  const oauth = new URL(start.headers.get("location"));
+  assert.equal(oauth.searchParams.get("redirect_uri"), neo + "/auth/callback");
+  const state = oauth.searchParams.get("state");
+  nonce = f.DB.states.get(hash("repodam-origin-v1:" + neo + ":" + state)).nonce;
+  const cookie = "__Host-labdam_oauth_state=" + state;
+  const injectedState = "repodam-origin-v1:" + neo + ":" + state;
+  assert.equal((await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + encodeURIComponent(injectedState), {cookie:"__Host-labdam_oauth_state=" + injectedState}), f.env, f.opts)).status, 400);
+  // A state initiated on the custom host cannot be consumed on the old host.
+  assert.equal((await handleRequest(req("/auth/callback?code=VALID_TEST_CODE&state=" + state, {cookie}), f.env, f.opts)).status, 400);
+  const callback = await handleRequest(new Request(neo + "/auth/callback?code=VALID_TEST_CODE&state=" + state, {
+    headers:{Cookie:cookie}
+  }), f.env, f.opts);
+  assert.equal(callback.status, 303);
+  assert.equal(callback.headers.get("location"), neo + "/labinsight/");
+  assert.equal(f.DB.members.size, 1);
+  assert.equal(f.DB.members.get("123456789012345678901").status, "approved");
+  assert.equal(f.DB.sessions.size, 2);
+  assert.equal((await handleRequest(req("/labinsight/", {cookie:approved.cookie}), f.env, f.opts)).status, 200);
+});
+test("account deletion revokes sessions on both hosts", async () => {
+  const f = fixture(), approved = seedMember(f), neo = "https://repodam.labdam.kr";
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  f.DB.sessions.set(hash("repodam-origin-v1:" + neo + ":" + approved.token), f.DB.sessions.get(hash(approved.token)));
+  const removed = await handleRequest(req("/api/account/delete", {method:"POST", cookie:approved.cookie, origin:ORIGIN, csrf:approved.csrf}), f.env, f.opts);
+  assert.equal(removed.status, 200);
+  assert.equal(f.DB.sessions.size, 0);
+  assert.equal((await handleRequest(new Request(neo + "/api/me", {headers:{Cookie:approved.cookie}}), f.env, f.opts)).status, 401);
+});
+test("custom-host logout revokes only its origin-bound session", async () => {
+  const f = fixture(), user = seedMember(f), neo = "https://repodam.labdam.kr";
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  f.DB.sessions.set(hash("repodam-origin-v1:" + neo + ":" + user.token), f.DB.sessions.get(hash(user.token)));
+  const res = await handleRequest(new Request(neo + "/auth/logout", {
+    method:"POST", headers:{Cookie:user.cookie, Origin:neo, "X-CSRF-Token":user.csrf}
+  }), f.env, f.opts);
+  assert.equal(res.status, 303);
+  assert.equal((await handleRequest(new Request(neo + "/api/me", {headers:{Cookie:user.cookie}}), f.env, f.opts)).status, 401);
+  assert.equal((await handleRequest(req("/api/me", {cookie:user.cookie}), f.env, f.opts)).status, 200);
+});
 test("legacy service roots go to REPODAM login and cannot redirect off-site", async () => {
   const f=fixture();
   for(const path of ["/", "/index.html", "/login", "/?next=https://evil.invalid", "/?next=%2Flogin.html"]){
@@ -554,7 +635,7 @@ test("healthz reports readiness only when auth configuration and private assets 
   const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
   assert.equal(healthy.status, 200);
   assert.match(healthy.headers.get("Cache-Control"), /no-store/);
-  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "repodam-auth-20261025-dedicated-login" });
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "repodam-auth-20261028-dual-origin" });
   for (const overrides of [
     { GOOGLE_CLIENT_SECRET: undefined },
     { GOOGLE_CLIENT_ID: "" },
