@@ -32,7 +32,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 1d028bf36ece8153b50e26ff62fe9416ae2e265d/);
+  assert.match(yaml, /ref: 67e31e8fcad33c4089651e84fe07296a1c9e5793/);
   assert.match(yaml, /ref: deede09d8c2fa05305e7ed35bf66b366cb015212/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -72,7 +72,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"repodam-auth-20261028-dual-origin"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"repodam-auth-20261028-handoff"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
@@ -153,4 +153,20 @@ test("manual release reads the renamed REPODAM source repository", () => {
   assert.match(yaml, /^          repository: Haru-today\/repodam$/m);
   assert.match(yaml, /gh api "repos\/Haru-today\/repodam\/commits\/\$REVIEWED_APP_SHA"/);
   assert.doesNotMatch(yaml, /Haru-today\/labinsight/);
+});
+
+test("handoff and real-source local integration gates run before any deployment", () => {
+  const unit = yaml.indexOf("Verify OAuth security and bootstrap using synthetic identities");
+  const build = yaml.indexOf("Build public LABDAM brand and protected REPODAM bundle");
+  const integration = yaml.indexOf("Verify protected static assets and local workerd + D1 approval flows");
+  const secrets = yaml.indexOf("Require separately configured Cloudflare trial secrets");
+  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  assert.ok(unit > 0 && unit < build && build < integration && integration < secrets && secrets < deploy);
+  assert.match(yaml.slice(unit, build), /tests\/handoff\.test\.cjs/);
+  const block = yaml.slice(integration, secrets);
+  assert.match(block, /LABINSIGHT_SOURCE: \$\{\{ github\.workspace \}\}\/sources\/labinsight/);
+  assert.match(block, /node --test free-auth\/tests\/bundle\.test\.cjs/);
+  assert.match(block, /npm ci --prefix free-auth\/tests\/runtime/);
+  assert.match(block, /npm test --prefix free-auth\/tests\/runtime/);
+  assert.doesNotMatch(yaml.slice(unit, secrets), /continue-on-error:\s*true/);
 });
