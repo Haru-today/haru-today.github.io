@@ -32,7 +32,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: db9e9da6954c80f647abece1d5d480822db28c62/);
+  assert.match(yaml, /ref: 3b79151db05d0ac4b810e6f7ac11c8625a400e16/);
   assert.match(yaml, /ref: deede09d8c2fa05305e7ed35bf66b366cb015212/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
@@ -72,7 +72,7 @@ test("full post-deploy read-only protected route and Caffeine QR probe is requir
 
 test("trial release checks binding health and exact deployed revision, not just HTTP 200", () => {
   assert.ok(yaml.includes(`grep -Fq '"readiness":"bindings-present"'`));
-  assert.ok(yaml.includes(`grep -Fq '"release":"repodam-auth-20261025-dedicated-login"'`));
+  assert.ok(yaml.includes(`grep -Fq '"release":"repodam-auth-20261028-dual-origin"'`));
   assert.match(yaml, /health_body=\$\(curl --fail --silent/);
   assert.match(yaml, /Worker \/healthz does not report the expected release/);
 });
