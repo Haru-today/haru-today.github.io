@@ -12,6 +12,8 @@ export const CHECKS = [
   { path: "/", origin: ROOT, status: 200, kind: "root-home" },
   { path: "/", origin: LEGACY, status: 301, kind: "legacy-redirect" },
   { path: "/caffeine-atlas/", origin: LEGACY, status: 301, kind: "legacy-redirect" },
+  { path: "/caffeine-atlas/?audit=qr", origin: LEGACY, status: 301, kind: "legacy-redirect" },
+  { path: "/labinsight/app.js", origin: LEGACY, status: 301, kind: "legacy-redirect" },
   { path: "/labinsight/", origin: ROOT, status: 200, kind: "labinsight-handoff" },
   { path: "/labinsight/app.js", origin: ROOT, status: 404, kind: "gone" },
   { path: "/caffeine-atlas/", origin: ROOT, status: 200, kind: "caffeine" },
@@ -35,7 +37,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
         signal: AbortSignal.timeout(10000)
       });
       status = response.status;
-      ok = x.kind === "legacy-redirect" ? [301, 302, 307, 308].includes(status) : status === x.status;
+      ok = status === x.status;
       if (ok && x.kind === "root-home") {
         const html = await response.text();
         ok = html.includes('검진 결과, 내 결과지 기준으로 보세요') &&
@@ -58,7 +60,8 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
       } else if (ok && x.kind === "legacy-redirect") {
         let location = null;
         try { location = new URL(response.headers.get("Location"), LEGACY); } catch (_) {}
-        ok = location?.origin === ROOT && location?.pathname === x.path;
+        const expected = new URL(x.path, ROOT);
+        ok = location?.origin === ROOT && location?.pathname === expected.pathname && location?.search === expected.search;
         if (!ok) detail = "legacy-redirect-mismatch";
       } else if (ok && x.kind === "worker-login") {
         let location = null;
