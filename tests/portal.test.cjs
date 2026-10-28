@@ -11,7 +11,8 @@ test("public homepage keeps one contact address and the approved users' login en
   assert.match(html, /LABDAM/);
   assert.ok(html.includes('href="' + EMAIL + '"'));
   assert.ok(html.includes('href="' + WORKER + 'login.html"'));
-  assert.ok(html.includes('name="robots" content="noindex,nofollow"'));
+  assert.ok(html.includes('name="robots" content="index,follow"'));
+  assert.ok(html.includes('rel="canonical" href="https://labdam.kr/"'));
   assert.ok(html.includes('name="referrer" content="no-referrer"'));
   assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
   const mails = [...html.matchAll(/mailto:([^"]+)"/g)].map(match => match[1]);
@@ -33,6 +34,7 @@ test("Caffeine Atlas stays a separate public project and search rules do not blo
   assert.match(robots, /Allow: \//);
   assert.match(robots, /Sitemap:/);
   assert.match(map, /caffeine-atlas\/caffeine-sensitivity-app\/index\.html/);
+  assert.match(map, /<loc>https:\/\/labdam\.kr\/<\/loc>/);
   assert.doesNotMatch(map, /<loc>https:\/\/haru-today\.github\.io\/<\/loc>/);
   assert.doesNotMatch(map, /labinsight|workers\.dev/);
 });

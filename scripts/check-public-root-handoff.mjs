@@ -41,7 +41,9 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
       if (ok && x.kind === "root-home") {
         const html = await response.text();
         ok = html.includes('검진 결과, 내 결과지 기준으로 보세요') &&
-          html.includes('name="robots" content="noindex,nofollow"') &&
+          html.includes('name="robots" content="index,follow"') &&
+          html.includes('rel="canonical" href="https://labdam.kr/"') &&
+          !/noindex/i.test(response.headers.get("X-Robots-Tag") || "") &&
           html.includes('href="' + WORKER + '/labinsight/"') &&
           !html.includes('/labinsight/app.js') &&
           !/<(?:script|form|input)\b/i.test(html);
@@ -70,8 +72,12 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
           /no-store/i.test(response.headers.get("Cache-Control") || "");
         if (!ok) detail = "worker-login-redirect-mismatch";
       } else if (ok && x.kind === "worker-deny") {
-        ok = /no-store/i.test(response.headers.get("Cache-Control") || "");
+        ok = /no-store/i.test(response.headers.get("Cache-Control") || "") &&
+          /noindex/i.test(response.headers.get("X-Robots-Tag") || "");
         if (!ok) detail = "worker-cache-policy-mismatch";
+      } else if (ok && x.kind === "public-login") {
+        ok = /noindex/i.test(response.headers.get("X-Robots-Tag") || "");
+        if (!ok) detail = "worker-login-indexable";
       }
       if (!["root-home", "labinsight-handoff", "public-brand"].includes(x.kind)) {
         try { await response.body?.cancel(); } catch (_) { /* no body */ }
