@@ -34,3 +34,7 @@ regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 3b79151db05d0ac4b810e6f7ac11c8625a400
 description = "Verified public Worker probe release source commit"
 regexTarget = "line"
 regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 1d028bf36ece8153b50e26ff62fe9416ae2e265d\s*$''']
+
+[[allowlists]]
+description = "Public handoff release commit metadata"
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 8d2bb7da44800de26a503510409614f474ea8ea8\s*$''']

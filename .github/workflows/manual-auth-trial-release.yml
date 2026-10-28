@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 1d028bf36ece8153b50e26ff62fe9416ae2e265d
+          ref: 8d2bb7da44800de26a503510409614f474ea8ea8
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
@@ -56,7 +56,7 @@ jobs:
           node-version: '22'
           package-manager-cache: false
       - name: Verify OAuth security and bootstrap using synthetic identities
-        run: node --test tests/free-auth.test.cjs tests/free-auth-pages.test.cjs free-auth/tests/probe-trial-worker.test.mjs
+        run: node --test tests/free-auth.test.cjs tests/handoff.test.cjs tests/free-auth-pages.test.cjs free-auth/tests/probe-trial-worker.test.mjs
       - name: Build public LABDAM brand and protected REPODAM bundle
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
@@ -64,7 +64,7 @@ jobs:
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: 1d028bf36ece8153b50e26ff62fe9416ae2e265d
+          LABDAM_AUTH_RELEASE_SHA: 8d2bb7da44800de26a503510409614f474ea8ea8
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -148,7 +148,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"repodam-auth-20261028-dual-origin"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"repodam-auth-20261028-handoff"'; then
                 ready=1
                 break
               fi
@@ -160,7 +160,7 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release repodam-auth-20261028-dual-origin with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release repodam-auth-20261028-handoff with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
@@ -196,7 +196,7 @@ jobs:
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: 1d028bf36ece8153b50e26ff62fe9416ae2e265d
+          LABDAM_AUTH_RELEASE_SHA: 8d2bb7da44800de26a503510409614f474ea8ea8
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
