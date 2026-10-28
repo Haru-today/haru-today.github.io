@@ -1,0 +1,41 @@
+name: REPODAM source validation (synthetic, no deployment)
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  handoff-source-linux:
+    if: ${{ github.event.pull_request.number == 68 && github.event.pull_request.head.repo.full_name == github.repository }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout exact public source under review
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          ref: 67e31e8fcad33c4089651e84fe07296a1c9e5793
+          persist-credentials: false
+      - name: Verify source revision
+        run: test "$(git rev-parse HEAD)" = 67e31e8fcad33c4089651e84fe07296a1c9e5793
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with:
+          node-version: '22'
+          package-manager-cache: false
+      - name: Unit tests for authentication and browser handoff
+        run: node --test tests/free-auth.test.cjs tests/handoff.test.cjs
+      - name: Prepare synthetic assets only
+        run: |
+          mkdir -p free-auth/dist/assets free-auth/dist/labinsight
+          printf '%s' '<!doctype html><title>리포담</title><button id="googleStart"></button>' > free-auth/dist/login.html
+          for file in pending.html membership-privacy.html account.html admin.html index.html; do printf '%s' 'synthetic fixture' > "free-auth/dist/$file"; done
+          for file in portal-session.js portal-redesign.css; do printf '%s' 'synthetic fixture' > "free-auth/dist/assets/$file"; done
+          for file in index.html report.html carepath.html app.js carepath.js carepath-data.js service-worker.js; do printf '%s' 'synthetic fixture' > "free-auth/dist/labinsight/$file"; done
+          printf '%s' 'LABINSIGHT_SUPPLEMENTS' > free-auth/dist/labinsight/supplement-guidance.js
+          cp free-auth/handoff.html free-auth/handoff.js free-auth/dist/labinsight/
+      - name: Install pinned local test runtime
+        run: npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
+      - name: Run local workerd and temporary D1 integration tests
+        run: npm test --prefix free-auth/tests/runtime
