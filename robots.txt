@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://haru-today.github.io/sitemap.xml
+Sitemap: https://labdam.kr/sitemap.xml

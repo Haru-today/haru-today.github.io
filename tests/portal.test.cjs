@@ -27,7 +27,7 @@ test("no health form, script or private portal content remains on publicly reada
 });
 
 test("Caffeine Atlas stays a separate public project and search rules do not block its QR", () => {
-  assert.match(html, /href="https:\/\/haru-today\.github\.io\/caffeine-atlas\/caffeine-sensitivity-app\/index\.html"/);
+  assert.match(html, /href="\/caffeine-atlas\/caffeine-sensitivity-app\/index\.html"/);
   const robots = fs.readFileSync("robots.txt", "utf8");
   const map = fs.readFileSync("sitemap.xml", "utf8");
   assert.match(robots, /Allow: \//);
