@@ -154,3 +154,17 @@ test("manual release reads the renamed REPODAM source repository", () => {
   assert.match(yaml, /gh api "repos\/Haru-today\/repodam\/commits\/\$REVIEWED_APP_SHA"/);
   assert.doesNotMatch(yaml, /Haru-today\/labinsight/);
 });
+
+test("handoff and real-source local integration gates run before any deployment", () => {
+  const unit = yaml.indexOf("Verify OAuth security and bootstrap using synthetic identities");
+  const build = yaml.indexOf("Build public LABDAM brand and protected REPODAM bundle");
+  const integration = yaml.indexOf("Verify protected static assets and local workerd + D1 approval flows");
+  const secrets = yaml.indexOf("Require separately configured Cloudflare trial secrets");
+  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  assert.ok(unit > 0 && unit < build && build < integration && integration < secrets && secrets < deploy);
+  assert.match(yaml.slice(unit, build), /tests\/handoff\.test\.cjs/);
+  const block = yaml.slice(integration, secrets);
+  assert.match(block, /LABINSIGHT_SOURCE: \$\{\{ github\.workspace \}\}\/sources\/labinsight/);
+  assert.match(block, /node --test free-auth\/tests\/bundle\.test\.cjs/);
+  assert.match(block, /npm test --prefix free-auth\/tests\/runtime/);
+});
