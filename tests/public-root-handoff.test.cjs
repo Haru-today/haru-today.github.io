@@ -1,7 +1,8 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const ROOT = "https://haru-today.github.io";
+const ROOT = "https://labdam.kr";
+const LEGACY = "https://haru-today.github.io";
 const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev";
 async function load() { return import("../scripts/check-public-root-handoff.mjs"); }
 function fakeFetch(changes = {}) {
@@ -11,6 +12,9 @@ function fakeFetch(changes = {}) {
     assert.equal(init.redirect, "manual");
     if (changes[url]) return changes[url];
     const u = new URL(url);
+    if (u.origin === LEGACY && ["/", "/caffeine-atlas/"].includes(u.pathname)) {
+      return new Response(null, { status: 301, headers: { Location: ROOT + u.pathname } });
+    }
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
         '<h1>검진 결과, 내 결과지 기준으로 보세요</h1>' +
@@ -35,7 +39,7 @@ function fakeFetch(changes = {}) {
 }
 test("root homepage, private Worker and Caffeine public demo all pass anonymous checks", async () => {
   const { inspectPublicEntry, CHECKS } = await load();
-  assert.equal(CHECKS.length, 9);
+  assert.equal(CHECKS.length, 11);
   const a = await inspectPublicEntry(fakeFetch());
   assert.equal(a.ok, true, JSON.stringify(a.results.filter(x => !x.ok)));
 });
@@ -46,6 +50,14 @@ test("a root that is not the LABDAM homepage is detected, even if Worker itself 
   }));
   assert.equal(a.ok, false);
   assert.equal(a.results[0].detail, "public-root-home-mismatch");
+});
+test("an old QR redirect to the wrong destination fails", async () => {
+  const { inspectPublicEntry } = await load();
+  const a = await inspectPublicEntry(fakeFetch({
+    [LEGACY + "/caffeine-atlas/"]: new Response(null, { status: 301, headers: { Location: ROOT + "/" } })
+  }));
+  assert.equal(a.ok, false);
+  assert.equal(a.results.find(x => x.origin === "legacy" && x.path === "/caffeine-atlas/").detail, "legacy-redirect-mismatch");
 });
 test("private file exposure and Caffeine QR regression fail independently", async () => {
   const { inspectPublicEntry } = await load();
