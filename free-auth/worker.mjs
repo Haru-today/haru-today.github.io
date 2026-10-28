@@ -5,7 +5,7 @@
  * Authentication must ALWAYS execute before the protected ASSETS binding.
  */
 // Public build identifier for release verification; not a secret or credential.
-const RELEASE_ID = "repodam-auth-20261028-dual-origin";
+const RELEASE_ID = "repodam-auth-20261028-handoff";
 const SESSION_SECONDS = 7 * 24 * 3600;
 const OAUTH_SECONDS = 600;
 const GOOGLE_TIMEOUT_MS = 10_000;
@@ -355,7 +355,7 @@ const PUBLIC_BRAND_PATHS = new Set(["/", "/index.html", "/favicon.svg",
 function privatePath(path) {
   if (path === "/account.html" || path === "/admin.html" ||
       path === "/admin" || path === "/labinsight" || path === "/api/me" ||
-      path === "/api/admin/applications" || path === "/api/admin/review" ||
+      path === "/api/admin/applications" || path === "/api/admin/review" || path === "/api/migration-identity" || path === "/api/handoff-status" ||
       path === "/api/application" || path === "/api/account/delete" || path === "/auth/logout") return true;
   return path.startsWith("/labinsight/");
 }
@@ -502,6 +502,13 @@ async function handleRequest(request, env, opts = {}) {
       // The public brand page must remain readable even during an auth outage.
       return await assetFor(request, env, path === "/index.html" ? "/" : path);
     }
+    // The transfer shell contains no health data. Keeping just these exact
+    // files public avoids an OAuth redirect severing its popup relationship.
+    if (origin === "https://repodam.labdam.kr" &&
+        ["/labinsight/handoff.html", "/labinsight/handoff.js"].includes(path)) {
+      if (!["GET", "HEAD"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
+      return await assetFor(request, env, path);
+    }
     if (path === "/api/session-status" && method === "GET") {
       if (!cookieMap(request).get(COOKIE_SESSION)) return json(200, { authenticated: false });
       configured(env);
@@ -566,6 +573,18 @@ async function handleRequest(request, env, opts = {}) {
     if (member.status !== "approved") {
       if (method === "GET" && isHtmlRoute(path)) return redirect("/pending.html", origin);
       return json(403, { ok: false, code: "AWAITING_ADMIN_APPROVAL" });
+    }
+    if (path === "/api/handoff-status" && method === "GET") {
+      return json(200, {enabled: env.REPODAM_CUSTOM_DOMAIN === "enabled"});
+    }
+    if (path === "/api/migration-identity" && method === "GET") {
+      if (env.REPODAM_CUSTOM_DOMAIN !== "enabled") return simple(404, "요청한 페이지가 없습니다.");
+      // Browser-only transfer handshake: compare the same approved account
+      // without returning its Google subject or any health data.
+      const nonce = url.searchParams.get("nonce");
+      if (typeof nonce !== "string" || !/^[a-f0-9]{64}$/.test(nonce)) return json(400, {ok:false});
+      const id = await digest(env.RATE_LIMIT_SECRET + ":repodam-transfer:" + nonce + ":" + member.google_sub);
+      return json(200, {id});
     }
     if (path === "/api/admin/applications" || path === "/api/admin/review" ||
         path === "/admin" || path === "/admin.html") {

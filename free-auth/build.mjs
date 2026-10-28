@@ -85,7 +85,8 @@ function protectedPolicyHtml(src, kind) {
   return html;
 }
 function labHtml(src) {
-  const text = noIndex(rewritePaths(src));
+  if (!src.includes("</head>")) throw new Error("Cannot safely add REPODAM handoff script");
+  const text = noIndex(rewritePaths(src)).replace("</head>", '<script src="/labinsight/handoff.js" defer></script>\n</head>');
   const anchor = '<a class="nav-cta"';
   if (!text.includes(anchor)) throw new Error("Cannot safely add REPODAM account navigation");
   return text.replace(anchor, '<a href="./account.html">내 계정</a><a href="https://haru-today.github.io/">랩담 홈페이지</a>' + anchor);
@@ -161,6 +162,8 @@ async function build() {
       await copyFile(guarded(lab, file), dest);
     }
   }
+  await copy(here, "handoff.js", join(labOutput, "handoff.js"));
+  await copy(here, "handoff.html", join(labOutput, "handoff.html"));
   await copy(here, "account.html", join(labOutput, "account.html"));
   await copyIcons();
   await copyFonts();
@@ -177,6 +180,7 @@ async function build() {
     "assets/portal-redesign.css", "labinsight/index.html",
     "labinsight/checkup.html", "labinsight/report.html", "labinsight/carepath.html",
     "labinsight/carepath.js", "labinsight/carepath-data.js",
+    "labinsight/handoff.html", "labinsight/handoff.js",
     "labinsight/account.html", "labinsight/reference-ranges.js"
   ];
   for (const file of expected) {

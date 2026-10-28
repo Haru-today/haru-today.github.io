@@ -17,6 +17,7 @@ const REQUIRE = Object.freeze([
   'labinsight/checkup.html', 'labinsight/report.html', 'labinsight/hospitals.html',
   'labinsight/account.html', 'labinsight/styles.css', 'labinsight/manifest.webmanifest',
   'labinsight/app.js', 'labinsight/ocr-review.js',
+  'labinsight/handoff.js', 'labinsight/handoff.html',
   'labinsight/reference-ranges.js', 'labinsight/hospital-data.js',
   'labinsight/runtime-config.js', 'labinsight/service-worker.js',
   'labinsight/icons/icon.svg', 'labinsight/icons/icon-192.png',
@@ -64,8 +65,10 @@ export async function inspectStatic(root, { requireRealD1 = false, requireFinalP
       config.assets?.run_worker_first !== true) {
     errors.push('Static assets must be served through ASSETS with run_worker_first=true');
   }
-  if (config.routes != null || config.route != null || config.zone_id != null) {
-    errors.push('Custom production routes are not permitted in the trial config');
+  if (config.route != null || config.zone_id != null || !Array.isArray(config.routes) ||
+      config.routes.length !== 1 || config.routes[0]?.pattern !== 'repodam.labdam.kr' ||
+      config.routes[0]?.custom_domain !== true || Object.keys(config.routes[0]).length !== 2) {
+    errors.push('Only the confirmed REPODAM custom domain is permitted');
   }
   if (config.unsafe != null) errors.push('Unexpected unsafe Wrangler settings');
   if (!Array.isArray(config.d1_databases) || config.d1_databases.length !== 1 ||

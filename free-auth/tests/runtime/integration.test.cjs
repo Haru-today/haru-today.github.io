@@ -29,7 +29,7 @@ async function outbound(request) {
   if (providerMode === "token-redirect") return new Response(null, { status: 307, headers: { Location: "https://unexpected.invalid/" } });
   const params = new URLSearchParams(await request.text());
   assert.equal(params.get("client_id"), client);
-  assert.equal(params.get("redirect_uri"), origin + "/auth/callback");
+  assert.equal(params.get("redirect_uri"), (identity.origin || origin) + "/auth/callback");
   assert.equal(params.get("grant_type"), "authorization_code");
   assert.equal(createHash("sha256").update(params.get("code_verifier")).digest("base64url"), identity.challenge);
   // oauth_states DELETE RETURNING must consume the state before token exchange.
@@ -44,7 +44,7 @@ before(async () => {
   mf = new Miniflare(convertV4MiniflareOptions({ name: "labdam", modules: true, modulesRoot: root,
     scriptPath: resolve(root, "worker.mjs"),
     compatibilityDate: "2026-10-14", host: "127.0.0.1",
-    bindings: { AUTH_ORIGIN: origin, GOOGLE_CLIENT_ID: client,
+    bindings: { AUTH_ORIGIN: origin, REPODAM_CUSTOM_DOMAIN: "enabled", GOOGLE_CLIENT_ID: client,
       GOOGLE_CLIENT_SECRET: "synthetic-secret-never-a-real-client", RATE_LIMIT_SECRET: "local-synthetic-rate-limit-secret-32-characters",
       BOOTSTRAP_ADMIN_EMAIL: "labdam.synthetic.admin@gmail.com" },
     d1Databases: { DB: "local-only-membership" }, outboundService: outbound,
@@ -113,6 +113,38 @@ test("public LABDAM stays readable while the real Worker gates REPODAM and expos
   await review(admin, "pending");
   assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: false });
   assert.equal((await request("/labinsight/app.js", candidate.cookie)).status, 401);
+});
+test("dual-host OAuth preserves membership and strictly gates the handoff on real local D1", async () => {
+  const neo = "https://repodam.labdam.kr", nonce = "1".repeat(64);
+  const admin = await login(true), applicant = await login();
+  assert.equal((await review(admin,"approved")).status,200);
+  const newReq = (path, cookie = "") => mf.dispatchFetch(neo+path, {
+    headers: {Cookie:cookie, "CF-Connecting-IP":"192.0.2.4"}, redirect:"manual"
+  });
+  assert.equal((await newReq("/labinsight/handoff.html")).status,200);
+  assert.equal((await newReq("/labinsight/handoff.js")).status,200);
+  assert.equal((await newReq("/labinsight/app.js")).status,401);
+  assert.equal((await newReq("/api/me", applicant.cookie)).status,401);
+  const start=await newReq("/auth/start?next=%2Flabinsight%2F");
+  assert.equal(start.status,302);
+  const auth=new URL(start.headers.get("location"));
+  assert.equal(auth.searchParams.get("redirect_uri"),neo+"/auth/callback");
+  identity={sub,email:"applicant@example.invalid",origin:neo,
+    nonce:auth.searchParams.get("nonce"),challenge:auth.searchParams.get("code_challenge")};
+  const state=auth.searchParams.get("state");
+  const callback=await newReq("/auth/callback?code=SYNTHETIC_LOCAL_CODE&state="+state,
+    "__Host-labdam_oauth_state="+state);
+  assert.equal(callback.status,303);
+  assert.equal(callback.headers.get("location"),neo+"/labinsight/");
+  const newCookie=callback.headers.getSetCookie().find(c=>c.startsWith("__Host-labdam_session="))?.split(";")[0];
+  assert.ok(newCookie);
+  assert.equal((await newReq("/labinsight/",newCookie)).status,200);
+  assert.equal((await request("/labinsight/",applicant.cookie)).status,200);
+  const oldIdentity=await request("/api/migration-identity?nonce="+nonce,applicant.cookie);
+  const newIdentity=await newReq("/api/migration-identity?nonce="+nonce,newCookie);
+  assert.equal(oldIdentity.status,200); assert.equal(newIdentity.status,200);
+  assert.deepEqual(await oldIdentity.json(),await newIdentity.json());
+  assert.equal((await newReq("/api/migration-identity?nonce="+nonce)).status,401);
 });
 test("real D1 recovers a previously pending verified bootstrap operator", async () => {
   await db.prepare(
@@ -217,8 +249,10 @@ test("approved member cannot access administrator routes through GET, HEAD or ap
   const operator = await login(true);
   const applicant = await login();
   assert.equal((await review(operator, "approved")).status, 200);
-  assert.equal((await request("/labinsight/", applicant.cookie)).status, 200,
+  const memberPage = await request("/labinsight/", applicant.cookie);
+  assert.equal(memberPage.status, 200,
     "approved members should still have access to the requested health-check service");
+  await memberPage.arrayBuffer();
 
   for (const target of ["/admin", "/admin.html"]) {
     for (const method of ["GET", "HEAD"]) {

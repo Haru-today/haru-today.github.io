@@ -313,6 +313,31 @@ test("new hostname signs in the same approved member using an origin-bound callb
   assert.equal(f.DB.sessions.size, 2);
   assert.equal((await handleRequest(req("/labinsight/", {cookie:approved.cookie}), f.env, f.opts)).status, 200);
 });
+test("migration identity reveals only a challenge-scoped account match", async () => {
+  const f = fixture(), approved = seedMember(f), neo = "https://repodam.labdam.kr", nonce = "1".repeat(64);
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  f.DB.sessions.set(hash("repodam-origin-v1:" + neo + ":" + approved.token), f.DB.sessions.get(hash(approved.token)));
+  const a = await handleRequest(req("/api/migration-identity?nonce=" + nonce, {cookie:approved.cookie}), f.env, f.opts);
+  const b = await handleRequest(new Request(neo + "/api/migration-identity?nonce=" + nonce, {headers:{Cookie:approved.cookie}}), f.env, f.opts);
+  assert.equal(a.status, 200); assert.equal(b.status, 200);
+  assert.deepEqual(await a.json(), await b.json());
+  const invalid = await handleRequest(req("/api/migration-identity?nonce=x", {cookie:approved.cookie}), f.env, f.opts);
+  assert.equal(invalid.status, 400);
+  const noLogin = await handleRequest(req("/api/migration-identity?nonce=" + nonce), f.env, f.opts);
+  assert.equal(noLogin.status, 401);
+  f.DB.members.get("123456789012345678901").status = "pending";
+  assert.equal((await handleRequest(req("/api/migration-identity?nonce=" + nonce, {cookie:approved.cookie}), f.env, f.opts)).status, 403);
+});
+test("only the empty handoff shell is public on the enabled custom host", async () => {
+  const f = fixture(), neo = "https://repodam.labdam.kr";
+  f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
+  for (const path of ["/labinsight/handoff.html", "/labinsight/handoff.js"]) {
+    assert.equal((await handleRequest(new Request(neo + path), f.env, f.opts)).status, 200);
+    assert.equal((await handleRequest(req(path), f.env, f.opts)).status, path.endsWith(".html") ? 303 : 401);
+    assert.equal((await handleRequest(new Request(neo + path, {method:"POST"}), f.env, f.opts)).status, 405);
+  }
+  assert.equal((await handleRequest(new Request(neo + "/labinsight/app.js"), f.env, f.opts)).status, 401);
+});
 test("account deletion revokes sessions on both hosts", async () => {
   const f = fixture(), approved = seedMember(f), neo = "https://repodam.labdam.kr";
   f.env.REPODAM_CUSTOM_DOMAIN = "enabled";
@@ -635,7 +660,7 @@ test("healthz reports readiness only when auth configuration and private assets 
   const healthy = await handleRequest(req("/healthz"), f.env, f.opts);
   assert.equal(healthy.status, 200);
   assert.match(healthy.headers.get("Cache-Control"), /no-store/);
-  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "repodam-auth-20261028-dual-origin" });
+  assert.deepEqual(await healthy.json(), { service: "labdam-free-auth", readiness: "bindings-present", release: "repodam-auth-20261028-handoff" });
   for (const overrides of [
     { GOOGLE_CLIENT_SECRET: undefined },
     { GOOGLE_CLIENT_ID: "" },
