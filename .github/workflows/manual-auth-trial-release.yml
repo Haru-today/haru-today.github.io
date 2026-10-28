@@ -25,7 +25,7 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: db9e9da6954c80f647abece1d5d480822db28c62
+          ref: 3b79151db05d0ac4b810e6f7ac11c8625a400e16
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
@@ -64,7 +64,7 @@ jobs:
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28c62
+          LABDAM_AUTH_RELEASE_SHA: 3b79151db05d0ac4b810e6f7ac11c8625a400e16
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -148,7 +148,7 @@ jobs:
               # An older Worker can be healthy but must NOT pass this exact-release check.
               health_body=$(curl --fail --silent --show-error --max-time 12 "$TRIAL_ORIGIN/healthz" || true)
               if printf '%s' "$health_body" | grep -Fq '"readiness":"bindings-present"' &&
-                 printf '%s' "$health_body" | grep -Fq '"release":"repodam-auth-20261025-dedicated-login"'; then
+                 printf '%s' "$health_body" | grep -Fq '"release":"repodam-auth-20261028-dual-origin"'; then
                 ready=1
                 break
               fi
@@ -160,7 +160,7 @@ jobs:
           test "$gate" = 401
           test "$redirect" = 303
           if [ "$ready" -ne 1 ]; then
-            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release repodam-auth-20261025-dedicated-login with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
+            echo "::error title=Worker readiness mismatch::Trial Worker /healthz does not report the expected release repodam-auth-20261028-dual-origin with healthy bindings. Check version propagation, OAuth secrets, D1 and static assets."
             exit 1
           fi
           echo "Anonymous trial HTTP gate passed after bounded readiness checks."
@@ -196,7 +196,7 @@ jobs:
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
           LABINSIGHT_RELEASE_SHA: deede09d8c2fa05305e7ed35bf66b366cb015212
-          LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28c62
+          LABDAM_AUTH_RELEASE_SHA: 3b79151db05d0ac4b810e6f7ac11c8625a400e16
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
