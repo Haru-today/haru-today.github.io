@@ -2,29 +2,34 @@ import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {probeTrialWorker,normalizeTrialOrigin} from '../scripts/probe-trial-worker.mjs';
 const ORIGIN='https://labdam-test.workers.dev';
-const CAFFEINE='https://haru-today.github.io';
+const CAFFEINE='https://labdam.kr';
+const LEGACY='https://haru-today.github.io';
 function fakeReply(url) {
-  const pathname=new URL(url).pathname;
+  const u=new URL(url), pathname=u.pathname;
   const isCaffeine=url.startsWith(CAFFEINE);
+  const isLegacy=url.startsWith(LEGACY);
   const isPublic=['/healthz','/assets/portal-redesign.css','/assets/portal-session.js','/favicon.svg','/privacy.html','/terms.html','/api/session-status','/login.html','/pending.html','/membership-privacy.html'].includes(pathname);
   const isRedirect=['/','/index.html','/labinsight/','/labinsight/checkup.html','/labinsight/report.html','/labinsight/carepath.html','/admin.html'].includes(pathname);
-  const status=isCaffeine||isPublic?200:isRedirect?303:pathname==='/caffeine-atlas/'?404:401;
+  const status=isLegacy?301:isCaffeine||isPublic?200:isRedirect?303:pathname==='/caffeine-atlas/'?404:401;
   const headers={'Cache-Control':'private, no-store, max-age=0'};
+  if(isCaffeine) headers['Content-Type']='text/html; charset=utf-8';
   if(isRedirect)headers.Location=ORIGIN+'/login.html?next='+encodeURIComponent(['/','/index.html'].includes(pathname)?'/labinsight/':pathname);
+  if(isLegacy)headers.Location=CAFFEINE+pathname+u.search;
   return new Response(null,{status,headers});
 }
 test('realistic anonymous Worker gate plus unchanged public Caffeine URLs pass',async()=>{
  const result=await probeTrialWorker(ORIGIN,async url=>fakeReply(url));
  assert.equal(result.ok,true);
- assert.equal(result.results.length,29);
- assert.equal(result.results.filter(x=>x.kind==='caffeine').length,4);
+ assert.equal(result.results.length,35);
+ assert.equal(result.results.filter(x=>x.kind==='caffeine').length,5);
+ assert.equal(result.results.filter(x=>x.kind==='caffeine-legacy').length,5);
 });
 test('no credentials, no redirects followed, no write methods or OAuth state creation',async()=>{
  const calls=[];
  await probeTrialWorker(ORIGIN,async(url,options)=>{
    calls.push({url,options});return fakeReply(url);
  });
- assert.equal(calls.length,29);
+ assert.equal(calls.length,35);
  for (const {url,options} of calls) {
    assert.equal(options.method,'GET');
    assert.equal(options.credentials,'omit');
@@ -53,7 +58,7 @@ test('external redirect, 503, Caffeine outage, network errors fail closed',async
  const report=await probeTrialWorker(ORIGIN,async url=>{
    if(url.endsWith('/index.html'))return new Response(null,{status:303,headers:{Location:'https://attacker.example/login.html','Cache-Control':'no-store'}});
    if(url.endsWith('/healthz'))return new Response(null,{status:503});
-   if(url.startsWith(CAFFEINE))return new Response(null,{status:503});
+   if(url.startsWith(CAFFEINE) || url.startsWith(LEGACY))return new Response(null,{status:503});
    if(url.endsWith('/api/me'))throw Error('network');
    return fakeReply(url);
  });
@@ -65,11 +70,21 @@ test('external redirect, 503, Caffeine outage, network errors fail closed',async
 test('rejects Pages, localhost, non-HTTPS and origin with credentials/path/query',()=>{
  for(const x of [
   'https://haru-today.github.io','https://something.github.io','http://labdam-test.workers.dev',
+  'https://labdam.kr',
   'http://localhost:8787','https://localhost','https://username:password@labdam-test.workers.dev',
   'https://labdam-test.workers.dev/labinsight','https://labdam-test.workers.dev/?a=b',
   'https://labdam-test.workers.dev/#frag'
  ])assert.throws(()=>normalizeTrialOrigin(x),x);
  assert.equal(normalizeTrialOrigin(ORIGIN+'/'),ORIGIN);
+});
+
+test('legacy redirect must point to the same path on the owned domain', async () => {
+ const report=await probeTrialWorker(ORIGIN,async url => {
+   if(url.startsWith(LEGACY)) return new Response(null,{status:301,headers:{Location:'https://evil.invalid/caffeine-atlas/'}});
+   return fakeReply(url);
+ });
+ assert.equal(report.ok,false);
+ assert.equal(report.results.filter(x=>x.kind==='caffeine-legacy' && !x.ok).length,5);
 });
 
 test('CarePath HTML or model JavaScript inadvertently exposed fails closed', async () => {

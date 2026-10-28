@@ -1,12 +1,14 @@
 /**
- * Anonymous read-only smoke checks for an explicitly supplied TRIAL Worker origin.
+ * Anonymous read-only checks of the Worker and public Caffeine URLs on
+ * labdam.kr plus exact redirects from the legacy GitHub Pages domain.
  * Does not authenticate, submit forms, exchange OAuth codes, deploy or mutate D1.
  * Does not prove real Google login, remote D1, or old Pages cleanup.
  */
 import { fileURLToPath } from 'node:url';
 import { resolve } from 'node:path';
 
-const CAFFEINE_ORIGIN = 'https://haru-today.github.io';
+const CAFFEINE_ORIGIN = 'https://labdam.kr';
+const LEGACY_ORIGIN = 'https://haru-today.github.io';
 const PRIVATE = [
   ['/','303','login'],
   ['/index.html','303','login'],
@@ -31,6 +33,7 @@ const PUBLIC = [
 const CAFFEINE = [
   '/caffeine-atlas/',
   '/caffeine-atlas/caffeine-sensitivity-app/analyzer.html',
+  '/caffeine-atlas/?audit=qr',
   '/caffeine-atlas/privacy.html',
   '/caffeine-atlas/terms.html'
 ];
@@ -41,7 +44,7 @@ export function normalizeTrialOrigin(input) {
   try { u = new URL(input); } catch(_) { throw Error('Invalid trial HTTPS origin'); }
   if (u.protocol!=='https:' || u.username || u.password || u.search || u.hash ||
       u.pathname!=='/' || u.hostname==='haru-today.github.io' ||
-      u.hostname==='github.io' || u.hostname.endsWith('.github.io') ||
+      u.hostname==='github.io' || u.hostname.endsWith('.github.io') || u.hostname==='labdam.kr' ||
       u.hostname==='localhost' || u.hostname.endsWith('.localhost')) {
     throw Error('Use a separate HTTPS trial Worker origin, never the public Pages origin');
   }
@@ -52,13 +55,14 @@ const trialCases = [
   ['/healthz',200,'health'],
   ...PUBLIC.map(p=>[p,200,'public']),
   ...PRIVATE.map(([p,status,kind])=>[p,Number(status),kind]),
-  ...CAFFEINE.map(p=>[p,200,'caffeine'])
+  ...CAFFEINE.map(p=>[p,200,'caffeine']),
+  ...CAFFEINE.map(p=>[p,301,'caffeine-legacy'])
 ];
 export async function probeTrialWorker(input, fetchImpl=fetch) {
   const origin=normalizeTrialOrigin(input);
   const results=[];
   for (const [path,expected,kind] of trialCases) {
-    const base=kind==='caffeine'?CAFFEINE_ORIGIN:origin;
+    const base=kind==='caffeine'?CAFFEINE_ORIGIN:kind==='caffeine-legacy'?LEGACY_ORIGIN:origin;
     const url=base+path;
     try {
       const response=await fetchImpl(url,{
@@ -68,7 +72,19 @@ export async function probeTrialWorker(input, fetchImpl=fetch) {
       const status=response.status;
       const location=response.headers.get('Location');
       const cacheControl=response.headers.get('Cache-Control')||'';
-      let ok=status===expected;
+      let ok=status===expected, detail=ok?'ok':'status-mismatch';
+      if (kind==='caffeine-legacy') {
+        let target;
+        try { target=new URL(location,LEGACY_ORIGIN); } catch (_) {}
+        const expectedTarget=new URL(path,CAFFEINE_ORIGIN);
+        ok=ok && target?.origin===expectedTarget.origin && target?.pathname===expectedTarget.pathname &&
+          target?.search===expectedTarget.search && !target?.hash;
+        if (!ok && status===expected) detail='legacy-redirect-mismatch';
+      }
+      if (kind==='caffeine' && ok) {
+        ok=/^text\/html(?:;|$)/i.test(response.headers.get('Content-Type')||'') && !location;
+        if (!ok) detail='public-html-mismatch';
+      }
       if (kind==='login') {
         const expectedRedirect=new URL('/login.html',origin);
         let resolved;
@@ -83,14 +99,15 @@ export async function probeTrialWorker(input, fetchImpl=fetch) {
       if(response.body) {
         try {await response.body.cancel();}catch(_){}
       }
-      results.push({path,kind,status,expected,ok});
+      if (!ok && detail==='ok') detail='security-header-or-redirect-mismatch';
+      results.push({path,kind,status,expected,ok,detail});
     } catch (_) {
-      results.push({path,kind,status:null,expected,ok:false});
+      results.push({path,kind,status:null,expected,ok:false,detail:'network-error'});
     }
   }
   return {
     origin,ok:results.every(x=>x.ok),results,
-    scope:'Anonymous HTTP status/header checks only. OAuth/D1/real sessions unverified.'
+    scope:'Anonymous Worker gates and public Caffeine destinations/legacy redirects only. OAuth/D1/real sessions unverified.'
   };
 }
 
@@ -107,7 +124,7 @@ async function main(){
   if(args[2]==='--json')process.stdout.write(JSON.stringify(report,null,2)+'\n');
   else {
     for(const r of report.results)console.log(r.ok?'PASS':'FAIL',
-      String(r.status??'NETWORK').padEnd(7),r.kind.padEnd(9),r.path);
+      String(r.status??'NETWORK').padEnd(7),r.kind.padEnd(16),r.path,r.ok?'':'['+r.detail+']');
     console.log('Anonymous trial gate:',report.ok?'PASS':'FAIL');
     console.log(report.scope);
   }
