@@ -38,4 +38,4 @@ regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 1d028bf36ece8153b50e26ff62fe9416ae2e2
 [[allowlists]]
 description = "Public handoff release commit metadata"
 regexTarget = "line"
-regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 8d2bb7da44800de26a503510409614f474ea8ea8\s*$''']
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: (?:8d2bb7da44800de26a503510409614f474ea8ea8|67e31e8fcad33c4089651e84fe07296a1c9e5793)\s*$''']
