@@ -28,4 +28,4 @@ regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: db9e9da6954c80f647abece1d5d480822db28
 [[rules.allowlists]]
 description = "Verified public dual-domain Worker source commit"
 regexTarget = "line"
-regexes = ['''^\\s+LABDAM_AUTH_RELEASE_SHA: 3b79151db05d0ac4b810e6f7ac11c8625a400e16\\s*$''']
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 3b79151db05d0ac4b810e6f7ac11c8625a400e16\s*$''']
