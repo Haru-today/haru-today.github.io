@@ -41,7 +41,11 @@ test("Caffeine Atlas stays a separate public project and search rules do not blo
 
 test("public privacy pages and verification metadata remain available", () => {
   assert.match(html, /name="naver-site-verification"/);
+  assert.match(html, /name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209"/);
+  assert.match(html, /name="naver-site-verification" content="0f44c35ebff0b9388c37a766a57761ba04ae667e"/);
   assert.match(html, /name="google-site-verification"/);
+  assert.match(html, /name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ"/);
+  assert.match(html, /name="google-site-verification" content="F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8"/);
   assert.match(html, /href="\/privacy\.html"/);
   assert.match(html, /href="\/terms\.html"/);
   const privacy = fs.readFileSync("privacy.html", "utf8");
