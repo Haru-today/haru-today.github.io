@@ -12,8 +12,8 @@ function fakeFetch(changes = {}) {
     assert.equal(init.redirect, "manual");
     if (changes[url]) return changes[url];
     const u = new URL(url);
-    if (u.origin === LEGACY && ["/", "/caffeine-atlas/"].includes(u.pathname)) {
-      return new Response(null, { status: 301, headers: { Location: ROOT + u.pathname } });
+    if (u.origin === LEGACY && ["/", "/caffeine-atlas/", "/labinsight/app.js"].includes(u.pathname)) {
+      return new Response(null, { status: 301, headers: { Location: ROOT + u.pathname + u.search } });
     }
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
@@ -39,7 +39,7 @@ function fakeFetch(changes = {}) {
 }
 test("root homepage, private Worker and Caffeine public demo all pass anonymous checks", async () => {
   const { inspectPublicEntry, CHECKS } = await load();
-  assert.equal(CHECKS.length, 11);
+  assert.equal(CHECKS.length, 13);
   const a = await inspectPublicEntry(fakeFetch());
   assert.equal(a.ok, true, JSON.stringify(a.results.filter(x => !x.ok)));
 });
@@ -58,6 +58,14 @@ test("an old QR redirect to the wrong destination fails", async () => {
   }));
   assert.equal(a.ok, false);
   assert.equal(a.results.find(x => x.origin === "legacy" && x.path === "/caffeine-atlas/").detail, "legacy-redirect-mismatch");
+});
+test("a redirect that drops QR parameters fails", async () => {
+  const { inspectPublicEntry } = await load();
+  const a = await inspectPublicEntry(fakeFetch({
+    [LEGACY + "/caffeine-atlas/?audit=qr"]: new Response(null, { status: 301, headers: { Location: ROOT + "/caffeine-atlas/" } })
+  }));
+  assert.equal(a.ok, false);
+  assert.equal(a.results.find(x => x.path === "/caffeine-atlas/?audit=qr").detail, "legacy-redirect-mismatch");
 });
 test("private file exposure and Caffeine QR regression fail independently", async () => {
   const { inspectPublicEntry } = await load();
