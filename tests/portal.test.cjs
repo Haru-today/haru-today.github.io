@@ -19,8 +19,16 @@ test("public homepage keeps one contact address and the approved users' login en
   assert.deepEqual([...new Set(mails)], ["jleegenomics@gmail.com"]);
 });
 
-test("no health form, script or private portal content remains on publicly readable index", () => {
-  assert.doesNotMatch(html, /<(?:form|input|script)\b/i);
+test("homepage has site metadata but no executable scripts or private portal content", () => {
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+  assert.equal(scripts.length, 1);
+  assert.match(scripts[0][1], /^\s+type="application\/ld\+json"\s*$/i);
+  assert.deepEqual(JSON.parse(scripts[0][2]), {
+    "@context": "https://schema.org", "@type": "WebSite", name: "랩담",
+    alternateName: "LABDAM", url: "https://labdam.kr/"
+  });
+  assert.match(html, /<meta property="og:site_name" content="랩담">/);
+  assert.doesNotMatch(html.replace(scripts[0][0], ""), /<(?:form|input|script)\b/i);
   assert.doesNotMatch(html, /class="service-card"|id="services"|id="technology"/);
   assert.doesNotMatch(html, /검사값 정리 미리보기|결과 리포트 해석|가상 예시 리포트/);
   assert.doesNotMatch(html, /\/labinsight\/app\.js/);
