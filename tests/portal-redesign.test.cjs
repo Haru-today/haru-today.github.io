@@ -35,8 +35,8 @@ test("brand fonts are self-hosted subsets, no third-party font requests", () => 
   const faces = [...html.matchAll(/url\("([^"]+)"\)/g)].map(match => match[1]);
   assert.equal(faces.length, 4);
   for (const face of faces) {
-    assert.match(face, /^\/assets\/fonts\/[\w-]+-home\.woff2$/);
-    const size = fs.statSync(face.slice(1)).size;
+    assert.match(face, /^\/assets\/fonts\/[\w-]+-home\.woff2\?v=20261029$/);
+    const size = fs.statSync(face.slice(1).split("?")[0]).size;
     assert.ok(size < 80000, face + " should stay a page subset");
   }
   assert.doesNotMatch(html, /fonts\.googleapis|jsdelivr|unpkg|cdnjs/);
