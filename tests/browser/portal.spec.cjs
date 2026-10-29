@@ -9,7 +9,7 @@ test('visitors stay on the public homepage instead of being forwarded', async ({
   await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
 });
 
-test('public root HTML has no app forms or scripts, and its own files load', async ({ request }) => {
+test('public root has only site metadata and no app forms or scripts', async ({ request, page }) => {
   const res = await request.get('/');
   expect(res.status()).toBe(200);
   const body = await res.text();
@@ -17,7 +17,11 @@ test('public root HTML has no app forms or scripts, and its own files load', asy
   expect(body).toContain('href="' + WORKER + 'login.html"');
   expect(body).toContain('name="robots" content="index,follow"');
   expect(body).toContain('rel="canonical" href="https://labdam.kr/"');
-  expect(body).not.toMatch(/<(?:form|input|script)\b/i);
+  await page.goto('/');
+  await expect(page.locator('form, input')).toHaveCount(0);
+  await expect(page.locator('script')).toHaveCount(1);
+  await expect(page.locator('script')).toHaveAttribute('type', 'application/ld+json');
+  expect(JSON.parse(await page.locator('script').textContent()).name).toBe('랩담');
   for (const path of ['/privacy.html', '/terms.html', '/assets/labdam-logo.svg',
     ...[...body.matchAll(/url\("([^"]+)"\)/g)].map(match => match[1])]) {
     expect((await request.get(path)).status(), path).toBe(200);
