@@ -33,6 +33,10 @@ test('homepage links work by keyboard and the page has no horizontal scroll', as
   const ask = page.getByRole('link', { name: '리포담 시작하기', exact: true });
   await expect(page.getByRole('link', { name: '프로담 시작하기', exact: true }).first()).toHaveAttribute('href', 'https://prodam.labdam.kr/');
   await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
+  const atlasCard = page.locator('.atlas-tile');
+  await expect(atlasCard.getByRole('heading', {name: /카페인 아틀라스/})).toBeVisible();
+  await expect(atlasCard.getByRole('link', {name: '카페인 아틀라스 보기'})).toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
+  await expect(page.getByRole('link', {name: '카페인 아틀라스 바로가기'})).toBeVisible();
   await expect(page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '카페인 아틀라스', exact: true }))
     .toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
   for (const name of ['문의', '이메일로 물어보기']) {
