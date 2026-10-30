@@ -106,6 +106,7 @@ test("real homepage and safe JSON-LD pass, unsafe scripts and wrong headings fai
     actual.replace('<em>작은 시작.</em>', '<em>다른 시작.</em>'),
     actual.replace('<em>작은 시작.</em>', '<em hidden>작은 시작.</em>'),
     actual.replace('</head>', '<script src="/bad.js"></script></head>'),
+    actual.replace('</script>', '</script x>'),
     actual.replace('type="application/ld+json"', 'type="application/ld+json" src="/bad.js"'),
     actual.replace('\"name\": \"랩담\"', '\"name\": \"랩담\", \"name\": \"랩담\"'),
     actual.replace('<em>작은 시작.</em>', '</em>작은 시작.<em>'),

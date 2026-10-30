@@ -32,10 +32,10 @@ function validHomepageContent(html) {
   if (!/^(?:[^<>]*|[^<>]*<em>[^<>]*<\/em>[^<>]*)$/i.test(heading)) return false;
   const text = heading.replace(/<\/?em>/gi, '').replace(/\s+/g, ' ').trim();
   if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.'].includes(text)) return false;
-  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi)];
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b([^>]*)>/gi)];
   if ((html.match(/<script\b/gi) || []).length !== scripts.length || scripts.length > 1) return false;
   if (scripts.length === 1) {
-    if (!/^\s+type="application\/ld\+json"\s*$/i.test(scripts[0][1])) return false;
+    if (!/^\s+type="application\/ld\+json"\s*$/i.test(scripts[0][1]) || scripts[0][3].trim()) return false;
     try {
       const data = JSON.parse(scripts[0][2]);
       const expected = {'@context': 'https://schema.org', '@type': 'WebSite', name: '랩담', alternateName: 'LABDAM', url: ROOT + '/'};
