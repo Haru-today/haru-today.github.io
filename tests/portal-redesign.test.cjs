@@ -5,12 +5,14 @@ const fs = require("node:fs");
 const html = fs.readFileSync("index.html", "utf8");
 
 test("the root is the LABDAM one-page homepage, not a redirect", () => {
-  assert.match(html, /검진 결과, 내 결과지 기준으로 보세요/);
+  assert.match(html, /더 나은 질문을 위한 <em>작은 시작\.<\/em>/);
+  assert.match(html, /리포담 시작하기/);
+  assert.match(html, /프로담 시작하기/);
   assert.match(html, /임상병리학 전공자가 만듭니다/);
   assert.match(html, /랩담의 첫 서비스입니다/);
   assert.match(html, /출시 준비 중/);
   assert.doesNotMatch(html, /http-equiv="refresh"/);
-  assert.doesNotMatch(html, /class="hero-grid"|class="service-card"|id="services"|class="atlas-board"/);
+  assert.match(html, /class="service-grid"/);
 });
 
 test("homepage copy follows the LABDAM wording rules", () => {
