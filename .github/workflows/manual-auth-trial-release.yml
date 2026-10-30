@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 67e31e8fcad33c4089651e84fe07296a1c9e5793
+          ref: 379b5d35e82c3e7cfd67c50312d08eefc5795087
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           HAS_SOURCE_DEPLOY_KEY: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY != '' }}
-          REVIEWED_APP_SHA: b77bb8419b9f01012cd3c9fee55579ed7438d356
+          REVIEWED_APP_SHA: 00bb055b345eab15c9910108c4cac13b4655715e
         run: |
           if [ "$HAS_SOURCE_DEPLOY_KEY" = true ]; then
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Haru-today/repodam
-          ref: b77bb8419b9f01012cd3c9fee55579ed7438d356
+          ref: 00bb055b345eab15c9910108c4cac13b4655715e
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           ssh-key: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY }}
@@ -63,8 +63,8 @@ jobs:
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: b77bb8419b9f01012cd3c9fee55579ed7438d356
-          LABDAM_AUTH_RELEASE_SHA: 67e31e8fcad33c4089651e84fe07296a1c9e5793
+          LABINSIGHT_RELEASE_SHA: 00bb055b345eab15c9910108c4cac13b4655715e
+          LABDAM_AUTH_RELEASE_SHA: 379b5d35e82c3e7cfd67c50312d08eefc5795087
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -195,8 +195,8 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: b77bb8419b9f01012cd3c9fee55579ed7438d356
-          LABDAM_AUTH_RELEASE_SHA: 67e31e8fcad33c4089651e84fe07296a1c9e5793
+          LABINSIGHT_RELEASE_SHA: 00bb055b345eab15c9910108c4cac13b4655715e
+          LABDAM_AUTH_RELEASE_SHA: 379b5d35e82c3e7cfd67c50312d08eefc5795087
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -215,6 +215,10 @@ jobs:
           assert.ok(html.includes('name="policy-status" content="draft"'));
           console.log('Verified exact reviewed source identities, contact and honest draft status on the live Worker.');
           NODE
+      - name: Verify device storage identity remains private
+        run: |
+          code=$(curl --silent --output /dev/null --write-out '%{http_code}' --max-time 20 https://labdam-free-approval.jleegenomics.workers.dev/api/device-store-identity)
+          test "$code" = 401
       - name: Verify new compact login UI and public Caffeine Atlas link on live trial origin
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
