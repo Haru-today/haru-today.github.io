@@ -25,13 +25,13 @@ jobs:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 379b5d35e82c3e7cfd67c50312d08eefc5795087
+          ref: 9278556831697b157975dba8e4af15ec7e9c8566
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           HAS_SOURCE_DEPLOY_KEY: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY != '' }}
-          REVIEWED_APP_SHA: d608f994a358ee5124d57c6cfe2d68e05479c77c
+          REVIEWED_APP_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
         run: |
           if [ "$HAS_SOURCE_DEPLOY_KEY" = true ]; then
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Haru-today/repodam
-          ref: d608f994a358ee5124d57c6cfe2d68e05479c77c
+          ref: 8338575e5aab09279b9d79c6302b2165327bbf03
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           ssh-key: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY }}
@@ -55,16 +55,21 @@ jobs:
         with:
           node-version: '22'
           package-manager-cache: false
+      - name: Prepare pinned public OCR assets and test the guarded build
+        run: |
+          node sources/labinsight/scripts/prepare-paddle-release.cjs
+          node --test sources/labinsight/tests/paddle-release-assets.test.js free-auth/tests/font-bundle.test.cjs
       - name: Verify OAuth security and bootstrap using synthetic identities
         run: node --test tests/free-auth.test.cjs tests/handoff.test.cjs tests/free-auth-pages.test.cjs free-auth/tests/probe-trial-worker.test.mjs
       - name: Build public LABDAM brand and protected REPODAM bundle
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+          LABDAM_INCLUDE_PADDLE: "1"
         run: node free-auth/build.mjs
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: d608f994a358ee5124d57c6cfe2d68e05479c77c
-          LABDAM_AUTH_RELEASE_SHA: 379b5d35e82c3e7cfd67c50312d08eefc5795087
+          LABINSIGHT_RELEASE_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
+          LABDAM_AUTH_RELEASE_SHA: 9278556831697b157975dba8e4af15ec7e9c8566
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -93,7 +98,9 @@ jobs:
       - name: Verify protected static assets and local workerd + D1 approval flows
         env:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
+          LABDAM_INCLUDE_PADDLE: "1"
         run: |
+          node sources/labinsight/scripts/check-protected-bundle-assets.mjs free-auth/dist/labinsight
           node --test free-auth/tests/bundle.test.cjs
           npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
           npm test --prefix free-auth/tests/runtime
@@ -124,6 +131,18 @@ jobs:
           set -eu
           # Compile against all required tables and fields; LIMIT 0 returns no member data.
           npx --yes wrangler@4.151.0 d1 execute labdam-membership --config free-auth/wrangler.jsonc --remote --command "SELECT m.status, s.token_hash, o.nonce, t.attempts FROM members m, sessions s, oauth_states o, login_throttle t WHERE 0 LIMIT 0"
+      - name: Refuse to overwrite a newer live service baseline
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const response = await fetch('https://labdam-free-approval.jleegenomics.workers.dev/membership-privacy.html', {redirect:'error',signal:AbortSignal.timeout(20000)});
+          assert.equal(response.status, 200);
+          const html = await response.text();
+          for (const [name, value] of [['labinsight-source-sha','d608f994a358ee5124d57c6cfe2d68e05479c77c'],['labdam-auth-source-sha','379b5d35e82c3e7cfd67c50312d08eefc5795087']]) {
+            assert.ok(html.includes('<meta name="' + name + '" content="' + value + '">'), 'Live source changed; re-integrate before deployment');
+          }
+          console.log('Live service still matches the integrated baseline.');
+          NODE
       - name: Deploy to named free test Worker only (never Pages or production routes)
         id: deploy_trial
         env:
@@ -195,8 +214,8 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: d608f994a358ee5124d57c6cfe2d68e05479c77c
-          LABDAM_AUTH_RELEASE_SHA: 379b5d35e82c3e7cfd67c50312d08eefc5795087
+          LABINSIGHT_RELEASE_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
+          LABDAM_AUTH_RELEASE_SHA: 9278556831697b157975dba8e4af15ec7e9c8566
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -257,6 +276,16 @@ jobs:
           set -eu
           code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/supplement-guidance.js")
           test "$code" = 401
+
+      - name: Confirm OCR model resources are gated (anonymous, read-only)
+        env:
+          TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
+        run: |
+          set -eu
+          for asset in paddle-cell-worker.js paddle-ocr-core.js vendor/paddle/inference.onnx vendor/paddle/dictionary.json vendor/paddle/ort.min.js vendor/paddle/ort-wasm-simd-threaded.mjs vendor/paddle/ort-wasm-simd-threaded.wasm; do
+            code=$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 20 "$TRIAL_ORIGIN/labinsight/$asset")
+            test "$code" = 401
+          done
 
       - name: Confirm new CarePath endpoints are gated (anonymous, read-only)
         env:
