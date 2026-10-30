@@ -13,12 +13,12 @@
   <meta name="color-scheme" content="light dark">
   <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
   <meta name="theme-color" content="#0E1B24" media="(prefers-color-scheme: dark)">
-  <title>랩담 LABDAM | 검진 결과, 내 결과지 기준으로</title>
-  <meta name="description" content="검진 결과 숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요. 임상병리학 전공자가 만듭니다.">
+  <title>랩담 LABDAM | 리포담 건강검진 정리 · 프로담 프라이머 설계</title>
+  <meta name="description" content="리포담에서 건강검진 결과를 정리하고 프로담에서 연구용 프라이머를 설계하고 검토하세요.">
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="랩담">
-  <meta property="og:title" content="검진 결과, 내 결과지 기준으로 보세요">
-  <meta property="og:description" content="숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요.">
+  <meta property="og:title" content="랩담 | 리포담과 프로담">
+  <meta property="og:description" content="건강검진 결과 정리부터 연구용 프라이머 설계까지, 랩담의 두 서비스를 만나보세요.">
   <meta property="og:url" content="https://labdam.kr/">
   <script type="application/ld+json">
   {
@@ -63,23 +63,7 @@
     .muted{color:var(--ink-muted)}
     .button{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 28px;border-radius:12px;background:var(--teal);color:var(--on-teal);font-weight:600;text-decoration:none}
     .hero{padding:40px 0 64px}
-    .hero-grid{display:grid;gap:48px;align-items:center}
-    .start{margin-top:28px}.start-note{font-size:14px;color:var(--ink-muted);margin-top:12px;max-width:440px}.trust{font-size:14px;color:var(--ink-muted);margin-top:20px}.more{display:inline-block;margin-top:12px;padding:10px 0;font-weight:600;text-underline-offset:4px}
-    .phone{width:min(300px,100%);margin:0 auto;border:10px solid var(--frame);border-radius:40px;background:var(--ground);padding:28px 18px 24px;display:flex;flex-direction:column;gap:14px}
-    .phone .label{font-size:12px;color:var(--ink-muted)}
-    .phone .app{font:700 15px/1.4 var(--display)}
-    .result{background:var(--tint);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:10px}
-    .result .row{display:flex;justify-content:space-between;align-items:baseline;gap:8px}
-    .result .name{font-weight:600;font-size:14px}
-    .result .value{font:800 24px/1 var(--display)}
-    .result .value small{font:400 12px var(--body);color:var(--ink-muted);margin-left:2px}
-    .range{position:relative;height:8px;border-radius:999px;background:var(--line)}
-    .range .ok{position:absolute;left:0;width:80%;top:0;bottom:0;border-radius:999px;background:var(--teal);opacity:.35}
-    .range .dot{position:absolute;left:84%;top:-4px;width:16px;height:16px;border-radius:999px;background:var(--ink);border:3px solid var(--ground)}
-    .result .ref{font-size:12px;color:var(--ink-muted)}
-    .explain{font-size:14px;line-height:1.55}
-    .question{font-size:13px;line-height:1.5;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-    .question b{display:block;font-weight:600;color:var(--teal);font-size:12px}
+    .more{display:inline-block;margin-top:12px;padding:10px 0;font-weight:600;text-underline-offset:4px}
     .compare{display:grid;gap:12px;margin-top:28px}
     .compare div{border:1px solid var(--line);border-radius:14px;padding:20px}
     .compare .mine{border-color:var(--teal);background:var(--tint)}
@@ -114,7 +98,6 @@
     @media(min-width:880px){
       section{padding:96px 0}
       .hero{padding:72px 0 96px}
-      .hero-grid{grid-template-columns:1.15fr .85fr}
       h1{font-size:48px}
       h2{font-size:34px}
       .compare{grid-template-columns:1fr 1fr;max-width:720px}
@@ -124,7 +107,25 @@
       .maker{grid-template-columns:1fr 2fr;gap:48px}
       .narrow{max-width:720px}
     }
-    @media(max-width:879px){.start .button{width:100%}}
+
+    /* Two service entrances share the first screen and remain usable on phones. */
+    .topbar{background:var(--ground);border-bottom:1px solid var(--line)}
+    .topbar .wrap{min-height:72px}.topnav{flex-wrap:wrap;gap:4px 18px}
+    .hero{padding:56px 0 72px;background:linear-gradient(145deg,var(--tint),var(--ground) 60%)}
+    .hero-intro{max-width:740px}.hero-intro .lead{max-width:640px}
+    .hero-intro h1{font-size:clamp(32px,5vw,58px);line-height:1.2}
+    .quick-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.quick-links a{display:inline-flex;justify-content:space-between;gap:24px;align-items:center;padding:10px 16px;min-height:46px;border:1px solid var(--line);border-radius:10px;color:var(--ink);font-weight:600;text-decoration:none;background:var(--ground)}
+    .service-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;margin-top:36px}
+    .service-tile{display:flex;flex-direction:column;min-width:0;padding:26px;border:1px solid var(--line);border-radius:24px;background:var(--ground);box-shadow:0 14px 45px rgba(23,50,77,.06)}
+    .tile-top{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:12px;font-weight:700;letter-spacing:.06em}
+    .tile-number{color:var(--ink-muted)}.tile-status{padding:6px 10px;border-radius:99px;background:var(--tint);color:var(--ink);letter-spacing:0}
+    .tile-art{height:118px;margin:24px 0;overflow:hidden;border-radius:16px;background:var(--tint)}
+    .health-art{padding:18px 22px;display:flex;flex-direction:column;justify-content:center;gap:3px}.art-line{width:44px;height:3px;background:var(--coral);border-radius:99px}.art-value{font:800 30px/1.15 var(--display)}.art-value small{font:400 13px var(--body)}.art-caption{font-size:12px;color:var(--ink-muted)}
+    .research-art{display:flex;align-items:center;justify-content:space-around;color:var(--ink);font:700 14px/1.5 monospace}.sequence-art{font-size:clamp(12px,2vw,18px);letter-spacing:.06em}
+    .tile-copy{flex:1}.tile-category{font-size:13px;font-weight:600;color:var(--teal)}.tile-copy h2{font-size:29px;margin:4px 0 10px}.tile-copy h2 span{font:700 11px var(--body);letter-spacing:.12em;color:var(--ink-muted)}.tile-copy>p:last-child{color:var(--ink-muted)}
+    .tile-action{margin-top:24px}.tile-action .button{width:100%;justify-content:space-between}.tile-action p{font-size:12px;color:var(--ink-muted);margin-top:10px}.research-tile .button{background:var(--ink);color:var(--ground)}
+    .hero-footnote{margin-top:20px;color:var(--ink-muted);font-size:13px}
+    @media(max-width:700px){.hero{padding:42px 0 56px}.service-grid{grid-template-columns:1fr;gap:14px;margin-top:28px}.service-tile{padding:22px}.tile-art{height:90px;margin:18px 0}.topnav{gap:4px 10px}.topnav a{font-size:14px}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
   </style>
 </head>
@@ -133,34 +134,34 @@
 <header class="topbar">
   <div class="wrap">
     <img class="logo" src="/assets/labdam-logo.svg" alt="LABDAM" width="95" height="22">
-    <nav class="topnav" aria-label="바로가기"><a href="https://prodam.labdam.kr/">프로담</a><a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스</a><a href="mailto:jleegenomics@gmail.com">문의</a></nav>
+    <nav class="topnav" aria-label="바로가기"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담</a><a href="https://prodam.labdam.kr/">프로담</a><a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스</a><a href="mailto:jleegenomics@gmail.com">문의</a></nav>
   </div>
 </header>
 
 <main id="main">
   <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap hero-grid">
-      <div>
-        <p class="eyebrow">랩담의 첫 서비스, 리포담 · 출시 준비 중</p>
-        <h1 id="hero-title">검진 결과, <em>내 결과지 기준</em>으로 보세요</h1>
-        <p class="lead">숫자가 무슨 뜻인지, 병원에서 뭘 물어볼지 정리해 드려요.</p>
-        <div class="start">
-          <a class="button" href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 시작하기</a>
-          <p class="start-note">Google 계정으로 가입을 신청하고 관리자 승인을 받으면 이용할 수 있어요.</p>
-        </div>
-        <p class="trust">임상병리학 전공자가 만듭니다</p>
+    <div class="wrap">
+      <div class="hero-intro">
+        <p class="eyebrow">LABDAM · FOR EVERY QUESTION</p>
+        <h1 id="hero-title">더 나은 질문을 위한 <em>작은 시작.</em></h1>
+        <p class="lead">검진 결과를 이해하는 일부터 연구의 다음 단계를 준비하는 일까지. 랩담에서 필요한 도구를 선택하세요.</p>
+        <div class="quick-links"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 바로가기 <span aria-hidden="true">↗</span></a><a href="https://prodam.labdam.kr/">프로담 바로가기 <span aria-hidden="true">↗</span></a></div>
       </div>
-      <figure class="phone" aria-label="리포담 예시 화면: ALT 수치를 결과지 참고범위로 설명하는 모습" role="img">
-        <span class="label">예시 화면</span>
-        <span class="app">리포담</span>
-        <span class="result">
-          <span class="row"><span class="name">ALT (간 수치)</span><span class="value">42<small>U/L</small></span></span>
-          <span class="range" aria-hidden="true"><span class="ok"></span><span class="dot"></span></span>
-          <span class="ref">내 결과지 참고범위 0–40</span>
-        </span>
-        <span class="explain">결과지 기준보다 조금 높게 나왔어요. 검진기관마다 기준이 다를 수 있어요.</span>
-        <span class="question"><b>의사에게 물어볼 질문</b>다시 검사해 볼 필요가 있을까요?</span>
-      </figure>
+      <div class="service-grid" aria-label="랩담 서비스">
+        <article class="service-tile report-tile">
+          <div class="tile-top"><span class="tile-number">01 / HEALTH</span><span class="tile-status">승인 후 이용</span></div>
+          <div class="tile-art health-art" aria-hidden="true"><span class="art-line"></span><span class="art-value">42 <small>U/L</small></span><span class="art-caption">내 결과지의 기준을 함께</span></div>
+          <div class="tile-copy"><p class="tile-category">건강검진 결과 정리</p><h2>리포담 <span>REPODAM</span></h2><p>검진 수치를 결과지의 참고범위와 함께 살펴보고, 진료 때 물어볼 질문을 정리해요.</p></div>
+          <div class="tile-action"><a class="button" href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 시작하기 <span aria-hidden="true">↗</span></a><p>Google 계정으로 신청하고 관리자 승인 후 이용</p></div>
+        </article>
+        <article class="service-tile research-tile">
+          <div class="tile-top"><span class="tile-number">02 / RESEARCH</span><span class="tile-status">로그인 없이 이용</span></div>
+          <div class="tile-art research-art" aria-hidden="true"><span>5′</span><span class="sequence-art">A T G C A T G C<br>│ │ │ │ │ │ │ │<br>T A C G T A C G</span><span>3′</span></div>
+          <div class="tile-copy"><p class="tile-category">연구용 프라이머 도구</p><h2>프로담 <span>PRODAM</span></h2><p>Primer3로 프라이머 후보를 설계하고 입력한 서열 범위에서 결합과 열역학을 검토해요.</p></div>
+          <div class="tile-action"><a class="button" href="https://prodam.labdam.kr/">프로담 시작하기 <span aria-hidden="true">↗</span></a><p>연구용 예측 · 특이성과 실험 성능 별도 확인</p></div>
+        </article>
+      </div>
+      <p class="hero-footnote">리포담은 의료 진단을 대신하지 않습니다. 프로담은 실험 결과를 보장하지 않습니다.</p>
     </div>
   </section>
 

@@ -17,7 +17,7 @@ function fakeFetch(changes = {}) {
     }
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="index,follow"><link rel="canonical" href="https://labdam.kr/">' +
-        '<h1>검진 결과, 내 결과지 기준으로 보세요</h1>' +
+        '<h1 id="hero-title">검진 결과, <em>내 결과지 기준</em>으로 보세요</h1>' +
         '<a href="' + WORKER + '/labinsight/">리포담</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/") {
@@ -95,4 +95,26 @@ test("scheduled public-root guard runs daily without credentials, writes or depl
   assert.match(src, /contents: read/);
   assert.match(src, /run: node scripts\/check-public-root-handoff\.mjs/);
   assert.doesNotMatch(src, /wrangler|CLOUDFLARE_API_TOKEN|secrets\.|(?:POST|PUT|DELETE) /);
+});
+
+test("real homepage and safe JSON-LD pass, unsafe scripts and wrong headings fail", async () => {
+  const fs = require("node:fs");
+  const { inspectPublicEntry } = await load();
+  const actual = fs.readFileSync("index.html", "utf8");
+  assert.equal((await inspectPublicEntry(fakeFetch({[ROOT + "/"]: new Response(actual)}))).ok, true);
+  for (const bad of [
+    actual.replace('<em>작은 시작.</em>', '<em>다른 시작.</em>'),
+    actual.replace('<em>작은 시작.</em>', '<em hidden>작은 시작.</em>'),
+    actual.replace('</head>', '<script src="/bad.js"></script></head>'),
+    actual.replace('</script>', '</script x>'),
+    actual.replace('type="application/ld+json"', 'type="application/ld+json" src="/bad.js"'),
+    actual.replace('\"name\": \"랩담\"', '\"name\": \"랩담\", \"name\": \"랩담\"'),
+    actual.replace('<em>작은 시작.</em>', '</em>작은 시작.<em>'),
+    actual.replace('</head>', '<form></form></head>'),
+    actual.replace('name="robots" content="index,follow"', 'name="robots" content="noindex"')
+  ]) {
+    const result = await inspectPublicEntry(fakeFetch({[ROOT + "/"]: new Response(bad)}));
+    assert.equal(result.ok, false);
+    assert.equal(result.results[0].detail, "public-root-home-mismatch");
+  }
 });

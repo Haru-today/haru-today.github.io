@@ -23,6 +23,30 @@ export const CHECKS = [
   { path: "/labinsight/app.js", origin: WORKER, status: 401, kind: "worker-deny" },
   { path: "/login.html", origin: WORKER, status: 200, kind: "public-login" }
 ];
+// Accept only the known visible headings and non-executable WebSite metadata.
+// Keep the old heading during a Pages deployment transition.
+function validHomepageContent(html) {
+  const headings = [...html.matchAll(/<h1(?:\s+id="hero-title")?\s*>([\s\S]*?)<\/h1\s*>/gi)];
+  if (headings.length !== 1 || (html.match(/<h1\b/gi) || []).length !== 1) return false;
+  const heading = headings[0][1];
+  if (!/^(?:[^<>]*|[^<>]*<em>[^<>]*<\/em>[^<>]*)$/i.test(heading)) return false;
+  const text = heading.replace(/<\/?em>/gi, '').replace(/\s+/g, ' ').trim();
+  if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.'].includes(text)) return false;
+  const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b([^>]*)>/gi)];
+  if ((html.match(/<script\b/gi) || []).length !== scripts.length || scripts.length > 1) return false;
+  if (scripts.length === 1) {
+    if (!/^\s+type="application\/ld\+json"\s*$/i.test(scripts[0][1]) || scripts[0][3].trim()) return false;
+    try {
+      const data = JSON.parse(scripts[0][2]);
+      const expected = {'@context': 'https://schema.org', '@type': 'WebSite', name: '랩담', alternateName: 'LABDAM', url: ROOT + '/'};
+      if (!data || Array.isArray(data) || JSON.stringify(Object.keys(data).sort()) !== JSON.stringify(Object.keys(expected).sort()) ||
+          Object.keys(expected).some(key => data[key] !== expected[key]) ||
+          (scripts[0][2].match(/"(?:@context|@type|name|alternateName|url)"\s*:/g) || []).length !== 5) return false;
+    } catch (_) { return false; }
+  }
+  return !/<(?:form|input)\b/i.test(html);
+}
+
 export async function inspectPublicEntry(fetchImpl = fetch) {
   const results = [];
   for (const x of CHECKS) {
@@ -40,13 +64,12 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
       ok = status === x.status;
       if (ok && x.kind === "root-home") {
         const html = await response.text();
-        ok = html.includes('검진 결과, 내 결과지 기준으로 보세요') &&
+        ok = validHomepageContent(html) &&
           html.includes('name="robots" content="index,follow"') &&
           html.includes('rel="canonical" href="https://labdam.kr/"') &&
           !/noindex/i.test(response.headers.get("X-Robots-Tag") || "") &&
           html.includes('href="' + WORKER + '/labinsight/"') &&
-          !html.includes('/labinsight/app.js') &&
-          !/<(?:script|form|input)\b/i.test(html);
+          !html.includes('/labinsight/app.js');
         if (!ok) detail = "public-root-home-mismatch";
       } else if (ok && x.kind === "labinsight-handoff") {
         const html = await response.text();

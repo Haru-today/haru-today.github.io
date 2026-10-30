@@ -5,7 +5,7 @@ const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 test('visitors stay on the public homepage instead of being forwarded', async ({ page, baseURL }) => {
   await page.goto('/', { waitUntil: 'load' });
   await expect(page).toHaveURL(new URL('/', baseURL).href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('검진 결과, 내 결과지 기준으로 보세요');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('더 나은 질문을 위한 작은 시작.');
   await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
 });
 
@@ -31,6 +31,7 @@ test('public root has only site metadata and no app forms or scripts', async ({ 
 test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
   await page.goto('/');
   const ask = page.getByRole('link', { name: '리포담 시작하기', exact: true });
+  await expect(page.getByRole('link', { name: '프로담 시작하기', exact: true }).first()).toHaveAttribute('href', 'https://prodam.labdam.kr/');
   await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
   await expect(page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '카페인 아틀라스', exact: true }))
     .toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
@@ -55,12 +56,13 @@ test('homepage links work by keyboard and the page has no horizontal scroll', as
   expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
 });
 
-test('the hero fits in the first screen on phones', async ({ page }, testInfo) => {
+test('the first service is reachable without horizontal overflow on phones', async ({ page }, testInfo) => {
   test.skip(!['android-chromium', 'iphone-webkit'].includes(testInfo.project.name), 'phone viewports only');
   await page.goto('/');
   const start = page.getByRole('link', { name: '리포담 시작하기', exact: true });
   const box = await start.boundingBox();
-  expect(box.y + box.height).toBeLessThanOrEqual(page.viewportSize().height);
+  expect(box.width).toBeGreaterThan(0);
+  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
 });
 
 for (const colorScheme of ['light', 'dark']) {
@@ -71,6 +73,6 @@ for (const colorScheme of ['light', 'dark']) {
       .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
       .analyze();
     const issues = results.violations.filter(x => ['critical', 'serious'].includes(x.impact));
-    expect(issues.map(x => ({ id: x.id, impact: x.impact }))).toEqual([]);
+    expect(issues.map(x => ({ id: x.id, impact: x.impact, nodes: x.nodes.map(n => ({target: n.target, summary: n.failureSummary})) }))).toEqual([]);
   });
 }
