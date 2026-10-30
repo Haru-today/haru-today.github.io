@@ -33,11 +33,21 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
   assert.match(yaml, /ref: 67e31e8fcad33c4089651e84fe07296a1c9e5793/);
-  assert.match(yaml, /ref: deede09d8c2fa05305e7ed35bf66b366cb015212/);
+  assert.match(yaml, /ref: b77bb8419b9f01012cd3c9fee55579ed7438d356/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
   assert.doesNotMatch(yaml, /d1 migrations apply|route:|zone_id:/);
+});
+
+test("preflight, checkout, stamp and live verification use the same reviewed app commit", () => {
+  const reviewed = yaml.match(/REVIEWED_APP_SHA: ([0-9a-f]{40})/)?.[1];
+  const checkout = yaml.match(/repository: Haru-today\/repodam\s+ref: ([0-9a-f]{40})/)?.[1];
+  const stamped = [...yaml.matchAll(/LABINSIGHT_RELEASE_SHA: ([0-9a-f]{40})/g)].map(match => match[1]);
+  assert.ok(reviewed && checkout);
+  assert.equal(checkout, reviewed);
+  assert.equal(stamped.length, 2);
+  assert.ok(stamped.every(sha => sha === reviewed));
 });
 
 test("Cloudflare token is injected only as a GitHub Secret and no real identity is printed", () => {
