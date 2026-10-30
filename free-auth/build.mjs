@@ -86,7 +86,8 @@ function protectedPolicyHtml(src, kind) {
 }
 function labHtml(src) {
   if (!src.includes("</head>")) throw new Error("Cannot safely add REPODAM handoff script");
-  const text = noIndex(rewritePaths(src)).replace("</head>", '<script src="/labinsight/handoff.js" defer></script>\n</head>');
+  const text = noIndex(rewritePaths(src)).replaceAll("https://haru-today.github.io/privacy.html", "/privacy.html")
+    .replace("</head>", '<script src="/labinsight/handoff.js" defer></script>\n</head>');
   const anchor = '<a class="nav-cta"';
   if (!text.includes(anchor)) throw new Error("Cannot safely add REPODAM account navigation");
   return text.replace(anchor, '<a href="./account.html">내 계정</a><a href="https://haru-today.github.io/">랩담 홈페이지</a>' + anchor);
@@ -157,7 +158,8 @@ async function build() {
     if (file.endsWith(".html")) {
       await copy(lab, file, dest, labHtml);
     } else if (file.endsWith(".js")) {
-      await copy(lab, file, dest, file === "app.js" ? protectedLabScript : rewritePaths);
+      await copy(lab, file, dest, file === "app.js" ? protectedLabScript : file === "runtime-config.js"
+        ? s => rewritePaths(s) + "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n" : rewritePaths);
     } else {
       await copyFile(guarded(lab, file), dest);
     }

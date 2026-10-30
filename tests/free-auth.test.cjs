@@ -219,6 +219,21 @@ function seedMember(f, { sub = "123456789012345678901", email = "student@example
   });
   return { token, csrf, cookie: "__Host-labdam_session=" + token };
 }
+test("device storage identity is stable, distinct, private and available only to approved accounts", async () => {
+  const f = fixture(), a = seedMember(f), b = seedMember(f, {sub:"234567890123456789012", email:"other@example.invalid"});
+  const get = cookie => handleRequest(req("/api/device-store-identity", {cookie}), f.env, f.opts);
+  assert.equal((await get(undefined)).status, 401);
+  const first = await get(a.cookie), second = await get(b.cookie);
+  assert.equal(first.status, 200); assert.equal(second.status, 200);
+  assert.match(first.headers.get("cache-control"), /no-store/);
+  const identityA = await first.json(), identityB = await second.json();
+  assert.match(identityA.id, /^[a-f0-9]{64}$/);
+  assert.notEqual(identityA.id, identityB.id);
+  f.DB.members.get("123456789012345678901").email = "changed@example.invalid";
+  assert.deepEqual(await (await get(a.cookie)).json(), identityA);
+  f.DB.members.get("123456789012345678901").status = "pending";
+  assert.equal((await get(a.cookie)).status, 403);
+});
 function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {}) {
   let nonce;
   f.opts.googleFetch = async (url, request) => {

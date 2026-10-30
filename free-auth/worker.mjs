@@ -354,7 +354,7 @@ const PUBLIC_BRAND_PATHS = new Set(["/", "/index.html", "/favicon.svg",
   "/assets/portal-redesign.css", "/assets/portal-session.js", "/privacy.html", "/terms.html"]);
 function privatePath(path) {
   if (path === "/account.html" || path === "/admin.html" ||
-      path === "/admin" || path === "/labinsight" || path === "/api/me" ||
+      path === "/admin" || path === "/labinsight" || path === "/api/me" || path === "/api/device-store-identity" ||
       path === "/api/admin/applications" || path === "/api/admin/review" || path === "/api/migration-identity" || path === "/api/handoff-status" ||
       path === "/api/application" || path === "/api/account/delete" || path === "/auth/logout") return true;
   return path.startsWith("/labinsight/");
@@ -573,6 +573,11 @@ async function handleRequest(request, env, opts = {}) {
     if (member.status !== "approved") {
       if (method === "GET" && isHtmlRoute(path)) return redirect("/pending.html", origin);
       return json(403, { ok: false, code: "AWAITING_ADMIN_APPROVAL" });
+    }
+    if (path === "/api/device-store-identity" && method === "GET") {
+      // A stable pseudonym isolates local browser databases without exposing the
+      // provider subject or coupling stored records to a changeable email address.
+      return json(200, { id: await digest("repodam-device-store-v1:" + member.google_sub) });
     }
     if (path === "/api/handoff-status" && method === "GET") {
       return json(200, {enabled: env.REPODAM_CUSTOM_DOMAIN === "enabled"});

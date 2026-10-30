@@ -163,8 +163,16 @@ test("protected build preserves reviewed interpretation, OCR and PDF scripts", (
         'if (cache) cache.textContent = "승인 확인을 위해 온라인 연결 필요";')
       .replace('if (cache) cache.textContent = "오프라인 캐시 대기";',
         'if (cache) cache.textContent = "온라인 연결 상태를 확인해 주세요";');
+    if (file === "runtime-config.js") expected += "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n";
     assert.equal(read("labinsight/" + file), expected, file);
   }
+});
+
+test("protected REPODAM links to the current protected privacy notice and scopes device storage", () => {
+  assert.match(read("labinsight/checkup.html"), /href="\/privacy\.html"/);
+  assert.match(read("labinsight/report.html"), /href="\/privacy\.html"/);
+  assert.match(read("labinsight/runtime-config.js"), /window\.LABDAM_PROTECTED_DEVICE_STORE = true/);
+  assert.match(read("privacy.html"), /승인 계정을 구분/);
 });
 
 test("CarePath timeline is fully inside private assets and never saves a health record to a server", () => {

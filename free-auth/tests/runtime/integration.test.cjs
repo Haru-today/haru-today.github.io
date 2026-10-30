@@ -61,7 +61,7 @@ beforeEach(async () => {
   providerMode = "ok"; outboundCalls = [];
 });
 async function request(path, cookie = "", method = "GET", body, csrf) {
-  const headers = { Cookie: cookie, "CF-Connecting-IP": "192.0.2.4" };
+  const headers = { Cookie: cookie, "CF-Connecting-IP": "192.0.2.4", Connection: "close" };
   if (body !== undefined) Object.assign(headers, { "Content-Type": "application/json", Origin: origin, "X-CSRF-Token": csrf || "" });
   return mf.dispatchFetch(origin + path, { method, headers, redirect: "manual", body: body === undefined ? undefined : JSON.stringify(body) });
 }
@@ -113,6 +113,21 @@ test("public LABDAM stays readable while the real Worker gates REPODAM and expos
   await review(admin, "pending");
   assert.deepEqual(await (await request("/api/session-status", candidate.cookie)).json(), { authenticated: false });
   assert.equal((await request("/labinsight/app.js", candidate.cookie)).status, 401);
+});
+test("device storage identities remain distinct and fail closed on real local D1", async () => {
+  assert.equal((await request("/api/device-store-identity")).status, 401);
+  const admin = await login(true), applicant = await login();
+  assert.equal((await request("/api/device-store-identity", applicant.cookie)).status, 403);
+  assert.equal((await review(admin, "approved")).status, 200);
+  const first = await request("/api/device-store-identity", applicant.cookie);
+  assert.equal(first.status, 200);
+  assert.match(first.headers.get("cache-control"), /no-store/);
+  const a = await first.json(), b = await (await request("/api/device-store-identity", admin.cookie)).json();
+  assert.match(a.id, /^[a-f0-9]{64}$/); assert.notEqual(a.id, b.id);
+  const same = await login();
+  assert.deepEqual(await (await request("/api/device-store-identity", same.cookie)).json(), a);
+  assert.equal((await review(admin, "pending")).status, 200);
+  assert.equal((await request("/api/device-store-identity", applicant.cookie)).status, 401);
 });
 test("dual-host OAuth preserves membership and strictly gates the handoff on real local D1", async () => {
   const neo = "https://repodam.labdam.kr", nonce = "1".repeat(64);
@@ -280,7 +295,9 @@ test("approved member cannot access administrator routes through GET, HEAD or ap
 
   // The approved operator retains access, proving the denial is role-specific,
   // not an outage or a blanket removal of administrator functionality.
-  assert.equal((await request("/admin.html", operator.cookie)).status, 200);
+  const operatorPage = await request("/admin.html", operator.cookie);
+  assert.equal(operatorPage.status, 200);
+  await operatorPage.arrayBuffer();
   assert.equal((await request("/api/admin/applications", operator.cookie)).status, 200);
 });
 
