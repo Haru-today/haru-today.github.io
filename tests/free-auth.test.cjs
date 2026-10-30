@@ -476,6 +476,23 @@ test("pending and rejected applicants never receive protected content, even with
     assert.equal((await handleRequest(req("/api/admin/applications", { cookie: user.cookie }), f.env, f.opts)).status, 403);
   }
 });
+test("Paddle resources require an approved session and revocation blocks the next request", async () => {
+  const paths = ["/labinsight/paddle-cell-worker.js", "/labinsight/paddle-ocr-core.js",
+    ...["inference.onnx", "dictionary.json", "ort.min.js", "ort-wasm-simd-threaded.mjs",
+      "ort-wasm-simd-threaded.wasm", "LICENSE-PADDLE-APACHE-2.0.txt", "LICENSE-ONNXRUNTIME.txt", "THIRD-PARTY-ONNXRUNTIME.txt"]
+      .map(name => "/labinsight/vendor/paddle/" + name)];
+  const f = fixture(), approved = seedMember(f);
+  for (const path of paths) {
+    assert.equal((await handleRequest(req(path), f.env, f.opts)).status, 401, path);
+    const response = await handleRequest(req(path, { cookie: approved.cookie }), f.env, f.opts);
+    assert.equal(response.status, 200, path);
+    assert.equal(response.headers.get("Cache-Control"), "private, no-store, max-age=0");
+  }
+  f.DB.members.get("123456789012345678901").status = "rejected";
+  for (const path of paths) assert.equal((await handleRequest(req(path, { cookie: approved.cookie }), f.env, f.opts)).status, 403, path);
+  f.DB.members.get("123456789012345678901").status = "pending";
+  for (const path of paths) assert.equal((await handleRequest(req(path, { cookie: approved.cookie }), f.env, f.opts)).status, 403, path);
+});
 test("pending applicant can submit only short optional use purpose with CSRF", async () => {
   const f = fixture(), user = seedMember(f, { status: "pending" });
   const path = "/api/application";

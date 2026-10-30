@@ -3,8 +3,9 @@
  * LABDAM and REPODAM only; Caffeine Atlas is a separate public site.
  * No API/health data, Google credentials, patient information or OAuth keys.
  */
-import { copyFile, mkdir, readFile, writeFile, readdir, stat } from "node:fs/promises";
+import { copyFile, mkdir, readFile, writeFile, readdir, stat, lstat } from "node:fs/promises";
 import { existsSync } from "node:fs";
+import { createHash } from "node:crypto";
 import { dirname, join, resolve, relative } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -13,6 +14,27 @@ const output = resolve(here, "dist");
 const portal = resolve(process.env.LABDAM_SOURCE || join(here, ".."));
 const lab = resolve(process.env.LABINSIGHT_SOURCE || join(here, "../../labinsight"));
 const labOutput = join(output, "labinsight");
+const includePaddle = process.env.LABDAM_INCLUDE_PADDLE === "1";
+
+// Reviewed source pins, independent of both the app's manifest and worker.
+// Updating an engine or its manifest requires reviewing and changing these pins.
+const paddleAssets = Object.freeze({
+  "inference.onnx": "92f0b7785e64fc9090106a241cf4c1eb97472824558272751b88a2a4476d3a08",
+  "dictionary.json": "83c2b25b578830f02edef419c43d4bcf9c6115cb0e43c3e6737b737e0a5551b9",
+  "ort.min.js": "2b864e555e4fe52cb1ea761e4e979a46cd5ea2587dcefeed63436a349dc24180",
+  "ort-wasm-simd-threaded.mjs": "90a557d15c02bac4504d95b67f431d8594635ed2a0a62a7f2cd83d090ff91d3e",
+  "ort-wasm-simd-threaded.wasm": "45eaee27761ad883742a8d4b8fce1538d60ce43b51adf1726fafccc59b8c1a15"
+});
+const paddleCode = Object.freeze({
+  "paddle-cell-worker.js": "a432ada8f179bfd07341f9a9f192c56e6a63a78e70d61b39977afaed4875f305",
+  "paddle-ocr-core.js": "ce5e274723653c90dd9d0f0324e4c17bb430cb390ba0fe016eb14d39764f1834"
+});
+const paddleLicenses = Object.freeze({
+  "LICENSE-PADDLE-APACHE-2.0.txt": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+  "LICENSE-ONNXRUNTIME.txt": "2f07c72751aed99790b8a4869cf2311df85a860b22ded05fa22803587a48922c",
+  // Microsoft ONNX Runtime v1.23.2 upstream third-party notices.
+  "THIRD-PARTY-ONNXRUNTIME.txt": "e9e90971a8e75a9a8ac0c6412e29c1202d079998389915aa485f46c816c3b4cc"
+});
 
 const labFiles = [
   "index.html", "checkup.html", "report.html", "hospitals.html", "carepath.html",
@@ -125,19 +147,56 @@ async function copyFonts() {
   const from = guarded(lab, "fonts");
   if (!existsSync(from)) return;
   const allowed = new Set(["Pretendard-Regular.subset.woff2", "Pretendard-SemiBold.subset.woff2",
-    "WantedSans-Bold.subset.woff2", "WantedSans-ExtraBold.subset.woff2"]);
+    "WantedSans-Bold.subset.woff2", "WantedSans-ExtraBold.subset.woff2",
+    "LICENSE-Pretendard.txt", "OFL-WantedSans.txt"]);
+  const entries = await readdir(from, { withFileTypes: true });
+  const files = new Set(entries.filter(e => e.isFile()).map(e => e.name));
+  for (const [prefix, license] of [["Pretendard-", "LICENSE-Pretendard.txt"], ["WantedSans-", "OFL-WantedSans.txt"]]) {
+    if ([...allowed].some(name => name.startsWith(prefix) && files.has(name)) && !files.has(license)) {
+      throw new Error("Missing font license: " + license);
+    }
+  }
   await mkdir(join(labOutput, "fonts"), { recursive: true });
-  for (const e of await readdir(from, { withFileTypes: true })) {
+  for (const e of entries) {
     if (e.isFile() && allowed.has(e.name)) {
       await copyFile(guarded(from, e.name), join(labOutput, "fonts", e.name));
     }
   }
+}
+async function verifiedBytes(root, rel, hash) {
+  // Reject symlinks in every path component, including the asset directory.
+  let current = root;
+  for (const part of rel.split("/")) {
+    current = guarded(current, part);
+    if ((await lstat(current)).isSymbolicLink()) throw new Error("Paddle source contains a symbolic link: " + rel);
+  }
+  if (!(await lstat(current)).isFile()) throw new Error("Invalid Paddle source: " + rel);
+  const bytes = await readFile(current);
+  if (createHash("sha256").update(bytes).digest("hex") !== hash) throw new Error("Paddle integrity check failed: " + rel);
+  return bytes;
+}
+async function verifiedPaddle() {
+  const manifestPath = guarded(lab, "paddle-assets.json");
+  if (!(await lstat(manifestPath)).isFile()) throw new Error("Invalid Paddle manifest");
+  const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
+  const names = Object.keys(paddleAssets).sort();
+  const actual = Object.keys(manifest.sha256 || {}).sort();
+  if (actual.length !== names.length || names.some((name, i) => name !== actual[i] || manifest.sha256[name] !== paddleAssets[name])) {
+    throw new Error("Paddle manifest differs from reviewed pins");
+  }
+  const files = [];
+  for (const [name, hash] of Object.entries(paddleCode)) files.push([name, await verifiedBytes(lab, name, hash)]);
+  for (const [name, hash] of Object.entries(paddleAssets)) files.push(["vendor/paddle/" + name, await verifiedBytes(lab, "vendor/paddle/" + name, hash)]);
+  for (const [name, hash] of Object.entries(paddleLicenses)) files.push(["vendor/paddle/" + name, await verifiedBytes(here, "licenses/" + name, hash)]);
+  return files;
 }
 async function build() {
   if (existsSync(output)) throw new Error("dist exists; refusing unsafe overwrite");
   if (!existsSync(guarded(portal, "index.html")) || !existsSync(guarded(lab, "index.html"))) {
     throw new Error("LABDAM or REPODAM source checkout missing");
   }
+  // Validate all opt-in inputs before creating any output at all.
+  const paddleFiles = includePaddle ? await verifiedPaddle() : [];
   await mkdir(join(output, "assets"), { recursive: true });
   await mkdir(labOutput, { recursive: true });
   for (const file of ["index.html", "privacy.html", "terms.html"]) {
@@ -159,7 +218,8 @@ async function build() {
       await copy(lab, file, dest, labHtml);
     } else if (file.endsWith(".js")) {
       await copy(lab, file, dest, file === "app.js" ? protectedLabScript : file === "runtime-config.js"
-        ? s => rewritePaths(s) + "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n" : rewritePaths);
+        ? s => rewritePaths(s) + "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n" +
+          "window.LABINSIGHT_CONFIG = Object.freeze({ ...window.LABINSIGHT_CONFIG, ocrCandidatesApplyDisabled: true, paddleCellEnabled: " + includePaddle + " });\n" : rewritePaths);
     } else {
       await copyFile(guarded(lab, file), dest);
     }
@@ -169,6 +229,10 @@ async function build() {
   await copy(here, "account.html", join(labOutput, "account.html"));
   await copyIcons();
   await copyFonts();
+  if (includePaddle) {
+    await mkdir(join(labOutput, "vendor", "paddle"), { recursive: true });
+    for (const [name, bytes] of paddleFiles) await writeFile(guarded(labOutput, name), bytes);
+  }
   // Never leave private REPODAM resources in offline CacheStorage after logout.
   await writeFile(join(labOutput, "service-worker.js"),
     'self.addEventListener("install", e => e.waitUntil(self.skipWaiting()));\n' +

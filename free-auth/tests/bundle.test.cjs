@@ -163,7 +163,9 @@ test("protected build preserves reviewed interpretation, OCR and PDF scripts", (
         'if (cache) cache.textContent = "승인 확인을 위해 온라인 연결 필요";')
       .replace('if (cache) cache.textContent = "오프라인 캐시 대기";',
         'if (cache) cache.textContent = "온라인 연결 상태를 확인해 주세요";');
-    if (file === "runtime-config.js") expected += "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n";
+    if (file === "runtime-config.js") expected += "\nwindow.LABDAM_PROTECTED_DEVICE_STORE = true;\n" +
+      "window.LABINSIGHT_CONFIG = Object.freeze({ ...window.LABINSIGHT_CONFIG, ocrCandidatesApplyDisabled: true, paddleCellEnabled: " +
+      (process.env.LABDAM_INCLUDE_PADDLE === "1") + " });\n";
     assert.equal(read("labinsight/" + file), expected, file);
   }
 });
