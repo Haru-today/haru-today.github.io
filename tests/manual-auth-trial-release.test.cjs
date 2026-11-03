@@ -32,8 +32,8 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 67e31e8fcad33c4089651e84fe07296a1c9e5793/);
-  assert.match(yaml, /ref: b77bb8419b9f01012cd3c9fee55579ed7438d356/);
+  assert.match(yaml, /ref: 9278556831697b157975dba8e4af15ec7e9c8566/);
+  assert.match(yaml, /ref: 8338575e5aab09279b9d79c6302b2165327bbf03/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
   assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
@@ -48,6 +48,14 @@ test("preflight, checkout, stamp and live verification use the same reviewed app
   assert.equal(checkout, reviewed);
   assert.equal(stamped.length, 2);
   assert.ok(stamped.every(sha => sha === reviewed));
+});
+
+test("device storage identity stays private and authentication checkout matches deployed identity", () => {
+  const auth = yaml.match(/Fetch fully reviewed login branch snapshot[\s\S]*?ref: ([0-9a-f]{40})/)?.[1];
+  const stamped = [...yaml.matchAll(/LABDAM_AUTH_RELEASE_SHA: ([0-9a-f]{40})/g)].map(match => match[1]);
+  assert.ok(auth && stamped.length === 2 && stamped.every(sha => sha === auth));
+  assert.match(yaml, /api\/device-store-identity/);
+  assert.match(yaml, /test "\$code" = 401/);
 });
 
 test("Cloudflare token is injected only as a GitHub Secret and no real identity is printed", () => {
