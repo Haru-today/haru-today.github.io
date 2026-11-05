@@ -103,13 +103,13 @@ test("real homepage and safe JSON-LD pass, unsafe scripts and wrong headings fai
   const actual = fs.readFileSync("index.html", "utf8");
   assert.equal((await inspectPublicEntry(fakeFetch({[ROOT + "/"]: new Response(actual)}))).ok, true);
   for (const bad of [
-    actual.replace('<em>작은 시작.</em>', '<em>다른 시작.</em>'),
-    actual.replace('<em>작은 시작.</em>', '<em hidden>작은 시작.</em>'),
+    actual.replace('<em>담이를 준비하고 있어요.</em>', '<em>다른 시작.</em>'),
+    actual.replace('<em>담이를 준비하고 있어요.</em>', '<em hidden>담이를 준비하고 있어요.</em>'),
     actual.replace('</head>', '<script src="/bad.js"></script></head>'),
     actual.replace('</script>', '</script x>'),
     actual.replace('type="application/ld+json"', 'type="application/ld+json" src="/bad.js"'),
     actual.replace('\"name\": \"랩담\"', '\"name\": \"랩담\", \"name\": \"랩담\"'),
-    actual.replace('<em>작은 시작.</em>', '</em>작은 시작.<em>'),
+    actual.replace('<em>담이를 준비하고 있어요.</em>', '</em>담이를 준비하고 있어요.<em>'),
     actual.replace('</head>', '<form></form></head>'),
     actual.replace('name="robots" content="index,follow"', 'name="robots" content="noindex"')
   ]) {
