@@ -5,7 +5,7 @@ const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 test('visitors stay on the public homepage instead of being forwarded', async ({ page, baseURL }) => {
   await page.goto('/', { waitUntil: 'load' });
   await expect(page).toHaveURL(new URL('/', baseURL).href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('더 나은 질문을 위한 작은 시작.');
+  await expect(page.getByRole('heading', { level: 1 })).toHaveText('검진 결과를 이해하는 시작 담이를 준비하고 있어요.');
   await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
 });
 

@@ -31,7 +31,7 @@ function validHomepageContent(html) {
   const heading = headings[0][1];
   if (!/^(?:[^<>]*|[^<>]*<em>[^<>]*<\/em>[^<>]*)$/i.test(heading)) return false;
   const text = heading.replace(/<\/?em>/gi, '').replace(/\s+/g, ' ').trim();
-  if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.'].includes(text)) return false;
+  if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.', '검진 결과를 이해하는 시작 담이를 준비하고 있어요.'].includes(text)) return false;
   const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b([^>]*)>/gi)];
   if ((html.match(/<script\b/gi) || []).length !== scripts.length || scripts.length > 1) return false;
   if (scripts.length === 1) {

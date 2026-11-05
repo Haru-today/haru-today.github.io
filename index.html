@@ -35,11 +35,11 @@
     @font-face{font-family:"Wanted Sans";src:url("/assets/fonts/WantedSans-Bold-home.woff2?v=20261029") format("woff2");font-weight:700;font-display:swap}
     @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-Regular-home.woff2?v=20261029") format("woff2");font-weight:400;font-display:swap}
     @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-SemiBold-home.woff2?v=20261029") format("woff2");font-weight:600;font-display:swap}
-    :root{--ground:#FFFFFF;--tint:#EEF6F6;--line:#D6E2E3;--ink:#17324D;--ink-muted:#4E6275;--teal:#1F7F83;--on-teal:#FFFFFF;--coral:#D9572B;
+    :root{--ground:#FFFFFF;--tint:#F1F4F7;--line:#D6E2E3;--ink:#17324D;--ink-muted:#4E6275;--teal:#405265;--on-teal:#FFFFFF;--coral:#405265;
       --band:#17324D;--on-band:#FFFFFF;--on-band-muted:#C9D6DE;--frame:#17324D;
       --display:"Wanted Sans","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
       --body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
-    @media(prefers-color-scheme:dark){:root{--ground:#0E1B24;--tint:#16303A;--line:#29404B;--ink:#E8F0F2;--ink-muted:#A3B4BF;--teal:#5FB8BB;--on-teal:#0E1B24;--coral:#F08A60;
+    @media(prefers-color-scheme:dark){:root{--ground:#0E1B24;--tint:#16303A;--line:#29404B;--ink:#E8F0F2;--ink-muted:#A3B4BF;--teal:#B4C6D5;--on-teal:#0E1B24;--coral:#B4C6D5;
       --band:#16303A;--on-band:#E8F0F2;--on-band-muted:#A3B4BF;--frame:#3A5563}}
     *{box-sizing:border-box}
     body{margin:0;background:var(--ground);color:var(--ink);font:400 16px/1.65 var(--body);word-break:keep-all;overflow-wrap:break-word}
@@ -56,7 +56,7 @@
     section{padding:64px 0}main section+section{border-top:1px solid var(--line)}
     .eyebrow{font-size:14px;font-weight:600;color:var(--teal);margin-bottom:12px}
     h1{font:800 32px/1.3 var(--display);letter-spacing:-.02em;text-wrap:balance}
-    h1 em{font-style:normal;color:var(--coral)}
+    h1 em{display:block;font-style:normal;color:var(--coral)}
     h2{font:700 26px/1.35 var(--display);letter-spacing:-.01em;text-wrap:balance}
     h3{font:700 18px/1.45 var(--display)}
     .lead{font-size:17px;color:var(--ink-muted);margin-top:16px}
@@ -111,7 +111,7 @@
     /* Two service entrances share the first screen and remain usable on phones. */
     .topbar{background:var(--ground);border-bottom:1px solid var(--line)}
     .topbar .wrap{min-height:72px}.topnav{flex-wrap:wrap;gap:4px 18px}
-    .hero{padding:56px 0 72px;background:linear-gradient(145deg,var(--tint),var(--ground) 60%)}
+    .hero{padding:56px 0 72px;background:var(--ground)}
     .hero-intro{max-width:740px}.hero-intro .lead{max-width:640px}
     .hero-intro h1{font-size:clamp(32px,5vw,58px);line-height:1.2}
     .quick-links{display:flex;flex-wrap:wrap;gap:10px;margin-top:22px}.quick-links a{display:inline-flex;justify-content:space-between;gap:24px;align-items:center;padding:10px 16px;min-height:46px;border:1px solid var(--line);border-radius:10px;color:var(--ink);font-weight:600;text-decoration:none;background:var(--ground)}
@@ -145,8 +145,8 @@
     <div class="wrap">
       <div class="hero-intro">
         <p class="eyebrow">LABDAM · FOR EVERY QUESTION</p>
-        <h1 id="hero-title">더 나은 질문을 위한 <em>작은 시작.</em></h1>
-        <p class="lead">검진 결과를 이해하는 일부터 연구의 다음 단계를 준비하는 일까지. 랩담에서 필요한 도구를 선택하세요.</p>
+        <h1 id="hero-title">검진 결과를 이해하는 시작 <em>담이를 준비하고 있어요.</em></h1>
+        <p class="lead">리포담에서 검진 결과를 정리해 보세요. 결과지 확인을 돕는 담이와의 대화는 준비 중입니다.</p>
         <div class="quick-links"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 바로가기 <span aria-hidden="true">↗</span></a><a href="https://prodam.labdam.kr/">프로담 바로가기 <span aria-hidden="true">↗</span></a><a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스 바로가기 <span aria-hidden="true">↗</span></a></div>
       </div>
       <div class="service-grid" aria-label="랩담 서비스">
@@ -177,7 +177,7 @@
     <div class="wrap">
       <h2 id="why-title">같은 42도, 어떤 기준으로 보느냐에 따라 달라요</h2>
       <dl class="compare">
-        <div><dt>인터넷에서 찾은 정상 수치</dt><dd>7–56 <small>U/L</small></dd></div>
+        <div><dt>비교용 참고범위 — 설명용 예시</dt><dd>7–56 <small>U/L</small></dd></div>
         <div class="mine"><dt>내 결과지에 적힌 참고범위</dt><dd>0–40 <small>U/L</small></dd></div>
       </dl>
       <p class="note">예시입니다. 실제 참고범위는 검진기관마다 다를 수 있어요.</p>
@@ -189,7 +189,7 @@
     <div class="wrap">
       <h2 id="how-title">결과지 한 장으로 네 단계면 됩니다</h2>
       <ol class="steps">
-        <li><h3>결과지 찍기</h3><p>종이 결과지를 사진으로 올리면 수치를 읽어요.</p></li>
+        <li><h3>결과지 올리기·입력</h3><p>결과지 사진에서 수치를 찾아보거나 직접 입력해요.</p></li>
         <li><h3>확인하기</h3><p>읽은 수치를 원본과 대조하고, 결과지의 참고범위를 옮겨 적어요.</p></li>
         <li><h3>설명 보기</h3><p>옮겨 적은 결과지 기준으로 항목마다 풀어 드려요.</p></li>
         <li><h3>물어볼 질문</h3><p>병원에서 의사에게 물어볼 질문을 정리해요.</p></li>
@@ -225,7 +225,7 @@
         <details><summary>진단해 주나요?</summary><p>아니요. 리포담은 진단하지 않습니다. 결과를 이해하고 의사와의 상담을 준비하도록 돕습니다.</p></details>
         <details><summary>사진만 찍으면 결과지 기준으로 설명해 주나요?</summary><p>사진을 올리면 수치를 읽고, 읽은 숫자는 원본 사진과 나란히 확인해요. 참고범위는 지금은 직접 옮겨 적어야 하고, 옮겨 적은 기준으로 설명해 드려요.</p></details>
         <details><summary>결과지에 기준이 없는 항목은요?</summary><p>섣부르게 판단하지 않고, 확인이 필요하다고 알려 드려요.</p></details>
-        <details><summary>지금 바로 쓸 수 있나요?</summary><p>출시 준비 중이에요. 이메일로 물어보시면 출시 소식을 알려 드릴게요.</p></details>
+        <details><summary>지금 바로 쓸 수 있나요?</summary><p>리포담은 Google 계정으로 신청하고 관리자 승인을 받은 뒤 이용할 수 있어요. 담이와의 대화는 준비 중입니다.</p></details>
       </div>
     </div>
   </section>
@@ -233,7 +233,7 @@
   <section class="cta" aria-labelledby="cta-title">
     <div class="wrap">
       <h2 id="cta-title">궁금한 점이 있으신가요?</h2>
-      <p>가입 승인이나 서비스 이용에 대한 질문을 이메일로 보내 주세요.</p>
+      <p>가입 승인이나 서비스 이용에 대해 문의해 주세요. 검사결과지와 건강정보 등 민감한 내용은 이메일로 보내지 마세요.</p>
       <a class="button" href="mailto:jleegenomics@gmail.com">이메일로 물어보기</a>
       <p class="email">jleegenomics@gmail.com</p>
     </div>

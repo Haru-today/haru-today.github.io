@@ -5,12 +5,12 @@ const fs = require("node:fs");
 const html = fs.readFileSync("index.html", "utf8");
 
 test("the root is the LABDAM one-page homepage, not a redirect", () => {
-  assert.match(html, /더 나은 질문을 위한 <em>작은 시작\.<\/em>/);
+  assert.match(html, /검진 결과를 이해하는 시작 <em>담이를 준비하고 있어요\.<\/em>/);
   assert.match(html, /리포담 시작하기/);
   assert.match(html, /프로담 시작하기/);
   assert.match(html, /임상병리학 전공자가 만듭니다/);
   assert.match(html, /랩담의 첫 서비스입니다/);
-  assert.match(html, /출시 준비 중/);
+  assert.match(html, /담이와의 대화는 준비 중/);
   assert.doesNotMatch(html, /http-equiv="refresh"/);
   assert.match(html, /class="service-grid"/);
 });
