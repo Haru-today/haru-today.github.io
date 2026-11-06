@@ -40,7 +40,7 @@ test('homepage links work by keyboard and the page has no horizontal scroll', as
   await expect(page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '카페인 아틀라스', exact: true }))
     .toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
   for (const name of ['문의', '이메일로 물어보기']) {
-    await expect(page.getByRole('link', { name })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
+    await expect(page.getByRole('link', { name, exact: true })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
   }
   const faq = page.getByText('진단해 주나요?');
   await faq.click();

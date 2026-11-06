@@ -72,3 +72,15 @@ test("homepage remains keyboard accessible", () => {
   assert.match(html, /:focus-visible/);
   assert.match(html, /min-height:52px/);
 });
+
+test("AiApp-inspired home loads its local style and keeps service destinations distinct", () => {
+  assert.match(html, /href="\/assets\/aiapp-home\.css\?v=20261106"/);
+  const css = fs.readFileSync("assets/aiapp-home.css", "utf8");
+  assert.match(css, /\.service-grid/); assert.match(css, /\.hero-intro/);
+  assert.doesNotMatch(css, /@import|https?:\/\//);
+  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/guide"/);
+  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/about"/);
+  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/repodam"/);
+  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/prodam"/);
+  assert.doesNotMatch(html, /02 \/ RESEARCH<\/span><span class="tile-status">로그인 없이 이용/);
+});
