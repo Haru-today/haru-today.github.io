@@ -252,6 +252,92 @@ function googleExchange(f, claims = {}, { requestedNext = "/labinsight/" } = {})
     return { start, callback, browserCookie, result };
   };
 }
+test("PRODAM review gate stays off by default and never fetches an asset", async () => {
+  const f = fixture(); let fetched = 0; f.env.ASSETS.fetch = async () => { fetched++; return new Response("should not be served"); };
+  const member = seedMember(f);
+  for (const path of ["/prodam", "/prodam/", "/prodam/index.html", "/prodam/app.js", "/prodam/vendor/primer3/primer3-core.wasm"]) {
+    assert.equal((await handleRequest(req(path), f.env, f.opts)).status, 404, path);
+    assert.equal((await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts)).status, 404, path);
+  }
+  assert.equal(fetched, 0); assert.equal(safeNext("/prodam/"), "/labinsight/");
+  f.env.PRODAM_REVIEW_ONLY = "1";
+  assert.equal((await handleRequest(req("/prodam/", { cookie: member.cookie }), f.env, f.opts)).status, 404, "flag without an exact origin stays closed");
+  f.env.PRODAM_REVIEW_ORIGIN = "https://other.example";
+  assert.equal((await handleRequest(req("/prodam/", { cookie: member.cookie }), f.env, f.opts)).status, 404, "a different configured origin stays closed");
+  f.env.PRODAM_REVIEW_ORIGIN = ORIGIN;
+  assert.equal((await handleRequest(new Request("https://other.example/prodam/app.js", { headers: { Cookie: member.cookie } }), f.env, f.opts)).status, 503, "the global origin guard rejects requests on another host");
+  f.env.PRODAM_REVIEW_ONLY = "0";
+  const login = await handleRequest(req("/login.html?next=%2Fprodam%2F", { cookie: member.cookie }), f.env, f.opts);
+  assert.equal(new URL(login.headers.get("location")).pathname, "/labinsight/", "the server rejects disabled PRODAM return paths");
+  assert.equal(fetched, 0);
+});
+test("PRODAM review gate checks the same session and current approval before every asset", async () => {
+  const f = fixture(); f.env.PRODAM_REVIEW_ONLY = "1"; f.env.PRODAM_REVIEW_ORIGIN = ORIGIN; let fetched = 0;
+  f.env.ASSETS.fetch = async request => { fetched++; return new Response("fictional protected asset " + new URL(request.url).pathname); };
+  const assets = ["/prodam/app.js", "/prodam/style.css", "/prodam/vendor/primer3/primer3-core.wasm", "/prodam/vendor/primer3/LICENSE.txt"];
+  for (const path of ["/prodam", "/prodam/", "/prodam/index.html"]) {
+    const response = await handleRequest(req(path), f.env, f.opts); assert.equal(response.status, 303, path);
+    assert.match(response.headers.get("location"), /\/login\.html\?next=/);
+  }
+  for (const path of assets) assert.equal((await handleRequest(req(path), f.env, f.opts)).status, 401, path);
+  assert.equal((await handleRequest(req(assets[0], { method: "HEAD" }), f.env, f.opts)).status, 401);
+  assert.equal((await handleRequest(req(assets[0], { method: "POST" }), f.env, f.opts)).status, 405);
+  for (const path of ["/PRODAM/", "/prodam%2Fapp.js", "/prodam//app.js", "/prodam/%252fapp.js"]) assert.equal((await handleRequest(req(path), f.env, f.opts)).status, 404, path);
+  assert.equal(fetched, 0);
+  const member = seedMember(f, { status: "pending" });
+  for (const path of assets) assert.equal((await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts)).status, 403, path);
+  assert.equal(fetched, 0);
+  const entry = [...f.DB.members.values()][0]; entry.status = "approved";
+  const page = await handleRequest(req("/prodam/", { cookie: member.cookie }), f.env, f.opts);
+  assert.equal(page.status, 200); assert.match(await page.text(), /\/prodam\//); assert.match(page.headers.get("cache-control"), /no-store/);
+  for (const path of assets) { const response = await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts); assert.equal(response.status, 200, path); assert.match(response.headers.get("cache-control"), /no-store/); assert.equal(response.headers.get("cross-origin-resource-policy"), "same-origin"); }
+  assert.equal((await handleRequest(req(assets[0], { method: "HEAD", cookie: member.cookie }), f.env, f.opts)).status, 200);
+  assert.equal(new URL((await handleRequest(req("/prodam?mode=test", { cookie: member.cookie }), f.env, f.opts)).headers.get("location")).search, "?mode=test");
+  const before = fetched; entry.status = "rejected";
+  for (const path of assets) assert.equal((await handleRequest(req(path, { cookie: member.cookie }), f.env, f.opts)).status, 403, path);
+  assert.equal(fetched, before, "revoked members never reach the asset binding");
+  f.DB.members.clear(); assert.equal((await handleRequest(req(assets[0], { cookie: member.cookie }), f.env, f.opts)).status, 401);
+  assert.equal(fetched, before);
+});
+test("PRODAM review login return path is local, optional and survives a synthetic approved OAuth flow", async () => {
+  const f = fixture(); f.env.PRODAM_REVIEW_ONLY = "1"; f.env.PRODAM_REVIEW_ORIGIN = ORIGIN; seedMember(f);
+  assert.equal(safeNext("/prodam", true), "/prodam/"); assert.equal(safeNext("/prodam/index.html?x=1", true), "/prodam/index.html?x=1");
+  for (const unsafe of ["//attacker.invalid/prodam/", "/prodam/%2f%2fattacker.invalid", "/prodam/../login.html", "/prodam/%5cattacker", "/prodam/%0dfoo"]) assert.equal(safeNext(unsafe, true), "/labinsight/", unsafe);
+  const { result } = await googleExchange(f, {}, { requestedNext: "/prodam/" })();
+  assert.equal(result.status, 303); assert.equal(new URL(result.headers.get("location")).pathname, "/prodam/");
+  assert.match(result.headers.get("set-cookie"), /__Host-labdam_session=.*HttpOnly; Secure; SameSite=Lax/);
+});
+test("every local PRODAM review asset is denied anonymously and allowed only after approval", { skip: !process.env.LABDAM_PRODAM_REVIEW_SOURCE && "requires the local reviewed PRODAM dist" }, async () => {
+  const fs = require("node:fs"), path = require("node:path"), root = path.resolve(process.env.LABDAM_PRODAM_REVIEW_SOURCE);
+  const collect = (dir, prefix = "") => fs.readdirSync(dir, { withFileTypes: true }).flatMap(entry => {
+    const rel = prefix ? prefix + "/" + entry.name : entry.name, full = path.join(dir, entry.name);
+    if (entry.isSymbolicLink()) throw Error("review fixture contains a symlink");
+    return entry.isDirectory() ? collect(full, rel) : entry.isFile() ? [rel] : [];
+  });
+  const files = collect(root); assert.ok(files.includes("index.html") && files.some(file => file.endsWith(".wasm")));
+  const f = fixture(); f.env.PRODAM_REVIEW_ONLY = "1"; f.env.PRODAM_REVIEW_ORIGIN = ORIGIN; let fetched = 0;
+  f.env.ASSETS.fetch = async request => { fetched++; const pathname = new URL(request.url).pathname; const rel = pathname.slice("/prodam/".length); if (!files.includes(rel)) return new Response(null, { status: 404 }); return new Response(fs.readFileSync(path.join(root, ...rel.split("/"))), { headers: { "Content-Type": rel.endsWith(".wasm") ? "application/wasm" : "application/octet-stream" } }); };
+  for (const file of files) { const response = await handleRequest(req("/prodam/" + file), f.env, f.opts); assert.equal(response.status, file.endsWith(".html") ? 303 : 401, file); assert.match(response.headers.get("cache-control"), /no-store/); }
+  assert.equal(fetched, 0);
+  const member = seedMember(f);
+  for (const file of files) { const response = await handleRequest(req("/prodam/" + file, { cookie: member.cookie }), f.env, f.opts); assert.equal(response.status, 200, file); assert.match(response.headers.get("cache-control"), /no-store/, file); if (file.endsWith(".wasm")) assert.match(response.headers.get("content-type"), /application\/wasm/); }
+  assert.equal(fetched, files.length);
+});
+test("dedicated login page preserves the PRODAM return path but rejects off-origin destinations", () => {
+  const fs = require("node:fs"), vm = require("node:vm"), path = require("node:path");
+  const html = fs.readFileSync(path.join(__dirname, "../free-auth/login.html"), "utf8");
+  const start = html.indexOf(" function safeDestination(value){"), end = html.indexOf("\n const next=safeDestination", start);
+  assert.ok(start >= 0 && end > start); const source = html.slice(start, end);
+  const safe = vm.runInNewContext(source + ";safeDestination", { URL, location: { origin: ORIGIN } });
+  assert.equal(safe("/prodam/"), "/prodam/"); assert.equal(safe("/prodam?mode=test"), "/prodam/?mode=test"); assert.equal(safe("/prodam/index.html?mode=test"), "/prodam/index.html?mode=test");
+  for (const value of ["//evil.invalid/", "/prodam/%2f%2fevil.invalid", "/prodam/../login.html", "/prodam/%5cfoo"]) assert.equal(safe(value), "/labinsight/", value);
+});
+test("the reviewed Worker configuration routes asset requests through the Worker first", () => {
+  const fs = require("node:fs"), path = require("node:path");
+  const config = fs.readFileSync(path.join(__dirname, "../free-auth/wrangler.jsonc"), "utf8");
+  assert.match(config, /"run_worker_first"\s*:\s*true/);
+  assert.doesNotMatch(config, /"PRODAM_REVIEW_ONLY"|"PRODAM_REVIEW_ORIGIN"/);
+});
 test("legacy service roots go to REPODAM login and cannot redirect off-site", async () => {
   const f=fixture();
   for(const path of ["/", "/index.html", "/login", "/?next=https://evil.invalid", "/?next=%2Flogin.html"]){
