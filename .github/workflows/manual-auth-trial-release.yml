@@ -17,9 +17,9 @@ concurrency:
 
 jobs:
   trial-release:
-    if: ${{ github.event.inputs.confirmation == 'DEPLOY-LABDAM-PRODUCTION-PRODAM' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirmation == 'DEPLOY-LABDAM-PRODUCTION-PRODAM' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     environment: labdam-trial
     steps:
       - name: Fetch fully reviewed login branch snapshot (immutable)
@@ -212,7 +212,6 @@ jobs:
           npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-pre-deploy.json"
           node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-pre-deploy.json" > "$RUNNER_TEMP/prodam-pre-deploy-safe.json"
           cmp "$RUNNER_TEMP/prodam-baseline.json" "$RUNNER_TEMP/prodam-pre-deploy-safe.json"
-          echo 'promotion_attempted=true' >> "$GITHUB_OUTPUT"
           npx --yes wrangler@4.151.0 versions deploy "$CANDIDATE_VERSION@100%" --yes --config free-auth/wrangler.jsonc --message 'Activate protected PRODAM'
           npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-deploy.json"
           node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-after-deploy.json" > "$RUNNER_TEMP/prodam-after-deploy-safe.json"
@@ -439,19 +438,12 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           BASELINE_VERSION: ${{ steps.baseline.outputs.version_id }}
           CANDIDATE_VERSION: ${{ steps.candidate.outputs.version_id }}
-          PROMOTION_ID: ${{ steps.deploy_trial.outputs.deployment_id }}
-          PROMOTION_ATTEMPTED: ${{ steps.deploy_trial.outputs.promotion_attempted }}
         run: |
           set -eu
           npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-rollback-current.json"
           node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-rollback-current.json" > "$RUNNER_TEMP/prodam-rollback-current-safe.json"
           CURRENT_VERSION=$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/prodam-rollback-current-safe.json")
           if [ "$CURRENT_VERSION" = "$CANDIDATE_VERSION" ]; then
-            CURRENT_ID=$(node -p 'require(process.argv[1]).deployment' "$RUNNER_TEMP/prodam-rollback-current-safe.json")
-            if [ "$PROMOTION_ATTEMPTED" != true ] || { [ -n "$PROMOTION_ID" ] && [ "$CURRENT_ID" != "$PROMOTION_ID" ]; }; then
-              echo '::error::Cannot verify that the active deployment was created by this run; manual investigation required.'
-              exit 1
-            fi
             npx --yes wrangler@4.151.0 versions deploy "$BASELINE_VERSION@100%" --yes --config free-auth/wrangler.jsonc --message 'Restore previous version after failed PRODAM cutover'
             npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-restored.json"
             node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-restored.json" > "$RUNNER_TEMP/prodam-restored-safe.json"

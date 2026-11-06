@@ -27,6 +27,7 @@ test("trial release is explicitly manual, not a push/PR/scheduled deployment", (
   assert.match(yaml, /^on:\n  workflow_dispatch:/m);
   assert.doesNotMatch(yaml, /^  (push|pull_request|schedule|repository_dispatch):/m);
   assert.match(yaml, /confirmation == 'DEPLOY-LABDAM-PRODUCTION-PRODAM'/);
+  assert.match(yaml, /github\.ref == 'refs\/heads\/main'/);
   assert.match(yaml, /environment: labdam-trial/);
   assert.match(yaml, /permissions:\n  contents: read/);
 });

@@ -35,6 +35,11 @@ description = "Verified public Worker probe release source commit"
 regexTarget = "line"
 regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 1d028bf36ece8153b50e26ff62fe9416ae2e265d\s*$''']
 
+[[rules.allowlists]]
+description = "Public Worker source commit for the reviewed PRODAM cutover"
+regexTarget = "line"
+regexes = ['''^\s+LABDAM_AUTH_RELEASE_SHA: 3939453c4097632181be41ad840bc5688c5d63b1\s*$''']
+
 [[allowlists]]
 description = "Public handoff release commit metadata"
 regexTarget = "line"
