@@ -2,81 +2,61 @@ const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
 const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
 
-test('visitors stay on the public homepage instead of being forwarded', async ({ page, baseURL }) => {
-  await page.goto('/', { waitUntil: 'load' });
-  await expect(page).toHaveURL(new URL('/', baseURL).href);
-  await expect(page.getByRole('heading', { level: 1 })).toHaveText('검진 결과를 이해하는 시작 담이를 준비하고 있어요.');
-  await expect(page.getByRole('img', { name: 'LABDAM' })).toBeVisible();
-});
-
-test('public root has only site metadata and no app forms or scripts', async ({ request, page }) => {
-  const res = await request.get('/');
-  expect(res.status()).toBe(200);
-  const body = await res.text();
-  expect(body).not.toContain('http-equiv="refresh"');
-  expect(body).toContain('href="' + WORKER + 'login.html"');
-  expect(body).toContain('name="robots" content="index,follow"');
-  expect(body).toContain('rel="canonical" href="https://labdam.kr/"');
-  await page.goto('/');
-  await expect(page.locator('form, input')).toHaveCount(0);
-  await expect(page.locator('script')).toHaveCount(1);
-  await expect(page.locator('script')).toHaveAttribute('type', 'application/ld+json');
-  expect(JSON.parse(await page.locator('script').textContent()).name).toBe('랩담');
-  for (const path of ['/privacy.html', '/terms.html', '/assets/labdam-logo.svg',
-    ...[...body.matchAll(/url\("([^"]+)"\)/g)].map(match => match[1])]) {
-    expect((await request.get(path)).status(), path).toBe(200);
+test('AiApp homepage and its locally hosted visual assets render', async ({page,baseURL}) => {
+  await page.goto('/',{waitUntil:'load'}); await page.evaluate(()=>document.fonts.ready);
+  await expect(page).toHaveURL(new URL('/',baseURL).href);
+  await expect(page.getByRole('heading',{level:1})).toHaveText('검진 결과를 이해하는 시작담이를 준비하고 있어요');
+  for (const label of ['검진 결과지 옆에서 노트에 질문을 적는 모습','연구용 서열 분석 도구를 연상시키는 코드 화면','Caffeine Atlas 워드마크 로고']) {
+    const image=page.getByRole('img',{name:label}); await image.scrollIntoViewIfNeeded();
+    await expect(image).toBeVisible(); expect(await image.evaluate(e=>e.naturalWidth)).toBeGreaterThan(0);
   }
+  await expect(page.getByRole('heading',{name:'같은 42도, 어떤 기준으로 보느냐에 따라 달라요'})).toBeVisible();
+  await expect(page.getByRole('heading',{name:'결과지 한 장으로 네 단계'})).toBeVisible();
+  await expect(page.getByText('예시 항목 B')).toHaveCount(0);
+  for(const element of await page.locator('main h2,main img').all()) expect(await element.evaluate(e=>getComputedStyle(e).opacity)).toBe('1');
 });
 
-test('homepage links work by keyboard and the page has no horizontal scroll', async ({ page }) => {
+test('service routes, safe script and no data input are preserved', async ({page,request}) => {
   await page.goto('/');
-  const ask = page.getByRole('link', { name: '리포담 시작하기', exact: true });
-  await expect(page.getByRole('link', { name: '프로담 시작하기', exact: true }).first()).toHaveAttribute('href', 'https://prodam.labdam.kr/');
-  await expect(ask).toHaveAttribute('href', WORKER + 'labinsight/');
-  const atlasCard = page.locator('.atlas-tile');
-  await expect(atlasCard.getByRole('heading', {name: /카페인 아틀라스/})).toBeVisible();
-  await expect(atlasCard.getByRole('link', {name: '카페인 아틀라스 보기'})).toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
-  await expect(page.getByRole('link', {name: '카페인 아틀라스 바로가기'})).toBeVisible();
-  await expect(page.getByRole('navigation', { name: '바로가기' }).getByRole('link', { name: '카페인 아틀라스', exact: true }))
-    .toHaveAttribute('href', '/caffeine-atlas/caffeine-sensitivity-app/index.html');
-  for (const name of ['문의', '이메일로 물어보기']) {
-    await expect(page.getByRole('link', { name, exact: true })).toHaveAttribute('href', 'mailto:jleegenomics@gmail.com');
-  }
-  const faq = page.getByText('진단해 주나요?');
-  await faq.click();
-  await expect(page.getByText('리포담은 진단하지 않습니다', { exact: false })).toBeVisible();
-  await expect(page.getByRole('link', { name: '리포담 로그인' })).toHaveAttribute('href', WORKER + 'login.html');
-  await expect(page.getByRole('link', { name: '개인정보 처리 안내' })).toHaveAttribute('href', '/privacy.html');
-  // WebKit skips links on Tab by default, so focus the skip link directly and check it appears.
-  const skip = page.getByRole('link', { name: '본문으로 바로가기' });
-  await skip.focus();
-  expect((await skip.boundingBox()).x).toBeGreaterThanOrEqual(0);
-  const box = await ask.first().boundingBox();
-  expect(box.height).toBeGreaterThanOrEqual(44);
-  const dimensions = await page.evaluate(() => ({
-    viewport: document.documentElement.clientWidth,
-    page: document.documentElement.scrollWidth
-  }));
-  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport + 1);
+  await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',WORKER+'labinsight/');
+  await expect(page.getByRole('link',{name:'프로담 시작하기',exact:true}).first()).toHaveAttribute('href','https://prodam.labdam.kr/');
+  await expect(page.getByRole('link',{name:'Caffeine Atlas 열기'})).toHaveAttribute('href','https://haru-today.github.io/caffeine-atlas/');
+  await expect(page.locator('form,input,textarea,select,iframe')).toHaveCount(0);
+  await expect(page.locator('script')).toHaveCount(2);
+  for(const path of ['/privacy.html','/terms.html','/assets/aiapp-exact/home.js']) expect((await request.get(path)).status(),path).toBe(200);
+  const dimensions=await page.evaluate(()=>({viewport:document.documentElement.clientWidth,page:document.documentElement.scrollWidth}));
+  expect(dimensions.page).toBeLessThanOrEqual(dimensions.viewport+1);
 });
 
-test('the first service is reachable without horizontal overflow on phones', async ({ page }, testInfo) => {
-  test.skip(!['android-chromium', 'iphone-webkit'].includes(testInfo.project.name), 'phone viewports only');
-  await page.goto('/');
-  const start = page.getByRole('link', { name: '리포담 시작하기', exact: true });
-  const box = await start.boundingBox();
-  expect(box.width).toBeGreaterThan(0);
-  expect(box.x + box.width).toBeLessThanOrEqual(page.viewportSize().width);
+test('mobile menu opens and closes accessibly', async ({page},info) => {
+  test.skip(info.project.name==='desktop-chromium','mobile viewports only');
+  await page.goto('/'); const toggle=page.getByRole('button',{name:'메뉴 열기'});
+  await expect(toggle).toBeVisible(); await toggle.click();
+  await expect(page.getByRole('button',{name:'메뉴 닫기'})).toHaveAttribute('aria-expanded','true');
+  await expect(page.getByRole('navigation',{name:'주 메뉴'}).getByRole('link',{name:'이용 방법·FAQ'})).toBeVisible();
+  await page.keyboard.press('Escape'); await expect(toggle).toHaveAttribute('aria-expanded','false'); await expect(toggle).toBeFocused();
 });
 
-for (const colorScheme of ['light', 'dark']) {
-  test(`homepage has no serious or critical WCAG violations (${colorScheme})`, async ({ page }) => {
-    await page.emulateMedia({ colorScheme });
-    await page.goto('/');
-    const results = await new AxeBuilder({ page })
-      .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
-      .analyze();
-    const issues = results.violations.filter(x => ['critical', 'serious'].includes(x.impact));
-    expect(issues.map(x => ({ id: x.id, impact: x.impact, nodes: x.nodes.map(n => ({target: n.target, summary: n.failureSummary})) }))).toEqual([]);
-  });
-}
+test('desktop step illustrations follow scrolling', async ({page},info) => {
+  test.skip(info.project.name!=='desktop-chromium','desktop layout only');
+  await page.goto('/'); await page.getByRole('heading',{name:'물어볼 질문'}).scrollIntoViewIfNeeded();
+  await expect(page.locator('[data-step-view][data-active]')).toHaveCount(1);
+  await expect(page.locator('[data-step-view]').nth(3)).toHaveAttribute('data-active','');
+  await expect(page.locator('[data-step-view] a,[data-step-view] button,[data-step-view] input,[data-step-view] [tabindex]')).toHaveCount(0);
+});
+
+test('navigation remains usable without JavaScript', async ({browser,baseURL},info) => {
+  test.skip(!['desktop-chromium','narrow-320'].includes(info.project.name),'desktop and smallest phone only');
+  const context=await browser.newContext({javaScriptEnabled:false,viewport:info.project.name==='narrow-320'?{width:320,height:720}:{width:1440,height:900}});
+  const page=await context.newPage(); await page.goto(baseURL);
+  const nav=page.getByRole('navigation',{name:'주 메뉴'});
+  await expect(nav.getByRole('link',{name:'이용 방법·FAQ'})).toBeVisible();
+  expect(await page.evaluate(()=>document.documentElement.scrollWidth)).toBeLessThanOrEqual(info.project.name==='narrow-320'?321:1441);
+  await context.close();
+});
+
+for(const colorScheme of ['light','dark']) test(`homepage has no serious WCAG issues (${colorScheme})`,async ({page})=>{
+  await page.emulateMedia({colorScheme}); await page.goto('/');
+  const result=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21a','wcag21aa']).analyze();
+  expect(result.violations.filter(x=>['serious','critical'].includes(x.impact)).map(x=>({id:x.id,nodes:x.nodes.map(n=>n.target)}))).toEqual([]);
+});

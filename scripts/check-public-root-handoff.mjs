@@ -26,25 +26,34 @@ export const CHECKS = [
 // Accept only the known visible headings and non-executable WebSite metadata.
 // Keep the old heading during a Pages deployment transition.
 function validHomepageContent(html) {
-  const headings = [...html.matchAll(/<h1(?:\s+id="hero-title")?\s*>([\s\S]*?)<\/h1\s*>/gi)];
+  const headings = [...html.matchAll(/<h1(?:\s+id="hero-title"|\s+class="mt-4 max-w-3xl text-\[40px\] font-extrabold leading-tight tracking-\[-0\.03em\] text-ink sm:text-\[56px\] lg:text-\[68px\]")?\s*>([\s\S]*?)<\/h1\s*>/gi)];
   if (headings.length !== 1 || (html.match(/<h1\b/gi) || []).length !== 1) return false;
   const heading = headings[0][1];
-  if (!/^(?:[^<>]*|[^<>]*<em>[^<>]*<\/em>[^<>]*)$/i.test(heading)) return false;
-  const text = heading.replace(/<\/?em>/gi, '').replace(/\s+/g, ' ').trim();
-  if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.', '검진 결과를 이해하는 시작 담이를 준비하고 있어요.'].includes(text)) return false;
+  if (!/^(?:[^<>]*|[^<>]*<em>[^<>]*<\/em>[^<>]*|검진 결과를 이해하는 시작<br>담이를 준비하고 있어요)$/i.test(heading)) return false;
+  const text = heading.replace(/<\/?em>/gi, '').replace(/<br>/gi, ' ').replace(/\s+/g, ' ').trim();
+  if (!['검진 결과, 내 결과지 기준으로 보세요', '더 나은 질문을 위한 작은 시작.', '검진 결과를 이해하는 시작 담이를 준비하고 있어요.', '검진 결과를 이해하는 시작 담이를 준비하고 있어요'].includes(text)) return false;
   const scripts = [...html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script\b([^>]*)>/gi)];
-  if ((html.match(/<script\b/gi) || []).length !== scripts.length || scripts.length > 1) return false;
-  if (scripts.length === 1) {
-    if (!/^\s+type="application\/ld\+json"\s*$/i.test(scripts[0][1]) || scripts[0][3].trim()) return false;
+  if ((html.match(/<script\b/gi) || []).length !== scripts.length || scripts.length > 2) return false;
+  const metadata = scripts.filter(script => /^\s+type="application\/ld\+json"\s*$/i.test(script[1]) && !script[3].trim());
+  const presentation = scripts.filter(script => script[1] === ' src="/assets/aiapp-exact/home.js" integrity="sha256-V0aAiArbW7z5WQSdaoeyTzFDU+l3UhG3UJfcZB8Ik8w=" defer' && !script[2] && !script[3].trim());
+  if (metadata.length > 1 || presentation.length > 1 || metadata.length + presentation.length !== scripts.length) return false;
+  if (presentation.length) {
+    const expected = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'";
+    const metas = [...html.matchAll(/<meta\s+http-equiv="Content-Security-Policy"\s+content="([^"]*)"\s*>/gi)];
+    const count = (html.match(/http-equiv\s*=\s*["']?content-security-policy/gi) || []).length;
+    if (metadata.length !== 1 || count !== 1 || metas.length !== 1 || metas[0][1] !== expected || metas[0].index > html.search(/<script\b/i) || metas[0].index > html.search(/<\/head\s*>/i)) return false;
+    if (!/^<!doctype html>\s*<html lang="ko">\s*<head>\s*<meta charset="utf-8">\s*<meta name="referrer" content="no-referrer">\s*$/i.test(html.slice(0, metas[0].index))) return false;
+  }
+  if (metadata.length === 1) {
     try {
-      const data = JSON.parse(scripts[0][2]);
+      const data = JSON.parse(metadata[0][2]);
       const expected = {'@context': 'https://schema.org', '@type': 'WebSite', name: '랩담', alternateName: 'LABDAM', url: ROOT + '/'};
       if (!data || Array.isArray(data) || JSON.stringify(Object.keys(data).sort()) !== JSON.stringify(Object.keys(expected).sort()) ||
           Object.keys(expected).some(key => data[key] !== expected[key]) ||
-          (scripts[0][2].match(/"(?:@context|@type|name|alternateName|url)"\s*:/g) || []).length !== 5) return false;
+          (metadata[0][2].match(/"(?:@context|@type|name|alternateName|url)"\s*:/g) || []).length !== 5) return false;
     } catch (_) { return false; }
   }
-  return !/<(?:form|input)\b/i.test(html);
+  return !/<(?:form|input|textarea|select|iframe|object|embed|base)\b/i.test(html) && !/<meta\b[^>]*http-equiv\s*=\s*["']?refresh/i.test(html) && !/[\s"'\/]on[a-z]+\s*=/i.test(html) && !/javascript\s*:/i.test(html);
 }
 
 export async function inspectPublicEntry(fetchImpl = fetch) {

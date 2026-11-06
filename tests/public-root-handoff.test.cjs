@@ -103,13 +103,21 @@ test("real homepage and safe JSON-LD pass, unsafe scripts and wrong headings fai
   const actual = fs.readFileSync("index.html", "utf8");
   assert.equal((await inspectPublicEntry(fakeFetch({[ROOT + "/"]: new Response(actual)}))).ok, true);
   for (const bad of [
-    actual.replace('<em>담이를 준비하고 있어요.</em>', '<em>다른 시작.</em>'),
-    actual.replace('<em>담이를 준비하고 있어요.</em>', '<em hidden>담이를 준비하고 있어요.</em>'),
+    actual.replace('검진 결과를 이해하는 시작<br>담이를 준비하고 있어요', '검진 결과를 이해하는 시작<br>다른 시작'),
+    actual.replace('<br>담이를 준비하고 있어요', '<br hidden>담이를 준비하고 있어요'),
     actual.replace('</head>', '<script src="/bad.js"></script></head>'),
     actual.replace('</script>', '</script x>'),
     actual.replace('type="application/ld+json"', 'type="application/ld+json" src="/bad.js"'),
-    actual.replace('\"name\": \"랩담\"', '\"name\": \"랩담\", \"name\": \"랩담\"'),
-    actual.replace('<em>담이를 준비하고 있어요.</em>', '</em>담이를 준비하고 있어요.<em>'),
+    actual.replace('"name":"랩담"', '"name":"랩담","name":"랩담"'),
+    actual.replace('<br>담이를 준비하고 있어요', '<br><em>담이를 준비하고 있어요</em>'),
+    actual.replace('sha256-V0aAiArbW7z5WQSdaoeyTzFDU+l3UhG3UJfcZB8Ik8w=', 'sha256-tampered'),
+    actual.replace("script-src 'self';", "script-src 'self' 'unsafe-inline';"),
+    actual.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/, "<!-- connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none' -->"),
+    actual.replace(/(<meta http-equiv="Content-Security-Policy"[^>]*>)/, '<!--$1-->'),
+    actual.replace('<meta http-equiv="Content-Security-Policy"', '<div></div><meta http-equiv="Content-Security-Policy"'),
+    actual.replace('</body>', '<img/onerror=alert(1) src=x></body>'),
+    actual.replace('</body>', '<img src="x"onerror=alert(1)></body>'),
+    actual.replace('</head>', '<meta http-equiv="refresh" content="0;url=https://example.invalid"></head>'),
     actual.replace('</head>', '<form></form></head>'),
     actual.replace('name="robots" content="index,follow"', 'name="robots" content="noindex"')
   ]) {

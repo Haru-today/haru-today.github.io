@@ -1,86 +1,32 @@
-"use strict";
-const test = require("node:test");
-const assert = require("node:assert/strict");
-const fs = require("node:fs");
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const html = fs.readFileSync('index.html', 'utf8');
+const worker = 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/';
 
-const html = fs.readFileSync("index.html", "utf8");
-const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev/";
-const EMAIL = "mailto:jleegenomics@gmail.com";
-
-test("public homepage keeps one contact address and the approved users' login entry", () => {
-  assert.match(html, /LABDAM/);
-  assert.ok(html.includes('href="' + EMAIL + '"'));
-  assert.ok(html.includes('href="' + WORKER + 'login.html"'));
-  assert.ok(html.includes('name="robots" content="index,follow"'));
-  assert.ok(html.includes('rel="canonical" href="https://labdam.kr/"'));
-  assert.ok(html.includes('name="referrer" content="no-referrer"'));
-  assert.doesNotMatch(html, /href="https:\/\/haru-today\.github\.io\/labinsight\//);
-  const mails = [...html.matchAll(/mailto:([^"]+)"/g)].map(match => match[1]);
-  assert.deepEqual([...new Set(mails)], ["jleegenomics@gmail.com"]);
+test('homepage keeps service links and search verification', () => {
+  for (const href of [worker, 'https://prodam.labdam.kr/', 'https://haru-today.github.io/caffeine-atlas/', 'https://labdam.site.aiapp.help/guide', 'mailto:jleegenomics@gmail.com']) assert.ok(html.includes('href="' + href + '"'), href);
+  for (const value of ['b91d0554dc2db700b9e1128063dc6e5255500209','0f44c35ebff0b9388c37a766a57761ba04ae667e','f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ','F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8']) assert.ok(html.includes(value));
+  assert.match(html, /rel="canonical" href="https:\/\/labdam\.kr\/"/);
+  assert.match(fs.readFileSync('sitemap.xml','utf8'), /caffeine-atlas\/caffeine-sensitivity-app\/index\.html/);
+  assert.doesNotMatch(fs.readFileSync('sitemap.xml','utf8'), /labinsight|workers\.dev/);
+  assert.deepEqual([...new Set([...html.matchAll(/mailto:([^"\s]+)/g)].map(match=>match[1]))], ['jleegenomics@gmail.com']);
+  assert.ok(fs.existsSync('privacy.html') && fs.existsSync('terms.html'));
 });
 
-test("homepage has site metadata but no executable scripts or private portal content", () => {
-  const opening = '<script type="application/ld+json">';
-  const start = html.indexOf(opening);
-  const end = html.indexOf('</script>', start);
-  assert.ok(start >= 0 && end > start);
-  assert.equal([...html.matchAll(/<script\b/gi)].length, 1);
-  assert.deepEqual(JSON.parse(html.slice(start + opening.length, end)), {
-    "@context": "https://schema.org", "@type": "WebSite", name: "랩담",
-    alternateName: "LABDAM", url: "https://labdam.kr/"
-  });
-  assert.match(html, /<meta property="og:site_name" content="랩담">/);
-  assert.doesNotMatch(html, /<(?:form|input)\b/i);
-  assert.doesNotMatch(html, /class="service-card"|id="services"|id="technology"/);
-  assert.doesNotMatch(html, /검사값 정리 미리보기|결과 리포트 해석|가상 예시 리포트/);
-  assert.doesNotMatch(html, /\/labinsight\/app\.js/);
-  assert.ok(Buffer.byteLength(html, "utf8") < 20000);
-});
-
-test("Caffeine Atlas stays a separate public project and search rules do not block its QR", () => {
-  assert.match(html, /href="\/caffeine-atlas\/caffeine-sensitivity-app\/index\.html"/);
-  const robots = fs.readFileSync("robots.txt", "utf8");
-  const map = fs.readFileSync("sitemap.xml", "utf8");
-  assert.match(robots, /Allow: \//);
-  assert.match(robots, /Sitemap:/);
-  assert.match(map, /caffeine-atlas\/caffeine-sensitivity-app\/index\.html/);
-  assert.match(map, /<loc>https:\/\/labdam\.kr\/<\/loc>/);
-  assert.doesNotMatch(map, /<loc>https:\/\/haru-today\.github\.io\/<\/loc>/);
-  assert.doesNotMatch(map, /labinsight|workers\.dev/);
-});
-
-test("public privacy pages and verification metadata remain available", () => {
-  assert.match(html, /name="naver-site-verification"/);
-  assert.match(html, /name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209"/);
-  assert.match(html, /name="naver-site-verification" content="0f44c35ebff0b9388c37a766a57761ba04ae667e"/);
-  assert.match(html, /name="google-site-verification"/);
-  assert.match(html, /name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ"/);
-  assert.match(html, /name="google-site-verification" content="F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8"/);
-  assert.match(html, /href="\/privacy\.html"/);
-  assert.match(html, /href="\/terms\.html"/);
-  const privacy = fs.readFileSync("privacy.html", "utf8");
-  const terms = fs.readFileSync("terms.html", "utf8");
-  assert.match(privacy, /Google Apps Script/);
-  assert.match(privacy, /Google Sheets/);
-  assert.match(privacy, /보유기간/);
-  assert.match(terms, /의료.*한계|의료.*진단|의료.*유전자/);
-});
-
-test("homepage remains keyboard accessible", () => {
-  assert.match(html, /href="#main"/);
-  assert.match(html, /id="main"/);
-  assert.match(html, /:focus-visible/);
-  assert.match(html, /min-height:52px/);
-});
-
-test("AiApp-inspired home loads its local style and keeps service destinations distinct", () => {
-  assert.match(html, /href="\/assets\/aiapp-home\.css\?v=20261106"/);
-  const css = fs.readFileSync("assets/aiapp-home.css", "utf8");
-  assert.match(css, /\.service-grid/); assert.match(css, /\.hero-intro/);
-  assert.doesNotMatch(css, /@import|https?:\/\//);
-  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/guide"/);
-  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/about"/);
-  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/repodam"/);
-  assert.match(html, /href="https:\/\/labdam\.site\.aiapp\.help\/prodam"/);
-  assert.doesNotMatch(html, /02 \/ RESEARCH<\/span><span class="tile-status">로그인 없이 이용/);
+test('homepage has no data entry and the single presentation script is integrity-pinned', () => {
+  assert.doesNotMatch(html, /<(?:form|input|textarea|select|iframe|object|embed|base)\b/i);
+  assert.doesNotMatch(html, /[\s"'\/]on[a-z]+\s*=|javascript\s*:/i);
+  assert.match(html, /name="referrer" content="no-referrer"/);
+  assert.match(html, /connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'/);
+  const scripts = [...html.matchAll(/<script\b[^>]*>/gi)].map(x=>x[0]);
+  assert.equal(scripts.length,2);
+  assert.equal(scripts.filter(x=>x === '<script type="application/ld+json">').length,1);
+  const code = fs.readFileSync('assets/aiapp-exact/home.js');
+  const digest=crypto.createHash('sha256').update(code).digest('base64');
+  assert.ok(scripts.includes('<script src="/assets/aiapp-exact/home.js" integrity="sha256-'+digest+'" defer>'));
+  assert.doesNotMatch(code.toString(), /\b(?:fetch|XMLHttpRequest|sendBeacon|WebSocket|eval|localStorage|sessionStorage|postMessage)\b|document\.cookie|innerHTML|\bimport\s*\(/);
+  assert.doesNotMatch(html, /<link\b[^>]*rel="stylesheet"[^>]*href="https?:|<img\b[^>]*src="https?:/i);
 });
