@@ -10,7 +10,7 @@ test("private app checkout fails before build/deploy without source access and n
   const preflight = yaml.indexOf("Verify read access to the reviewed app source");
   const checkout = yaml.indexOf("Fetch fully reviewed REPODAM snapshot");
   const build = yaml.indexOf("Build public LABDAM brand and protected REPODAM bundle");
-  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  const deploy = yaml.indexOf("Promote protected Worker version to production traffic");
   assert.ok(preflight > 0 && preflight < checkout && checkout < build && build < deploy);
   assert.match(yaml.slice(preflight, checkout), /GH_TOKEN: \$\{\{ secrets\.LABINSIGHT_SOURCE_TOKEN \|\| github\.token \}\}/);
   assert.match(yaml.slice(preflight, checkout), /gh api .*--silent 2>\/dev\/null/);
@@ -26,17 +26,19 @@ test("private app checkout fails before build/deploy without source access and n
 test("trial release is explicitly manual, not a push/PR/scheduled deployment", () => {
   assert.match(yaml, /^on:\n  workflow_dispatch:/m);
   assert.doesNotMatch(yaml, /^  (push|pull_request|schedule|repository_dispatch):/m);
-  assert.match(yaml, /confirmation == 'DEPLOY-LABDAM-TRIAL'/);
+  assert.match(yaml, /confirmation == 'DEPLOY-LABDAM-PRODUCTION-PRODAM'/);
   assert.match(yaml, /environment: labdam-trial/);
   assert.match(yaml, /permissions:\n  contents: read/);
 });
 
 test("trial release bundles only reviewed immutable commits with fixed worker config", () => {
-  assert.match(yaml, /ref: 9278556831697b157975dba8e4af15ec7e9c8566/);
-  assert.match(yaml, /ref: 8338575e5aab09279b9d79c6302b2165327bbf03/);
+  assert.match(yaml, /ref: 3939453c4097632181be41ad840bc5688c5d63b1/);
+  assert.match(yaml, /ref: 2fcc297972e8b786e02d62912e302b575348f9f7/);
   assert.match(yaml, /node free-auth\/build\.mjs/);
   assert.match(yaml, /node free-auth\/scripts\/preflight-static\.mjs --require-real-d1/);
-  assert.match(yaml, /wrangler@4\.151\.0 deploy --config free-auth\/wrangler\.jsonc/);
+  assert.match(yaml, /wrangler@4\.151\.0 versions upload --config free-auth\/\.prodam-cutover\.generated\.jsonc/);
+  assert.match(yaml, /wrangler@4\.151\.0 versions deploy "\$CANDIDATE_VERSION@100%"/);
+  assert.match(yaml, /wrangler@4\.151\.0 versions deploy "\$BASELINE_VERSION@100%"/);
   assert.doesNotMatch(yaml, /d1 migrations apply|route:|zone_id:/);
 });
 
@@ -76,7 +78,7 @@ test("release cannot accidentally bundle protected Caffeine Atlas assets", () =>
 
 test("remote D1 schema is read-only checked before deployment and without access to rows", () => {
   const schema = yaml.indexOf("Verify remote D1 has the expected schema");
-  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  const deploy = yaml.indexOf("Promote protected Worker version to production traffic");
   assert.ok(schema !== -1 && deploy !== -1 && schema < deploy);
   assert.ok(yaml.includes("wrangler@4.151.0 d1 execute labdam-membership"));
   assert.ok(yaml.includes("--config free-auth/wrangler.jsonc --remote"));
@@ -123,7 +125,7 @@ test("post-deploy smoke checks tolerate short propagation and report safe HTTP s
 });
 
 test("new compact login markup is checked after live deployment, not only in bundled files", () => {
-  const deploy = yaml.indexOf("      - name: Deploy to named free test Worker");
+  const deploy = yaml.indexOf("      - name: Promote protected Worker version to production traffic");
   const live = yaml.indexOf("      - name: Verify new compact login UI");
   const gated = yaml.indexOf("      - name: Confirm new CarePath endpoints");
   assert.ok(deploy !== -1 && live > deploy && gated > live);
@@ -160,7 +162,7 @@ test("supplement release requires the private module and checks its anonymous de
   assert.ok(yaml.includes("test -f free-auth/dist/labinsight/supplement-guidance.js"));
   const start = yaml.indexOf("      - name: Confirm supplement evidence is gated");
   const end = yaml.indexOf("      - name: Confirm new CarePath endpoints", start);
-  assert.ok(start > yaml.indexOf("      - name: Deploy to named free test Worker") && end > start);
+  assert.ok(start > yaml.indexOf("      - name: Promote protected Worker version to production traffic") && end > start);
   const block = yaml.slice(start, end);
   assert.ok(block.includes("$TRIAL_ORIGIN/labinsight/supplement-guidance.js"));
   assert.ok(block.includes('test "$code" = 401'));
@@ -178,7 +180,7 @@ test("handoff and real-source local integration gates run before any deployment"
   const build = yaml.indexOf("Build public LABDAM brand and protected REPODAM bundle");
   const integration = yaml.indexOf("Verify protected static assets and local workerd + D1 approval flows");
   const secrets = yaml.indexOf("Require separately configured Cloudflare trial secrets");
-  const deploy = yaml.indexOf("Deploy to named free test Worker");
+  const deploy = yaml.indexOf("Promote protected Worker version to production traffic");
   assert.ok(unit > 0 && unit < build && build < integration && integration < secrets && secrets < deploy);
   assert.match(yaml.slice(unit, build), /tests\/handoff\.test\.cjs/);
   const block = yaml.slice(integration, secrets);
