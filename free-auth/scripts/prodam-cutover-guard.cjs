@@ -27,7 +27,15 @@ function bindings(version) {
   }
   return result;
 }
-function compareVersions(before, after) {
+function latest(versions, expected) {
+  assert.ok(Array.isArray(versions) && versions.length > 0 && uuid(expected), "Expected deployable versions");
+  assert.equal(versions.at(-1)?.id, expected, "Newest Worker version changed");
+}
+function compareVersions(before, after, expectedBefore, expectedAfter) {
+  assert.ok(uuid(expectedBefore) && uuid(expectedAfter), "Missing expected version identifiers");
+  assert.equal(before?.id, expectedBefore, "Baseline version mismatch");
+  assert.equal(after?.id, expectedAfter, "Candidate version mismatch");
+  assert.ok(before?.resources?.script_runtime && isDeepStrictEqual(before.resources.script_runtime, after?.resources?.script_runtime), "Worker runtime changed");
   const a = bindings(before), b = bindings(after);
   for (const [name, entry] of a) assert.ok(isDeepStrictEqual(b.get(name), entry), `Existing binding changed: ${name}`);
   assert.equal(a.get("DB")?.type, "d1", "Missing D1 binding");
@@ -46,7 +54,8 @@ if (require.main === module) {
   const json = file => JSON.parse(fs.readFileSync(file, "utf8"));
   if (mode === "deployment") console.log(JSON.stringify(deployment(json(args[0]))));
   else if (mode === "upload") console.log(uploaded(fs.readFileSync(args[0], "utf8")));
-  else if (mode === "bindings") { compareVersions(json(args[0]), json(args[1])); console.log("Existing bindings preserved; PRODAM gate switches verified."); }
+  else if (mode === "latest") { latest(json(args[0]), args[1]); console.log("Latest version matches expected version."); }
+  else if (mode === "bindings") { compareVersions(json(args[0]), json(args[1]), args[2], args[3]); console.log("Existing bindings preserved; PRODAM gate switches verified."); }
   else throw Error("Unknown operation");
 }
-module.exports = { deployment, uploaded, compareVersions };
+module.exports = { deployment, uploaded, latest, compareVersions };
