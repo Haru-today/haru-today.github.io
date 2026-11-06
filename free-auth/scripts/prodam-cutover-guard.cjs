@@ -27,9 +27,13 @@ function bindings(version) {
   }
   return result;
 }
-function latest(versions, expected) {
+function latest(versions, expected, previous) {
   assert.ok(Array.isArray(versions) && versions.length > 0 && uuid(expected), "Expected deployable versions");
   assert.equal(versions.at(-1)?.id, expected, "Newest Worker version changed");
+  if (previous !== undefined) {
+    assert.ok(uuid(previous), "Invalid prior version");
+    assert.equal(versions.at(-2)?.id, previous, "Another version was uploaded during cutover");
+  }
 }
 function compareVersions(before, after, expectedBefore, expectedAfter) {
   assert.ok(uuid(expectedBefore) && uuid(expectedAfter), "Missing expected version identifiers");
@@ -54,7 +58,7 @@ if (require.main === module) {
   const json = file => JSON.parse(fs.readFileSync(file, "utf8"));
   if (mode === "deployment") console.log(JSON.stringify(deployment(json(args[0]))));
   else if (mode === "upload") console.log(uploaded(fs.readFileSync(args[0], "utf8")));
-  else if (mode === "latest") { latest(json(args[0]), args[1]); console.log("Latest version matches expected version."); }
+  else if (mode === "latest") { latest(json(args[0]), args[1], args[2]); console.log("Latest version matches expected version."); }
   else if (mode === "bindings") { compareVersions(json(args[0]), json(args[1]), args[2], args[3]); console.log("Existing bindings preserved; PRODAM gate switches verified."); }
   else throw Error("Unknown operation");
 }

@@ -27,6 +27,8 @@ test("bindings retain all existing settings and secrets; only two exact switches
 });
 test("secret inheritance is allowed only when newest version matches expected", () => {
   latest([{id}],id);
+  latest([{id},{id:candidate}],candidate,id);
+  assert.throws(() => latest([{id},{id},{id:candidate}],candidate,"c1234567-1234-1234-1234-123456789abc"));
   assert.throws(() => latest([{id},{id:candidate}],id));
   assert.throws(() => latest([],id));
 });
