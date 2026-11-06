@@ -1,246 +1,126 @@
 <!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="referrer" content="no-referrer">
-  <meta name="robots" content="index,follow">
-  <link rel="canonical" href="https://labdam.kr/">
-  <meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209">
-  <meta name="naver-site-verification" content="0f44c35ebff0b9388c37a766a57761ba04ae667e">
-  <meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ">
-  <meta name="google-site-verification" content="F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8">
-  <meta name="color-scheme" content="light dark">
-  <meta name="theme-color" content="#FFFFFF" media="(prefers-color-scheme: light)">
-  <meta name="theme-color" content="#0E1B24" media="(prefers-color-scheme: dark)">
-  <title>랩담 LABDAM | 리포담 건강검진 정리 · 프로담 프라이머 설계</title>
-  <meta name="description" content="리포담에서 건강검진 결과를 정리하고 프로담에서 연구용 프라이머를 설계하고 검토하세요.">
-  <meta property="og:type" content="website">
-  <meta property="og:site_name" content="랩담">
-  <meta property="og:title" content="랩담 | 리포담과 프로담">
-  <meta property="og:description" content="건강검진 결과 정리부터 연구용 프라이머 설계까지, 랩담의 두 서비스를 만나보세요.">
-  <meta property="og:url" content="https://labdam.kr/">
-  <script type="application/ld+json">
-  {
-    "@context": "https://schema.org",
-    "@type": "WebSite",
-    "name": "랩담",
-    "alternateName": "LABDAM",
-    "url": "https://labdam.kr/"
-  }
-  </script>
-  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
-  <style>
-    @font-face{font-family:"Wanted Sans";src:url("/assets/fonts/WantedSans-ExtraBold-home.woff2?v=20261029") format("woff2");font-weight:800;font-display:swap}
-    @font-face{font-family:"Wanted Sans";src:url("/assets/fonts/WantedSans-Bold-home.woff2?v=20261029") format("woff2");font-weight:700;font-display:swap}
-    @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-Regular-home.woff2?v=20261029") format("woff2");font-weight:400;font-display:swap}
-    @font-face{font-family:"Pretendard";src:url("/assets/fonts/Pretendard-SemiBold-home.woff2?v=20261029") format("woff2");font-weight:600;font-display:swap}
-    :root{--ground:#FFFFFF;--tint:#F1F4F7;--line:#D6E2E3;--ink:#17324D;--ink-muted:#4E6275;--teal:#405265;--on-teal:#FFFFFF;--coral:#405265;
-      --band:#17324D;--on-band:#FFFFFF;--on-band-muted:#C9D6DE;--frame:#17324D;
-      --display:"Wanted Sans","Pretendard","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
-      --body:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif}
-    @media(prefers-color-scheme:dark){:root{--ground:#0E1B24;--tint:#16303A;--line:#29404B;--ink:#E8F0F2;--ink-muted:#A3B4BF;--teal:#B4C6D5;--on-teal:#0E1B24;--coral:#B4C6D5;
-      --band:#16303A;--on-band:#E8F0F2;--on-band-muted:#A3B4BF;--frame:#3A5563}}
-    *{box-sizing:border-box}
-    body{margin:0;background:var(--ground);color:var(--ink);font:400 16px/1.65 var(--body);word-break:keep-all;overflow-wrap:break-word}
-    h1,h2,h3,p,ol,ul,dl,dd,figure{margin:0}
-    a{color:var(--teal)}
-    a:focus-visible,summary:focus-visible{outline:3px solid var(--teal);outline-offset:3px;border-radius:4px}
-    .skip{position:absolute;left:-9999px;top:0;background:var(--ground);color:var(--ink);padding:10px}
-    .skip:focus{left:10px;z-index:3}
-    .wrap{max-width:1080px;margin:0 auto;padding:0 20px}
-    .topbar{border-bottom:1px solid var(--line)}
-    .topbar .wrap{display:flex;flex-wrap:wrap;gap:0 16px;align-items:center;justify-content:space-between;min-height:60px}
-    .logo{display:block;height:22px;width:auto}
-    .topnav{display:flex;gap:16px}.topnav a{font-size:15px;font-weight:600;text-decoration:none;padding:10px 4px}
-    section{padding:64px 0}main section+section{border-top:1px solid var(--line)}
-    .eyebrow{font-size:14px;font-weight:600;color:var(--teal);margin-bottom:12px}
-    h1{font:800 32px/1.3 var(--display);letter-spacing:-.02em;text-wrap:balance}
-    h1 em{display:block;font-style:normal;color:var(--coral)}
-    h2{font:700 26px/1.35 var(--display);letter-spacing:-.01em;text-wrap:balance}
-    h3{font:700 18px/1.45 var(--display)}
-    .lead{font-size:17px;color:var(--ink-muted);margin-top:16px}
-    .muted{color:var(--ink-muted)}
-    .button{display:inline-flex;align-items:center;justify-content:center;min-height:52px;padding:0 28px;border-radius:12px;background:var(--teal);color:var(--on-teal);font-weight:600;text-decoration:none}
-    .hero{padding:40px 0 64px}
-    .more{display:inline-block;margin-top:12px;padding:10px 0;font-weight:600;text-underline-offset:4px}
-    .compare{display:grid;gap:12px;margin-top:28px}
-    .compare div{border:1px solid var(--line);border-radius:14px;padding:20px}
-    .compare .mine{border-color:var(--teal);background:var(--tint)}
-    .compare dt{font-size:14px;color:var(--ink-muted)}
-    .compare dd{font:800 28px/1.3 var(--display);margin-top:4px}
-    .compare dd small{font:400 14px var(--body);color:var(--ink-muted)}
-    .note{font-size:13px;color:var(--ink-muted);margin-top:12px}
-    .who{margin-top:20px}
-    .steps{list-style:none;padding:0;display:grid;gap:0;margin-top:28px;counter-reset:step}
-    .steps li{counter-increment:step;border-top:1px solid var(--line);padding:20px 0;display:grid;grid-template-columns:48px 1fr;gap:4px 12px}
-    .steps li::before{content:"0" counter(step);font:800 20px/1.45 var(--display);color:var(--teal);grid-row:span 2}
-    .steps p{color:var(--ink-muted);font-size:15px}
-    .maker{display:grid;gap:20px}
-    .maker blockquote{margin:0;font:700 21px/1.6 var(--display)}
-    .maker figcaption{font-size:14px;color:var(--ink-muted);margin-top:16px}
-    .faq{margin-top:28px;border-top:1px solid var(--line)}
-    details{border-bottom:1px solid var(--line)}
-    summary{cursor:pointer;list-style:none;padding:20px 32px 20px 0;font-weight:600;position:relative}
-    summary::-webkit-details-marker{display:none}
-    summary::after{content:"+";position:absolute;right:4px;top:16px;font:400 24px/1 var(--body);color:var(--ink-muted)}
-    details[open] summary::after{content:"−"}
-    details p{padding:0 0 20px;color:var(--ink-muted)}
-    main section.cta{border-top:0;background:var(--band);color:var(--on-band);text-align:center}
-    .cta p{color:var(--on-band-muted);margin-top:12px}
-    .cta .button{background:var(--on-band);color:var(--band);margin-top:28px}
-    .cta a:focus-visible{outline-color:var(--on-band)}
-    .cta .email{font-size:15px;margin-top:16px;user-select:all}
-    footer{padding:32px 0 48px;font-size:13px;line-height:20px;color:var(--ink-muted)}
-    footer .wrap{display:flex;flex-direction:column;gap:4px}
-    footer nav{display:flex;flex-wrap:wrap;gap:4px 16px;margin-top:12px}
-    footer a{color:var(--ink-muted);display:inline-block;padding:4px 0}
-    @media(min-width:880px){
-      section{padding:96px 0}
-      .hero{padding:72px 0 96px}
-      h1{font-size:48px}
-      h2{font-size:34px}
-      .compare{grid-template-columns:1fr 1fr;max-width:720px}
-      .steps{grid-template-columns:repeat(4,1fr);gap:24px}
-      .steps li{grid-template-columns:1fr;border-top-width:2px}
-      .steps li::before{grid-row:auto}
-      .maker{grid-template-columns:1fr 2fr;gap:48px}
-      .narrow{max-width:720px}
-    }
+<meta charset="utf-8">
+<meta name="referrer" content="no-referrer"><meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'none'; form-action 'none'; base-uri 'none'; object-src 'none'">
+<meta name="naver-site-verification" content="b91d0554dc2db700b9e1128063dc6e5255500209">
+<meta name="naver-site-verification" content="0f44c35ebff0b9388c37a766a57761ba04ae667e">
+<meta name="google-site-verification" content="f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ">
+<meta name="google-site-verification" content="F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebSite","name":"랩담","alternateName":"LABDAM","url":"https://labdam.kr/"}</script>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>랩담 LABDAM</title>
+<meta name="theme-color" content="#ffffff">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="랩담 LABDAM">
+<meta name="description" content="랩담은 검진 결과를 이해하고 진료 질문을 준비하도록 돕는 리포담, 연구용 프라이머 도구 프로담, 연구·교육용 Caffeine Atlas를 소개하고 공식 주소로 연결합니다.">
+<meta property="og:title" content="랩담 LABDAM">
+<meta property="og:description" content="랩담은 검진 결과를 이해하고 진료 질문을 준비하도록 돕는 리포담, 연구용 프라이머 도구 프로담, 연구·교육용 Caffeine Atlas를 소개하고 공식 주소로 연결합니다.">
+<link rel="canonical" href="https://labdam.kr/">
+<meta property="og:url" content="https://labdam.kr/">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="랩담">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary">
+<meta name="robots" content="index,follow">
+<link rel="stylesheet" href="/assets/aiapp-exact/fonts.css">
+<style>:root{--t-bg:#ffffff;--t-surface:#f3f5f8;--t-ink:#1d2733;--t-muted:#5f6b78;--t-line:#e1e6ec;--t-primary:#405265;--t-on-primary:#ffffff;--t-accent:#405265;--t-font-heading:Pretendard, 'Pretendard Variable', -apple-system, 'Noto Sans KR', sans-serif;--t-font-body:Pretendard, 'Pretendard Variable', -apple-system, 'Noto Sans KR', sans-serif;--t-radius:12px}</style>
+<link rel="stylesheet" href="/assets/aiapp-exact/site.css">
+<style>
+[id]{ scroll-margin-top:5rem; }
+html[data-fx] [data-reveal]:not([data-reveal-done]){ transition:opacity .7s cubic-bezier(.2,.7,.2,1) var(--fx-d,0ms), transform .7s cubic-bezier(.2,.7,.2,1) var(--fx-d,0ms) !important; }
+html[data-fx] [data-reveal]:not([data-shown]){ opacity:0 !important; transform:translateY(28px); }
+html[data-fx] [data-reveal="fade"]:not([data-shown]){ transform:none; }
+html[data-fx] [data-reveal="left"]:not([data-shown]){ transform:translateX(-36px); }
+html[data-fx] [data-reveal="right"]:not([data-shown]){ transform:translateX(36px); }
+html[data-fx] [data-reveal="zoom"]:not([data-shown]){ transform:scale(.94); }
+html[data-fx] [data-reveal-group]:not([data-fx-ready]) > *{ opacity:0; }
+/* 옆에서 들어오는 효과는 좁은 화면에서 가로 스크롤을 만들므로 아래에서 올라오게 바꾼다. 그래도 넘치는 것은 잘라낸다. */
+@media (max-width:767px){ html[data-fx] [data-reveal="left"]:not([data-shown]), html[data-fx] [data-reveal="right"]:not([data-shown]){ transform:translateY(28px); } }
+html[data-fx] body{ overflow-x:clip; }
+html[data-fx] [data-slider]{ display:grid; grid-template-columns:100%; isolation:isolate; }
+html[data-fx] [data-slider] > [data-slide]{ grid-area:1/1; min-width:0; opacity:0; visibility:hidden; transition:opacity .9s ease, visibility 0s .9s; }
+html[data-fx] [data-slider] > [data-slide][data-active],
+html[data-fx] [data-slider]:not([data-fx-ready]) > [data-slide]:first-child{ opacity:1; visibility:visible; transition:opacity .9s ease; z-index:1; }
+:where([data-slider-dots]){ display:flex; align-items:center; gap:8px; }
+.fx-dot{ width:8px; height:8px; padding:0; border:0; border-radius:99px; background:currentColor; opacity:.4; cursor:pointer; transition:width .3s, opacity .3s; }
+.fx-dot[data-active]{ width:26px; opacity:1; }
+[data-carousel]{ scrollbar-width:none; -webkit-overflow-scrolling:touch; }
+[data-carousel]::-webkit-scrollbar{ display:none; }
+html[data-fx] [data-marquee][data-fx-ready]{ display:flex; flex-wrap:nowrap; overflow:hidden; }
+.fx-track{ display:flex; flex:none; align-items:inherit; gap:inherit; animation:fx-marquee var(--fx-speed,40s) linear infinite; }
+[data-marquee]:hover .fx-track{ animation-play-state:paused; }
+@keyframes fx-marquee{ to{ transform:translateX(calc(-100% - var(--fx-gap,0px))); } }
+.fx-rotate{ display:inline-block; transition:opacity .25s, transform .25s; }
+.fx-rotate[data-swap]{ opacity:0; transform:translateY(.25em); }
+[data-parallax]{ will-change:transform; }
+/* 잘려 있다가 드러나는 사진·상자 */
+html[data-fx] [data-clip]:not([data-clip-done]){ transition:clip-path 1.1s cubic-bezier(.2,.7,.2,1) var(--fx-d,0ms); }
+html[data-fx] [data-clip]:not([data-shown]){ clip-path:inset(0 0 100% 0); }
+html[data-fx] [data-clip="down"]:not([data-shown]){ clip-path:inset(100% 0 0 0); }
+html[data-fx] [data-clip="left"]:not([data-shown]){ clip-path:inset(0 100% 0 0); }
+html[data-fx] [data-clip="right"]:not([data-shown]){ clip-path:inset(0 0 0 100%); }
+html[data-fx] [data-clip="open"]:not([data-shown]){ clip-path:inset(0 50%); }
+html[data-fx] [data-clip][data-shown]{ clip-path:inset(0); }
+/* 글자가 한 자씩 올라오는 워드마크 */
+.fx-ltr-w{ display:inline-block; overflow:hidden; vertical-align:bottom; padding-bottom:.08em; margin-bottom:-.08em; }
+.fx-ltr{ display:inline-block; transition:transform 1s cubic-bezier(.2,.7,.2,1) calc(var(--fx-i,0) * 45ms); }
+html[data-fx] [data-letters][data-fx-ready]:not([data-shown]) .fx-ltr{ transform:translateY(112%); }
+/* 헤더 안의 읽은 만큼 차는 줄 */
+[data-progress]{ transform-origin:left; transform:scaleX(var(--fx-prog,0)); }
+/* 한 화면씩 넘기는 섹션: 점 내비는 어떤 배경 위에서도 보이게 색을 뒤집는다 */
+.fx-dots{ position:fixed; right:18px; top:50%; transform:translateY(-50%); z-index:50; display:none; flex-direction:column; gap:12px; mix-blend-mode:difference; color:#fff; }
+@media (min-width:768px){ .fx-dots{ display:flex; } }
+.fx-dots-b{ width:22px; height:22px; padding:0; border:0; background:none; cursor:pointer; display:grid; place-items:center; }
+.fx-dots-b::before{ content:""; width:6px; height:6px; border-radius:99px; background:currentColor; opacity:.45; transition:transform .3s, opacity .3s; }
+.fx-dots-b[data-active]::before{ opacity:1; transform:scale(1.5); }
+html[data-snap-scroll]{ scroll-snap-type:y proximity; }
+html[data-snap-scroll] [data-snap]{ scroll-snap-align:start; }
+/* 줄에 마우스를 올리면 따라오는 사진 */
+.fx-preview{ position:fixed; z-index:70; width:220px; aspect-ratio:4/5; border-radius:14px; overflow:hidden; pointer-events:none; opacity:0; transform:scale(.94); transition:opacity .25s, transform .25s; box-shadow:0 24px 60px rgba(0,0,0,.28); background:#ddd; }
+.fx-preview[data-on]{ opacity:1; transform:none; }
+.fx-preview img{ width:100%; height:100%; object-fit:cover; display:block; }
+html[data-fx]:not([data-member]) [data-show="member"]{ display:none !important; }
+html[data-fx][data-member] [data-show="guest"]{ display:none !important; }
+/* 그룹(태그)·관리자 회원에게만: 런타임이 로그인한 회원의 태그를 확인해 맞는 요소에 data-show-ok 를 붙인다. 그 전까지는 숨김. (10-26 원장 메뉴) */
+html[data-fx] [data-show^="tag:"]:not([data-show-ok]){ display:none !important; }
+html[data-fx] [data-show="admin"]:not([data-show-ok]){ display:none !important; }
+/* 모바일 하단 탭바: 화면 아래에 고정되므로 본문이 가리지 않게 여백을 두고, 홈 바 영역(safe area)만큼 띄운다. */
+[data-kind="tabbar"].bottom-0{ padding-bottom:env(safe-area-inset-bottom,0px); }
+@media (max-width:767px){
+  body:has(> [data-kind="tabbar"]){ padding-bottom:calc(4rem + env(safe-area-inset-bottom,0px)); }
+  body:has(> [data-kind="tabbar"].bottom-3){ padding-bottom:calc(5.5rem + env(safe-area-inset-bottom,0px)); }
+  body:has(> [data-kind="tabbar"]) > a[data-badge]{ bottom:calc(4.6rem + env(safe-area-inset-bottom,0px)) !important; }
+}
+@media (prefers-reduced-motion:reduce){
+  html[data-fx] [data-reveal]:not([data-shown]){ opacity:1 !important; transform:none; }
+  html[data-fx] [data-reveal-group]:not([data-fx-ready]) > *{ opacity:1; }
+  html[data-fx] [data-clip]:not([data-shown]){ clip-path:none; }
+  html[data-fx] [data-letters]:not([data-shown]) .fx-ltr{ transform:none; }
+}
+</style>
 
-    @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto}}
+<link rel="stylesheet" href="/assets/aiapp-exact/v1.css">
 
-  </style>
-  <link rel="stylesheet" href="/assets/aiapp-home.css?v=20261106">
+<style>.skip-link{position:absolute;z-index:100;left:8px;top:8px;transform:translateY(-150%);padding:12px;background:#fff;color:#111}.skip-link:focus{transform:none}:focus-visible{outline:3px solid #405265;outline-offset:3px}html:not([data-fx]) [data-step-view]:not(:first-child){display:none}@media(max-width:1023px){html:not([data-fx]) [data-toggle-root]>div:nth-child(2){height:auto;min-height:64px;flex-wrap:wrap;gap:0}html:not([data-fx]) [data-toggle-root] nav{display:flex;position:static;box-shadow:none;order:3;flex-basis:100%;width:100%}html:not([data-fx]) [data-toggle]{display:none}}[data-steps] [data-step]{opacity:1!important;transition:none!important}[data-step] p{color:#344454!important}html[data-fx] [data-step-view]{transition:none!important;opacity:1!important}html[data-fx] [data-step-view]:not([data-active]){visibility:hidden!important}@media(prefers-reduced-motion:reduce){[data-step-view]{transition:none!important}}</style>
 </head>
-<body>
-<a class="skip" href="#main">본문으로 바로가기</a>
-<div class="topstrip" role="note"><div class="wrap"><span>리포담은 의료진의 진단·처방을 대신하지 않는 참고용 정보입니다</span><span>랩담 공식 홈페이지 labdam.kr</span></div></div>
-<header class="topbar">
-  <div class="wrap">
-    <img class="logo" src="/assets/labdam-logo.svg" alt="LABDAM" width="95" height="22">
-    <nav class="topnav" aria-label="바로가기"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담</a><a href="https://prodam.labdam.kr/">프로담</a><a href="https://labdam.site.aiapp.help/guide">이용 방법·FAQ</a><a href="https://labdam.site.aiapp.help/about">랩담 소개</a><a href="/privacy.html">개인정보 안내</a><a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스</a><a href="mailto:jleegenomics@gmail.com">문의</a></nav>
-  </div>
-</header>
+<body><a class="skip-link" href="#main">본문으로 바로가기</a>
+<header data-kind="header" data-header data-toggle-root data-sid="s_ju51hb" class="group sticky top-0 z-40 bg-bg transition-shadow duration-300 data-[scrolled]:shadow-[0_1px_0_0_var(--t-line),0_8px_24px_-16px_rgba(15,40,70,0.25)]"><div class="bg-primary text-on-primary"><div class="mx-auto flex w-full max-w-[1240px] items-center justify-between gap-4 px-4 py-2 text-[12px] sm:px-6 sm:text-[13px]"><p class="truncate">리포담은 의료진의 진단·처방을 대신하지 않는 참고용 정보입니다</p><a href="https://labdam.kr/" target="_blank" rel="noopener noreferrer" class="hidden shrink-0 text-on-primary/85 hover:text-on-primary md:inline">랩담 공식 홈페이지 labdam.kr</a></div></div><div class="mx-auto flex h-16 w-full max-w-[1240px] items-center justify-between gap-6 px-4 sm:px-6 md:h-[72px]"><a href="/" data-logo class="flex shrink-0 items-center gap-2"><svg xmlns="http://www.w3.org/2000/svg" viewbox="3 -1.6 486.4 104.8" role="img" aria-label="랩담 LABDAM" fill="currentColor" class="block h-[24px] w-auto text-ink md:h-[28px]"><title>랩담 LABDAM</title><path d="M35.9 14.4L35.9 93.2L65.8 93.2Q69.2 88.5 71.5 83.7Q73.8 79 76.7 71.9L76.7 71.9L82.9 71.9L77.9 100L5.0 100L5.0 95.6L15.2 93.3L15.2 14.3L5.0 12.0L5.0 7.6L47.2 7.6L47.2 12.0L35.9 14.4ZM101.3 101.2Q93.8 101.2 89.6 97.4Q85.4 93.6 85.4 87.0L85.4 87.0Q85.4 78.0 94.0 72.6Q102.5 67.2 120.6 64.7L120.6 64.7L120.6 56.0Q120.6 50.3 119.9 47.4Q119.3 44.6 117.8 43.4Q116.3 42.2 113.3 42.2L113.3 42.2Q108.7 42.2 106.1 44.4Q103.6 46.6 103.6 50.3L103.6 50.3Q103.6 51.2 103.8 53.1L103.8 53.1Q104.0 54.8 104.0 55.6L104.0 55.6Q104.0 59.0 101.6 61.3Q99.2 63.6 95.8 63.6L95.8 63.6Q92.3 63.6 90.1 61.4Q87.8 59.1 87.8 55.5L87.8 55.5Q87.8 51.6 90.4 47.9Q92.9 44.2 97.3 41.2L97.3 41.2Q106.6 35.2 120 35.2L120 35.2Q132.5 35.2 136.4 41.2L136.4 41.2Q137.9 43.5 138.5 47.1Q139.2 50.8 139.2 57.3L139.2 57.3L139.2 82Q139.2 87.3 140.3 89.7Q141.4 92.1 143.8 92.1L143.8 92.1Q146.5 92.1 149.0 89.2L149.0 89.2L151.8 93.2Q148.0 97.2 143.7 99.2Q139.4 101.2 134.3 101.2L134.3 101.2Q128.5 101.2 125.5 98.9Q122.4 96.5 121.4 91.7L121.4 91.7L121.0 91.7Q112.2 101.2 101.3 101.2L101.3 101.2ZM112.3 89.9Q117.4 89.9 120.6 86.4L120.6 86.4L120.6 70.4Q114.7 71.6 111.5 73Q108.2 74.4 106.9 76.5Q105.5 78.6 105.5 82.1L105.5 82.1Q105.5 86.1 107.2 88Q108.8 89.9 112.3 89.9L112.3 89.9ZM190.1 101.2Q180.0 101.2 172.1 95.7L172.1 95.7L171.4 95.7L161.0 100L157.6 100L157.6 12.3L147.5 9.0L147.5 6.3L173.5 0.4L176.2 0.4L176.2 43.7Q180.4 39.6 185.4 37.4Q190.4 35.2 196.1 35.2L196.1 35.2Q203.9 35.2 209.9 39.0Q215.9 42.9 219.2 49.8Q222.6 56.7 222.6 65.6L222.6 65.6Q222.6 75.5 218.3 83.7Q214.1 91.8 206.6 96.5Q199.1 101.2 190.1 101.2L190.1 101.2ZM187.7 94.7Q194.3 94.7 198.3 87.6Q202.3 80.6 202.3 68.9L202.3 68.9Q202.3 57.4 198.5 51.0Q194.8 44.6 187.8 44.6L187.8 44.6Q180.8 44.6 176.2 51.5L176.2 51.5L176.2 79.6Q176.2 86.4 179.3 90.6Q182.5 94.7 187.7 94.7L187.7 94.7ZM255.8 101.2Q248.3 101.2 242.0 97.1Q235.7 92.9 232.1 85.6Q228.5 78.3 228.5 69.3L228.5 69.3Q228.5 59.3 232.6 51.6Q236.8 43.8 244.2 39.5Q251.6 35.2 261.2 35.2L261.2 35.2Q268.4 35.2 275.2 38.2L275.2 38.2L275.2 12.4L265.0 9.0L265.0 6.3L291.1 0.4L293.8 0.4L293.8 88.2L303.2 91.2L303.2 93.8L278.3 101.2L276.1 101.2L276.1 93.9L275.5 93.6Q271.8 97.2 266.7 99.2Q261.6 101.2 255.8 101.2L255.8 101.2ZM263.5 92.6Q270.5 92.6 275.2 86.3L275.2 86.3L275.2 56.6Q275.2 49.8 272.0 45.8Q268.8 41.7 263.6 41.7L263.6 41.7Q257.0 41.7 253.0 48.7Q249 55.7 249 67.2L249 67.2Q249 79 252.8 85.8Q256.7 92.6 263.5 92.6L263.5 92.6ZM322.3 101.2Q314.9 101.2 310.7 97.4Q306.5 93.6 306.5 87.0L306.5 87.0Q306.5 78.0 315 72.6Q323.5 67.2 341.6 64.7L341.6 64.7L341.6 56.0Q341.6 50.3 341.0 47.4Q340.3 44.6 338.8 43.4Q337.3 42.2 334.3 42.2L334.3 42.2Q329.8 42.2 327.2 44.4Q324.6 46.6 324.6 50.3L324.6 50.3Q324.6 51.2 324.8 53.1L324.8 53.1Q325.1 54.8 325.1 55.6L325.1 55.6Q325.1 59.0 322.7 61.3Q320.3 63.6 316.8 63.6L316.8 63.6Q313.3 63.6 311.1 61.4Q308.9 59.1 308.9 55.5L308.9 55.5Q308.9 51.6 311.4 47.9Q313.9 44.2 318.4 41.2L318.4 41.2Q327.6 35.2 341.0 35.2L341.0 35.2Q353.5 35.2 357.5 41.2L357.5 41.2Q358.9 43.5 359.6 47.1Q360.2 50.8 360.2 57.3L360.2 57.3L360.2 82Q360.2 87.3 361.3 89.7Q362.4 92.1 364.8 92.1L364.8 92.1Q367.6 92.1 370.1 89.2L370.1 89.2L372.8 93.2Q369 97.2 364.7 99.2Q360.5 101.2 355.3 101.2L355.3 101.2Q349.6 101.2 346.5 98.9Q343.4 96.5 342.5 91.7L342.5 91.7L342 91.7Q333.2 101.2 322.3 101.2L322.3 101.2ZM333.4 89.9Q338.4 89.9 341.6 86.4L341.6 86.4L341.6 70.4Q335.8 71.6 332.5 73Q329.3 74.4 327.9 76.5Q326.5 78.6 326.5 82.1L326.5 82.1Q326.5 86.1 328.2 88Q329.9 89.9 333.4 89.9L333.4 89.9ZM479.0 93.4L487.4 95.8L487.4 100L452.0 100L452.0 95.8L460.4 93.4L460.4 66.5Q460.4 60.0 460.2 57.0Q460.0 53.9 459.2 52.1L459.2 52.1Q456.8 45.9 448.6 45.9L448.6 45.9Q443.0 45.9 439.1 50.1L439.1 50.1Q439.4 53.8 439.4 61.8L439.4 61.8L439.4 93.4L447.8 95.8L447.8 100L412.4 100L412.4 95.8L420.8 93.4L420.8 66.5Q420.8 60.0 420.6 57.0Q420.4 53.9 419.6 52.1L419.6 52.1Q417.2 45.8 409.0 45.8L409.0 45.8Q403.7 45.8 399.8 49.5L399.8 49.5L399.8 93.4L408.2 95.8L408.2 100L372.2 100L372.2 95.8L381.2 93.4L381.2 47.2L372.5 43.8L372.5 41.1L394.6 35.2L399.4 35.2L399.4 43Q403.7 39.4 409.4 37.3Q415.2 35.2 420.6 35.2L420.6 35.2Q432.7 35.2 437.4 44.4L437.4 44.4Q441.7 40.2 448.0 37.7Q454.2 35.2 460.2 35.2L460.2 35.2Q472.6 35.2 477.2 44.8L477.2 44.8Q478.3 47.1 478.7 50.4Q479.0 53.7 479.0 61.8L479.0 61.8L479.0 93.4Z"></path></svg></a><nav id="main-navigation" aria-label="주 메뉴" class="absolute inset-x-0 top-full hidden flex-col border-t border-line bg-bg px-4 pb-5 text-[15px] font-medium text-ink shadow-lg group-data-[open]:flex lg:static lg:flex lg:flex-1 lg:flex-row lg:items-center lg:justify-center lg:gap-8 lg:border-0 lg:p-0 lg:shadow-none"><a href="/" class="border-b border-line py-3.5 lg:hidden">홈</a><a href="https://labdam.site.aiapp.help/repodam" class="border-b border-line py-3.5 lg:border-0 lg:py-0 lg:hover:text-primary">리포담</a><a href="https://labdam.site.aiapp.help/prodam" class="border-b border-line py-3.5 lg:border-0 lg:py-0 lg:hover:text-primary">프로담</a><a href="https://labdam.site.aiapp.help/guide" class="border-b border-line py-3.5 lg:border-0 lg:py-0 lg:hover:text-primary">이용 방법·FAQ</a><a href="https://labdam.site.aiapp.help/about" class="border-b border-line py-3.5 lg:border-0 lg:py-0 lg:hover:text-primary">소개·문의</a><a href="https://labdam.site.aiapp.help/policy" class="py-3.5 lg:py-0 lg:hover:text-primary">개인정보·이용 안내</a></nav><div class="flex shrink-0 items-center gap-2"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/" target="_blank" rel="noopener noreferrer" class="rounded-theme bg-primary px-4 py-2.5 text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90">리포담 시작하기</a><a href="https://prodam.labdam.kr/" target="_blank" rel="noopener noreferrer" class="hidden">프로담 시작하기</a><button type="button" data-toggle aria-controls="main-navigation" aria-expanded="false" aria-label="메뉴 열기" class="-mr-2 flex size-10 flex-col items-center justify-center gap-[5px] lg:hidden"><span class="h-[1.5px] w-5 bg-ink transition group-data-[open]:translate-y-[6.5px] group-data-[open]:rotate-45"></span><span class="h-[1.5px] w-5 bg-ink transition group-data-[open]:opacity-0"></span><span class="h-[1.5px] w-5 bg-ink transition group-data-[open]:-translate-y-[6.5px] group-data-[open]:-rotate-45"></span></button></div></div></header>
 
-<main id="main">
-  <section class="hero" aria-labelledby="hero-title">
-    <div class="wrap">
-      <div class="hero-intro">
-        <p class="eyebrow">LABDAM · FOR EVERY QUESTION</p>
-        <h1 id="hero-title">검진 결과를 이해하는 시작 <em>담이를 준비하고 있어요.</em></h1>
-        <p class="lead">리포담에서 검진 결과를 정리해 보세요. 결과지 확인을 돕는 담이와의 대화는 준비 중입니다.</p>
-        <div class="quick-links"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 바로가기 <span aria-hidden="true">↗</span></a><a href="https://prodam.labdam.kr/">프로담 바로가기 <span aria-hidden="true">↗</span></a><a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스 바로가기 <span aria-hidden="true">↗</span></a></div>
-        <p class="hero-footnote">리포담은 의료 진단을 대신하지 않습니다. 프로담은 실험 결과를 보장하지 않습니다.</p>
-      </div>
-    </div>
-  </section>
+<main id="main"><section data-kind="hero" data-sid="s_s7ptfs" class="bg-bg"><div class="mx-auto w-full max-w-[1240px] px-5 pb-14 pt-14 sm:px-6 md:pb-24 md:pt-24"><p class="text-[13px] font-semibold tracking-[0.12em] text-primary">LABDAM</p><h1 class="mt-4 max-w-3xl text-[40px] font-extrabold leading-tight tracking-[-0.03em] text-ink sm:text-[56px] lg:text-[68px]">검진 결과를 이해하는 시작<br>담이를 준비하고 있어요</h1><p class="mt-5 max-w-xl text-[16px] leading-relaxed text-muted sm:text-[18px]">리포담에서 검진 결과를 정리해 보세요. 결과지 확인을 돕는 담이와의 대화는 준비 중입니다.</p><div class="mt-8 flex flex-wrap gap-3"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/" target="_blank" rel="noopener noreferrer" class="rounded-theme bg-primary px-6 py-3.5 text-[15px] font-semibold text-on-primary transition-opacity hover:opacity-90">리포담 시작하기</a><a href="https://prodam.labdam.kr/" target="_blank" rel="noopener noreferrer" class="rounded-theme border border-primary px-6 py-3.5 text-[15px] font-semibold text-primary transition-colors hover:bg-surface">프로담 시작하기</a></div><p class="mt-10 max-w-2xl border-t border-line pt-4 text-[13px] leading-relaxed text-muted">리포담은 의료 진단을 대신하지 않습니다. 프로담은 특이성과 실제 PCR 성능을 보장하지 않습니다.</p></div></section>
 
-  <section class="service-section" aria-labelledby="service-title">
-    <div class="wrap">
-      <h2 id="service-title">랩담의 서비스</h2>
-      <p class="lead">필요한 도구에 따라 서비스를 고르세요. 각 서비스 페이지에서 이용합니다.</p>
-      <div class="service-grid">
-        <article class="service-tile report-tile">
-          <div class="tile-top"><span class="tile-number">01 / HEALTH</span><span class="tile-status">승인 후 이용</span></div>
-          <div class="tile-art health-art" aria-hidden="true"><span class="art-line"></span><span class="art-value">42 <small>U/L</small></span><span class="art-caption">내 결과지의 기준을 함께</span></div>
-          <div class="tile-copy"><p class="tile-category">건강검진 결과 정리</p><h3>리포담 <span>REPODAM</span></h3><p>검진 수치를 결과지의 참고범위와 함께 살펴보고, 진료 때 물어볼 질문을 정리해요.</p></div>
-          <div class="tile-action"><a class="button" href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/">리포담 시작하기 <span aria-hidden="true">↗</span></a><p>Google 계정으로 신청하고 관리자 승인 후 이용</p><a class="more" href="https://labdam.site.aiapp.help/repodam">리포담 범위와 한계 읽기</a></div>
-        </article>
-        <article class="service-tile research-tile">
-          <div class="tile-top"><span class="tile-number">02 / RESEARCH</span><span class="tile-status">연구자용 도구</span></div>
-          <div class="tile-art research-art" aria-hidden="true"><span>5′</span><span class="sequence-art">A T G C A T G C<br>│ │ │ │ │ │ │ │<br>T A C G T A C G</span><span>3′</span></div>
-          <div class="tile-copy"><p class="tile-category">연구용 프라이머 도구</p><h3>프로담 <span>PRODAM</span></h3><p>Primer3로 프라이머 후보를 설계하고 입력한 서열 범위에서 결합과 열역학을 검토해요.</p></div>
-          <div class="tile-action"><a class="button" href="https://prodam.labdam.kr/">프로담 시작하기 <span aria-hidden="true">↗</span></a><p>연구용 예측 · 특이성과 실험 성능 별도 확인</p><a class="more" href="https://labdam.site.aiapp.help/prodam">프로담 범위와 한계 읽기</a></div>
-        </article>
-        <article class="service-tile atlas-tile">
-          <div class="tile-top"><span class="tile-number">03 / EXPLORE</span><span class="tile-status">로그인 없이 이용</span></div>
-          <div class="tile-art atlas-art" aria-hidden="true"><span class="atlas-orbit">DNA</span><span class="atlas-visual">카페인과<br>유전자를 살펴보기</span></div>
-          <div class="tile-copy"><p class="tile-category">연구·교육용 공개 자료</p><h3>카페인 아틀라스 <span>CAFFEINE ATLAS</span></h3><p>카페인과 관련된 유전자 정보를 살펴보는 연구·교육용 페이지예요.</p></div>
-          <div class="tile-action"><a class="button" href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스 보기 <span aria-hidden="true">↗</span></a><p>로그인 없이 이용 · 연구·교육용 공개 자료</p></div>
-        </article>
-      </div>
-    </div>
-  </section>
+<section data-kind="features" id="services" data-sid="s_n625n0" class="bg-bg"><div class="mx-auto w-full max-w-[1240px] px-4 py-14 sm:px-6 md:py-24"><h2 class="text-3xl font-bold tracking-tight text-ink md:text-5xl">랩담의 서비스</h2><p class="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">필요한 도구에 따라 서비스를 고르세요. 각 서비스의 로그인·이용은 공식 주소에서 이루어집니다.</p><div class="mt-10 divide-y divide-line border-y border-line"><article class="grid items-center gap-6 py-10 md:grid-cols-12 md:gap-10"><div class="md:col-span-5"><img src="/assets/aiapp-exact/repodam.jpg" alt="검진 결과지 옆에서 노트에 질문을 적는 모습" loading="lazy" class="aspect-[10/7] w-full rounded-theme object-cover" ></div><div class="md:col-span-7"><p class="text-[13px] font-semibold tracking-[0.12em] text-muted">REPODAM · Google 계정 신청, 관리자 승인 후 이용</p><h3 class="mt-2 text-[28px] font-bold text-ink md:text-[36px]">리포담</h3><p class="mt-3 max-w-xl text-[16px] leading-relaxed text-muted">검진 수치를 결과지에 적힌 참고범위와 함께 살펴보고, 진료 때 물어볼 질문을 정리합니다.</p><div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/" target="_blank" rel="noopener noreferrer" class="rounded-theme bg-primary px-5 py-3 text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90">리포담 시작하기</a><a href="https://labdam.site.aiapp.help/repodam" class="text-[14px] font-medium text-primary underline underline-offset-4">범위와 한계 읽기</a></div></div></article><article class="grid items-center gap-6 py-10 md:grid-cols-12 md:gap-10"><div class="md:order-2 md:col-span-5"><img src="/assets/aiapp-exact/prodam.jpg" alt="연구용 서열 분석 도구를 연상시키는 코드 화면" loading="lazy" class="aspect-[10/7] w-full rounded-theme object-cover" ></div><div class="md:order-1 md:col-span-7"><p class="text-[13px] font-semibold tracking-[0.12em] text-muted">PRODAM · 연구자용 도구</p><h3 class="mt-2 text-[28px] font-bold text-ink md:text-[36px]">프로담</h3><p class="mt-3 max-w-xl text-[16px] leading-relaxed text-muted">Primer3 기반 프라이머 후보 설계와 기존 프라이머의 결합·구조 검토를 지원하는 연구용 도구입니다. 연구용 예측이며 특이성과 실제 PCR 성능은 별도로 확인해야 합니다.</p><div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3"><a href="https://prodam.labdam.kr/" target="_blank" rel="noopener noreferrer" class="rounded-theme bg-primary px-5 py-3 text-[14px] font-semibold text-on-primary transition-opacity hover:opacity-90">프로담 시작하기</a><a href="https://labdam.site.aiapp.help/prodam" class="text-[14px] font-medium text-primary underline underline-offset-4">범위와 한계 읽기</a></div></div></article><article class="grid items-center gap-6 py-10 md:grid-cols-12 md:gap-10"><div class="md:col-span-5"><div class="rounded-theme border border-line bg-surface p-6"><img src="/assets/aiapp-exact/caffeine-atlas.png" alt="Caffeine Atlas 워드마크 로고" loading="lazy" class="w-full object-contain" ></div></div><div class="md:col-span-7"><p class="text-[13px] font-semibold tracking-[0.12em] text-muted">CAFFEINE ATLAS · 연구·교육용 공개 프로젝트</p><h3 class="mt-2 text-[28px] font-bold text-ink md:text-[36px]">Caffeine Atlas</h3><p class="mt-3 max-w-xl text-[16px] leading-relaxed text-muted">카페인 관련 4개 유전자형(CYP1A2·AHR)으로 모형 기반 민감도 지수와 교육용 참고 리포트를 살펴보는 공개 체험입니다. 개인의 카페인 반응을 진단하거나 처방을 대신하지 않습니다. 기존 공개 주소에서 그대로 운영되며, 이 사이트로 옮겨 오지 않았습니다.</p><div class="mt-6 flex flex-wrap items-center gap-x-5 gap-y-3"><a href="https://haru-today.github.io/caffeine-atlas/" target="_blank" rel="noopener noreferrer" class="rounded-theme border border-primary px-5 py-3 text-[14px] font-semibold text-primary transition-colors hover:bg-surface">Caffeine Atlas 열기</a></div></div></article></div></div></section>
 
-  <section aria-labelledby="why-title">
-    <div class="wrap">
-      <h2 id="why-title">같은 42도, 어떤 기준으로 보느냐에 따라 달라요</h2>
-      <dl class="compare">
-        <div><dt>비교용 참고범위 — 설명용 예시</dt><dd>7–56 <small>U/L</small></dd></div>
-        <div class="mine"><dt>내 결과지에 적힌 참고범위</dt><dd>0–40 <small>U/L</small></dd></div>
-      </dl>
-      <p class="note">예시입니다. 실제 참고범위는 검진기관마다 다를 수 있어요.</p>
-      <p class="who narrow">리포담은 결과지에 적힌 참고범위로 설명해요. 첫 검진을 받은 20~30대부터 매년 검진을 받는 40대 이상, 부모님 결과지를 대신 봐 드리는 자녀까지 쓸 수 있게 만들고 있어요.</p>
-    </div>
-  </section>
+<section data-kind="custom" id="range" data-sid="s_1u4b4c" class="bg-surface"><div class="mx-auto w-full max-w-[1240px] px-4 py-14 sm:px-6 md:py-20"><h2 class="max-w-3xl text-3xl font-bold leading-tight tracking-tight text-ink md:text-5xl">같은 42도, 어떤 기준으로 보느냐에 따라 달라요</h2><p class="mt-4 max-w-xl text-[15px] leading-relaxed text-muted">설명용 예시입니다. 같은 결과값에 기준 두 가지를 놓아 비교했어요.</p><div class="mt-10 grid gap-5 md:grid-cols-2"><div class="rounded-theme border border-line bg-bg p-6 sm:p-8"><p class="text-[13px] font-semibold text-muted">비교용 참고범위 — 설명용 예시</p><dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-[14px]"><div><dt class="text-muted">검사명</dt><dd class="mt-1 font-semibold text-ink">ALT(간 수치)</dd></div><div><dt class="text-muted">결과값</dt><dd class="mt-1 font-semibold tabular-nums text-ink">42</dd></div><div><dt class="text-muted">단위</dt><dd class="mt-1 font-semibold text-ink">U/L</dd></div><div><dt class="text-muted">참고범위</dt><dd class="mt-1 font-semibold tabular-nums text-ink">7–56</dd></div></dl><div role="img" aria-label="0에서 60 눈금에서 7에서 56 구간 안에 42가 있음" class="relative mt-10 h-3 bg-line"><div class="absolute inset-y-0 left-[11.67%] w-[81.67%] bg-primary/40"></div><div class="absolute -top-2 left-[70%] h-7 w-0.5 bg-primary"></div><span class="absolute -top-8 left-[70%] -translate-x-1/2 text-[12px] font-semibold tabular-nums text-ink">42</span></div><p class="mt-4 text-[15px] font-semibold text-ink">이 기준에서는 범위 안으로 보여요</p></div><div class="rounded-theme border border-primary bg-bg p-6 sm:p-8"><p class="text-[13px] font-semibold text-primary">내 결과지에 적힌 참고범위 — 설명용 예시</p><dl class="mt-5 grid grid-cols-2 gap-x-4 gap-y-4 text-[14px]"><div><dt class="text-muted">검사명</dt><dd class="mt-1 font-semibold text-ink">ALT(간 수치)</dd></div><div><dt class="text-muted">결과값</dt><dd class="mt-1 font-semibold tabular-nums text-ink">42</dd></div><div><dt class="text-muted">단위</dt><dd class="mt-1 font-semibold text-ink">U/L</dd></div><div><dt class="text-muted">참고범위</dt><dd class="mt-1 font-semibold tabular-nums text-ink">0–40</dd></div></dl><div role="img" aria-label="0에서 60 눈금에서 0에서 40 구간 밖에 42가 있음" class="relative mt-10 h-3 bg-line"><div class="absolute inset-y-0 left-0 w-[66.67%] bg-primary/40"></div><div class="absolute -top-2 left-[70%] h-7 w-0.5 bg-primary"></div><span class="absolute -top-8 left-[70%] -translate-x-1/2 text-[12px] font-semibold tabular-nums text-ink">42</span></div><p class="mt-4 text-[15px] font-semibold text-ink">이 기준에서는 범위를 조금 넘어요</p></div></div><div class="mt-8 flex flex-wrap items-end justify-between gap-4"><p class="max-w-xl text-[14px] leading-relaxed text-muted">참고범위는 검진기관마다 다를 수 있어요. 리포담은 내 결과지에 적힌 참고범위로 설명합니다.</p><a href="https://labdam.site.aiapp.help/repodam" class="text-[14px] font-semibold text-primary underline underline-offset-4">리포담 범위와 한계 보기</a></div></div></section>
 
-  <section aria-labelledby="how-title">
-    <div class="wrap">
-      <h2 id="how-title">결과지 한 장으로 네 단계면 됩니다</h2>
-      <ol class="steps">
-        <li><h3>결과지 올리기·입력</h3><p>결과지 사진에서 수치를 찾아보거나 직접 입력해요.</p></li>
-        <li><h3>확인하기</h3><p>읽은 수치를 원본과 대조하고, 결과지의 참고범위를 옮겨 적어요.</p></li>
-        <li><h3>설명 보기</h3><p>옮겨 적은 결과지 기준으로 항목마다 풀어 드려요.</p></li>
-        <li><h3>물어볼 질문</h3><p>병원에서 의사에게 물어볼 질문을 정리해요.</p></li>
-      </ol>
-    </div>
-  </section>
+<section data-kind="steps" id="steps" data-sid="s_3vjeuh" class="bg-bg"><div class="mx-auto w-full max-w-[1240px] px-4 py-14 sm:px-6 md:py-24"><h2 class="text-3xl font-bold tracking-tight text-ink md:text-5xl">결과지 한 장으로 네 단계</h2><p class="mt-3 max-w-xl text-[15px] leading-relaxed text-muted">처음 한 번은 리포담에서 Google 가입 신청과 관리자 승인이 필요해요. 모든 처리는 기존 리포담(repodam.labdam.kr)에서 이루어지며, 아래 화면은 흐름을 보여 주는 예시예요.</p><div data-steps class="mt-12 grid gap-10 md:grid-cols-12 md:gap-16"><div class="space-y-8 md:col-span-6"><div data-step class="border-l-2 border-line py-2 pl-6 opacity-70 transition data-[active]:border-primary data-[active]:opacity-100"><p class="text-[13px] font-semibold text-primary">1</p><h3 class="mt-1 text-[22px] font-bold text-ink">결과지 올리기·입력</h3><p class="mt-2 text-[15px] leading-relaxed text-muted">결과지 사진을 올리거나 수치를 직접 입력해요.</p></div><div data-step class="border-l-2 border-line py-2 pl-6 opacity-70 transition data-[active]:border-primary data-[active]:opacity-100"><p class="text-[13px] font-semibold text-primary">2</p><h3 class="mt-1 text-[22px] font-bold text-ink">확인하기</h3><p class="mt-2 text-[15px] leading-relaxed text-muted">읽은 수치를 원본과 대조하고, 결과지의 참고범위를 옮겨 적어요.</p></div><div data-step class="border-l-2 border-line py-2 pl-6 opacity-70 transition data-[active]:border-primary data-[active]:opacity-100"><p class="text-[13px] font-semibold text-primary">3</p><h3 class="mt-1 text-[22px] font-bold text-ink">설명 보기</h3><p class="mt-2 text-[15px] leading-relaxed text-muted">옮겨 적은 기준으로 항목마다 풀어 드려요.</p></div><div data-step class="border-l-2 border-line py-2 pl-6 opacity-70 transition data-[active]:border-primary data-[active]:opacity-100"><p class="text-[13px] font-semibold text-primary">4</p><h3 class="mt-1 text-[22px] font-bold text-ink">물어볼 질문</h3><p class="mt-2 text-[15px] leading-relaxed text-muted">병원에서 의사에게 물어볼 질문을 정리해요.</p></div></div><div class="hidden md:col-span-6 md:block"><div class="sticky top-32 h-[360px] overflow-hidden border border-line bg-surface"><div data-step-view class="absolute inset-0 grid place-items-center p-8 transition-opacity duration-500 fx:opacity-0 fx:data-[active]:opacity-100"><div class="w-full max-w-xs text-center"><div class="mx-auto grid h-40 w-32 place-items-center border-2 border-dashed border-primary/50 bg-bg text-[13px] text-muted">결과지 사진 또는 직접 입력</div><p class="mt-5 text-[15px] font-semibold text-ink">사진을 올리거나 수치를 직접 입력해요</p><p class="mt-1 text-[13px] text-muted">읽은 값은 틀릴 수 있어요</p></div></div><div data-step-view class="absolute inset-0 p-8 transition-opacity duration-500 fx:opacity-0 fx:data-[active]:opacity-100"><p class="text-[13px] font-semibold text-muted">원본과 대조 (예시)</p><div class="mt-4 divide-y divide-line border-y border-line bg-bg text-[14px]"><div class="grid grid-cols-3 gap-2 px-4 py-3 font-semibold text-muted"><span>항목</span><span>읽은 수치</span><span>참고범위</span></div><div class="grid grid-cols-3 gap-2 px-4 py-3 tabular-nums text-ink"><span>ALT(간 수치)</span><span>42 U/L</span><span>0–40</span></div></div><p class="mt-4 text-[13px] text-muted">참고범위는 결과지를 보고 직접 옮겨 적어요.</p></div><div data-step-view class="absolute inset-0 p-8 transition-opacity duration-500 fx:opacity-0 fx:data-[active]:opacity-100"><p class="text-[13px] font-semibold text-muted">항목별 설명 (예시)</p><div class="mt-4 space-y-3 bg-bg p-5 text-[14px] leading-relaxed text-ink"><p class="font-semibold">ALT(간 수치) · 42 U/L</p><p class="text-muted">내 결과지 참고범위 0–40 U/L보다 조금 높은 값이에요. 이 숫자만으로 어떤 상태인지는 알 수 없어요.</p><p class="border-t border-line pt-3 text-muted">기준이 적혀 있지 않은 항목은 판단하지 않고 확인이 필요하다고 알려 드려요.</p></div></div><div data-step-view class="absolute inset-0 p-8 transition-opacity duration-500 fx:opacity-0 fx:data-[active]:opacity-100"><p class="text-[13px] font-semibold text-muted">진료 때 물어볼 질문 (예시)</p><ul class="mt-4 space-y-2 bg-bg p-5 text-[14px] leading-relaxed text-ink"><li class="border-b border-line pb-2">이 수치가 높게 나온 이유를 더 알아봐야 하나요?</li><li class="border-b border-line pb-2">다음 검사는 언제 받는 것이 좋을까요?</li><li>생활에서 신경 쓸 부분이 있을까요?</li></ul></div></div></div></div><p class="mt-10 text-[14px] text-muted">단계별 자세한 설명은 <a href="https://labdam.site.aiapp.help/guide" class="font-semibold text-primary underline underline-offset-4">이용 방법·FAQ</a>에서 볼 수 있어요.</p></div></section>
 
-  <section aria-labelledby="maker-title">
-    <div class="wrap maker">
-      <h2 id="maker-title">만드는 사람</h2>
-      <figure>
-        <blockquote>임상병리학을 전공하며 검사 수치와 참고범위를 공부하고 있습니다. 같은 수치도 검진기관마다 기준이 다를 수 있다는 것을, 결과지를 받은 사람이 쉽게 알 수 있도록 돕습니다.</blockquote>
-        <figcaption>랩담 · 임상병리학 전공자가 만듭니다</figcaption>
-      </figure>
-    </div>
-  </section>
+<section data-kind="cta" data-sid="s_lfetca" class="bg-surface"><div class="mx-auto flex w-full max-w-[1240px] flex-wrap items-center justify-between gap-6 px-4 py-14 sm:px-6 md:py-16"><div><h2 class="text-3xl font-bold tracking-tight text-ink md:text-4xl">리포담으로 시작해 보세요</h2><p class="mt-3 max-w-lg text-[15px] leading-relaxed text-muted">Google 계정으로 가입을 신청하고 관리자 승인을 받은 뒤 이용할 수 있어요. 로그인과 승인은 리포담 사이트에서 진행됩니다.</p></div><div class="flex flex-wrap items-center gap-x-6 gap-y-3"><a href="https://labdam-free-approval.jleegenomics.workers.dev/labinsight/" target="_blank" rel="noopener noreferrer" class="rounded-theme bg-primary px-7 py-4 text-[15px] font-semibold text-on-primary transition-opacity hover:opacity-90">리포담 시작하기</a><a href="https://labdam.site.aiapp.help/guide" class="text-[14px] font-medium text-primary underline underline-offset-4">이용 방법</a></div></div></section>
 
-  <section aria-labelledby="prodam-title">
-    <div class="wrap maker">
-      <h2 id="prodam-title">연구자를 위한 도구</h2>
-      <div class="narrow">
-        <h3>프로담</h3>
-        <p class="muted">프라이머 후보를 설계하고 입력한 기준 서열에서 결합 위치와 열역학을 살펴보세요. 연구용 예측이며 특이성과 실제 실험 성능은 별도로 확인해야 합니다.</p>
-        <a class="more" href="https://prodam.labdam.kr/">프로담 시작하기 <span aria-hidden="true">→</span></a>
-      </div>
-    </div>
-  </section>
+</main><footer data-kind="footer" data-sid="s_rj2juy" class="bg-[#1d2733] text-white/70"><div class="mx-auto w-full max-w-[1240px] px-4 pb-14 pt-12 sm:px-6"><div class="grid gap-10 md:grid-cols-12"><div class="md:col-span-6"><svg xmlns="http://www.w3.org/2000/svg" viewbox="3 -1.6 486.4 104.8" role="img" aria-label="랩담 LABDAM" fill="currentColor" class="block h-[34px] w-auto text-white"><title>랩담 LABDAM</title><path d="M35.9 14.4L35.9 93.2L65.8 93.2Q69.2 88.5 71.5 83.7Q73.8 79 76.7 71.9L76.7 71.9L82.9 71.9L77.9 100L5.0 100L5.0 95.6L15.2 93.3L15.2 14.3L5.0 12.0L5.0 7.6L47.2 7.6L47.2 12.0L35.9 14.4ZM101.3 101.2Q93.8 101.2 89.6 97.4Q85.4 93.6 85.4 87.0L85.4 87.0Q85.4 78.0 94.0 72.6Q102.5 67.2 120.6 64.7L120.6 64.7L120.6 56.0Q120.6 50.3 119.9 47.4Q119.3 44.6 117.8 43.4Q116.3 42.2 113.3 42.2L113.3 42.2Q108.7 42.2 106.1 44.4Q103.6 46.6 103.6 50.3L103.6 50.3Q103.6 51.2 103.8 53.1L103.8 53.1Q104.0 54.8 104.0 55.6L104.0 55.6Q104.0 59.0 101.6 61.3Q99.2 63.6 95.8 63.6L95.8 63.6Q92.3 63.6 90.1 61.4Q87.8 59.1 87.8 55.5L87.8 55.5Q87.8 51.6 90.4 47.9Q92.9 44.2 97.3 41.2L97.3 41.2Q106.6 35.2 120 35.2L120 35.2Q132.5 35.2 136.4 41.2L136.4 41.2Q137.9 43.5 138.5 47.1Q139.2 50.8 139.2 57.3L139.2 57.3L139.2 82Q139.2 87.3 140.3 89.7Q141.4 92.1 143.8 92.1L143.8 92.1Q146.5 92.1 149.0 89.2L149.0 89.2L151.8 93.2Q148.0 97.2 143.7 99.2Q139.4 101.2 134.3 101.2L134.3 101.2Q128.5 101.2 125.5 98.9Q122.4 96.5 121.4 91.7L121.4 91.7L121.0 91.7Q112.2 101.2 101.3 101.2L101.3 101.2ZM112.3 89.9Q117.4 89.9 120.6 86.4L120.6 86.4L120.6 70.4Q114.7 71.6 111.5 73Q108.2 74.4 106.9 76.5Q105.5 78.6 105.5 82.1L105.5 82.1Q105.5 86.1 107.2 88Q108.8 89.9 112.3 89.9L112.3 89.9ZM190.1 101.2Q180.0 101.2 172.1 95.7L172.1 95.7L171.4 95.7L161.0 100L157.6 100L157.6 12.3L147.5 9.0L147.5 6.3L173.5 0.4L176.2 0.4L176.2 43.7Q180.4 39.6 185.4 37.4Q190.4 35.2 196.1 35.2L196.1 35.2Q203.9 35.2 209.9 39.0Q215.9 42.9 219.2 49.8Q222.6 56.7 222.6 65.6L222.6 65.6Q222.6 75.5 218.3 83.7Q214.1 91.8 206.6 96.5Q199.1 101.2 190.1 101.2L190.1 101.2ZM187.7 94.7Q194.3 94.7 198.3 87.6Q202.3 80.6 202.3 68.9L202.3 68.9Q202.3 57.4 198.5 51.0Q194.8 44.6 187.8 44.6L187.8 44.6Q180.8 44.6 176.2 51.5L176.2 51.5L176.2 79.6Q176.2 86.4 179.3 90.6Q182.5 94.7 187.7 94.7L187.7 94.7ZM255.8 101.2Q248.3 101.2 242.0 97.1Q235.7 92.9 232.1 85.6Q228.5 78.3 228.5 69.3L228.5 69.3Q228.5 59.3 232.6 51.6Q236.8 43.8 244.2 39.5Q251.6 35.2 261.2 35.2L261.2 35.2Q268.4 35.2 275.2 38.2L275.2 38.2L275.2 12.4L265.0 9.0L265.0 6.3L291.1 0.4L293.8 0.4L293.8 88.2L303.2 91.2L303.2 93.8L278.3 101.2L276.1 101.2L276.1 93.9L275.5 93.6Q271.8 97.2 266.7 99.2Q261.6 101.2 255.8 101.2L255.8 101.2ZM263.5 92.6Q270.5 92.6 275.2 86.3L275.2 86.3L275.2 56.6Q275.2 49.8 272.0 45.8Q268.8 41.7 263.6 41.7L263.6 41.7Q257.0 41.7 253.0 48.7Q249 55.7 249 67.2L249 67.2Q249 79 252.8 85.8Q256.7 92.6 263.5 92.6L263.5 92.6ZM322.3 101.2Q314.9 101.2 310.7 97.4Q306.5 93.6 306.5 87.0L306.5 87.0Q306.5 78.0 315 72.6Q323.5 67.2 341.6 64.7L341.6 64.7L341.6 56.0Q341.6 50.3 341.0 47.4Q340.3 44.6 338.8 43.4Q337.3 42.2 334.3 42.2L334.3 42.2Q329.8 42.2 327.2 44.4Q324.6 46.6 324.6 50.3L324.6 50.3Q324.6 51.2 324.8 53.1L324.8 53.1Q325.1 54.8 325.1 55.6L325.1 55.6Q325.1 59.0 322.7 61.3Q320.3 63.6 316.8 63.6L316.8 63.6Q313.3 63.6 311.1 61.4Q308.9 59.1 308.9 55.5L308.9 55.5Q308.9 51.6 311.4 47.9Q313.9 44.2 318.4 41.2L318.4 41.2Q327.6 35.2 341.0 35.2L341.0 35.2Q353.5 35.2 357.5 41.2L357.5 41.2Q358.9 43.5 359.6 47.1Q360.2 50.8 360.2 57.3L360.2 57.3L360.2 82Q360.2 87.3 361.3 89.7Q362.4 92.1 364.8 92.1L364.8 92.1Q367.6 92.1 370.1 89.2L370.1 89.2L372.8 93.2Q369 97.2 364.7 99.2Q360.5 101.2 355.3 101.2L355.3 101.2Q349.6 101.2 346.5 98.9Q343.4 96.5 342.5 91.7L342.5 91.7L342 91.7Q333.2 101.2 322.3 101.2L322.3 101.2ZM333.4 89.9Q338.4 89.9 341.6 86.4L341.6 86.4L341.6 70.4Q335.8 71.6 332.5 73Q329.3 74.4 327.9 76.5Q326.5 78.6 326.5 82.1L326.5 82.1Q326.5 86.1 328.2 88Q329.9 89.9 333.4 89.9L333.4 89.9ZM479.0 93.4L487.4 95.8L487.4 100L452.0 100L452.0 95.8L460.4 93.4L460.4 66.5Q460.4 60.0 460.2 57.0Q460.0 53.9 459.2 52.1L459.2 52.1Q456.8 45.9 448.6 45.9L448.6 45.9Q443.0 45.9 439.1 50.1L439.1 50.1Q439.4 53.8 439.4 61.8L439.4 61.8L439.4 93.4L447.8 95.8L447.8 100L412.4 100L412.4 95.8L420.8 93.4L420.8 66.5Q420.8 60.0 420.6 57.0Q420.4 53.9 419.6 52.1L419.6 52.1Q417.2 45.8 409.0 45.8L409.0 45.8Q403.7 45.8 399.8 49.5L399.8 49.5L399.8 93.4L408.2 95.8L408.2 100L372.2 100L372.2 95.8L381.2 93.4L381.2 47.2L372.5 43.8L372.5 41.1L394.6 35.2L399.4 35.2L399.4 43Q403.7 39.4 409.4 37.3Q415.2 35.2 420.6 35.2L420.6 35.2Q432.7 35.2 437.4 44.4L437.4 44.4Q441.7 40.2 448.0 37.7Q454.2 35.2 460.2 35.2L460.2 35.2Q472.6 35.2 477.2 44.8L477.2 44.8Q478.3 47.1 478.7 50.4Q479.0 53.7 479.0 61.8L479.0 61.8L479.0 93.4Z"></path></svg><p class="mt-3 text-[11px] font-medium tracking-[0.32em] text-white/60">FOR EVERY QUESTION</p><p class="mt-4 text-[12px] font-semibold tracking-[0.12em] text-white/50">이메일 문의</p><a href="mailto:jleegenomics@gmail.com" class="mt-1 block text-[22px] font-bold text-white hover:underline sm:text-[26px]">jleegenomics@gmail.com</a><p class="mt-3 max-w-md text-[14px] leading-relaxed">리포담은 의료진의 진단·처방을 대신하지 않는 참고용 정보입니다.</p></div><div class="grid grid-cols-2 gap-8 md:col-span-6"><div><p class="text-[12px] font-semibold tracking-[0.12em] text-white/50">서비스</p><ul class="mt-3 space-y-2 text-[14px]"><li><a href="https://labdam.site.aiapp.help/repodam" class="hover:text-white">리포담</a></li><li><a href="https://labdam.site.aiapp.help/prodam" class="hover:text-white">프로담</a></li><li><a href="https://haru-today.github.io/caffeine-atlas/" target="_blank" rel="noopener noreferrer" class="hover:text-white">Caffeine Atlas</a></li><li><a href="https://labdam.site.aiapp.help/guide" class="hover:text-white">이용 방법·FAQ</a></li></ul></div><div><p class="text-[12px] font-semibold tracking-[0.12em] text-white/50">도움말</p><ul class="mt-3 space-y-2 text-[14px]"><li><a href="https://labdam.site.aiapp.help/about" class="hover:text-white">소개·문의</a></li><li><a href="https://labdam.site.aiapp.help/policy" class="hover:text-white">개인정보·이용 안내</a></li><li><a href="https://labdam.kr/" target="_blank" rel="noopener noreferrer" class="hover:text-white">랩담 공식 labdam.kr</a></li></ul></div></div></div><div class="mt-10 border-t border-white/10 pt-6 text-[12px] leading-relaxed text-white/50"><p class="flex flex-wrap gap-x-5 gap-y-1"><span>© LABDAM. All rights reserved.</span><a href="https://labdam.site.aiapp.help/policy" class="text-white/80">개인정보·이용 안내</a></p></div></div></footer>
 
-  <section aria-labelledby="faq-title">
-    <div class="wrap narrow">
-      <h2 id="faq-title">자주 묻는 질문</h2>
-      <div class="faq">
-        <details><summary>진단해 주나요?</summary><p>아니요. 리포담은 진단하지 않습니다. 결과를 이해하고 의사와의 상담을 준비하도록 돕습니다.</p></details>
-        <details><summary>사진만 찍으면 결과지 기준으로 설명해 주나요?</summary><p>사진을 올리면 수치를 읽고, 읽은 숫자는 원본 사진과 나란히 확인해요. 참고범위는 지금은 직접 옮겨 적어야 하고, 옮겨 적은 기준으로 설명해 드려요.</p></details>
-        <details><summary>결과지에 기준이 없는 항목은요?</summary><p>섣부르게 판단하지 않고, 확인이 필요하다고 알려 드려요.</p></details>
-        <details><summary>지금 바로 쓸 수 있나요?</summary><p>리포담은 Google 계정으로 신청하고 관리자 승인을 받은 뒤 이용할 수 있어요. 담이와의 대화는 준비 중입니다.</p></details>
-      </div>
-    </div>
-  </section>
+<script src="/assets/aiapp-exact/home.js" integrity="sha256-V0aAiArbW7z5WQSdaoeyTzFDU+l3UhG3UJfcZB8Ik8w=" defer></script>
 
-  <section class="cta" aria-labelledby="cta-title">
-    <div class="wrap">
-      <h2 id="cta-title">궁금한 점이 있으신가요?</h2>
-      <p>가입 승인이나 서비스 이용에 대해 문의해 주세요. 검사결과지와 건강정보 등 민감한 내용은 이메일로 보내지 마세요.</p>
-      <a class="button" href="mailto:jleegenomics@gmail.com">이메일로 물어보기</a>
-      <p class="email">jleegenomics@gmail.com</p>
-    </div>
-  </section>
-</main>
-
-<footer>
-  <div class="wrap">
-    <span>랩담 LABDAM · 리포담은 랩담의 첫 서비스입니다</span>
-    <span>리포담은 의료 진단을 대신하지 않습니다.</span>
-    <nav aria-label="안내">
-      <a href="/privacy.html">개인정보 처리 안내</a>
-      <a href="/terms.html">서비스 이용 안내</a>
-      <a href="https://labdam-free-approval.jleegenomics.workers.dev/login.html">리포담 로그인</a>
-      <a href="/caffeine-atlas/caffeine-sensitivity-app/index.html">카페인 아틀라스</a>
-    </nav>
-  </div>
-</footer>
 </body>
 </html>
