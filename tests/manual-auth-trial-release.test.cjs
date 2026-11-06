@@ -82,7 +82,8 @@ test("existing REPODAM bundle audit runs before the verified PRODAM files are st
   const stage = yaml.indexOf("node free-auth/prepare-prodam-bundle.mjs");
   const upload = yaml.indexOf("versions upload --config");
   assert.ok(audit > 0 && audit < stage && stage < upload);
-  assert.match(yaml.slice(stage, upload), /grep -R -i/);
+  assert.match(yaml.slice(stage, upload), /assert\.equal\(files\.length,21\)/);
+  assert.match(yaml.slice(stage, upload), /createHash\('sha256'\)/);
 });
 
 test("remote D1 schema is read-only checked before deployment and without access to rows", () => {
