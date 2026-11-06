@@ -1,0 +1,27 @@
+{
+  "source_commit": "d7b9f435dbf2493342233e2ea81b375d64fc8e1a",
+  "note": "Pinned public PRODAM v4 Git blob bytes for local review only; no production bundle integration.",
+  "assets": {
+    "analysis.js": "a610febe9c19749ccd37492e20a4402536d6881750ec3dd21fb72a94b94e3d24",
+    "app.js": "f8cc33b0088f6f80270e4739815d595ce8f3f378a750359858e4fb65cd8a5dd1",
+    "index.html": "33a689dfda2e296ac4efeddbc0c90e7e1ece2a14762f881a13182b67e15bc8f4",
+    "ntthal-analysis.js": "7e6ce9e1e47060fdf96b17b48bf81f946a495a0f92d35486ce10be2b26b1146e",
+    "oligotm-analysis.js": "5545e2198d1aebc934231d7cbaf6d66aaaea3179c76484e179d99a54e351d656",
+    "primer3-analysis.js": "77dedb1253fe090f66d6a372c26761d0fd0ecd5ae07fb86d5a8300964a1d31c1",
+    "primer3-worker.js": "f89e763c9f02fe24116baa683e26fcfecbc9c7384497d51779a9949b2976a730",
+    "style.css": "a5b89b83ca5e991406c7a16a33ac1639c8a319ba3fd0af00dafed9e8d279feb0",
+    "vendor/ntthal/LICENSE.txt": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "vendor/ntthal/ntthal-wasm-corresponding-source.tar.gz": "5e994d0969e26558f557bf172aa238f13fabc1a6cb558d095bc01873af035ab3",
+    "vendor/ntthal/ntthal.js": "1d66db326eaad0765d9058b62358b9f90bbf5164116390d66276861d574061aa",
+    "vendor/ntthal/ntthal.wasm": "a4a94bb26613a0e12af934e5a955460b9b52f387d5046e36fdeaa13255f25701",
+    "vendor/oligotm/LICENSE.txt": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "vendor/oligotm/oligotm-wasm-corresponding-source.tar.gz": "f9eafdb97923db0882dd1a3777a39ba4e374aa7dde3eafce2c53a3326f26e5c6",
+    "vendor/oligotm/oligotm.js": "ff175993d0977c188f278fefa330b522ee3b714536df47bd9447f5e97a7246a7",
+    "vendor/oligotm/oligotm.wasm": "009545a8575c5142b48588a92ed128f59aa9f14546f96c58ba3b012ddab88cd4",
+    "vendor/primer3/LICENSE.txt": "8177f97513213526df2cf6184d8ff986c675afb514d4e68a404010521b880643",
+    "vendor/primer3/primer3-core.js": "b0b328b30682be57c54dae8328e7080e900d7d2b00581679557026680e5fb087",
+    "vendor/primer3/primer3-core.wasm": "56e5577cbd7b993486af78e0e1f58989548c31cf18c8f30c9204d91e0d126d6d",
+    "vendor/primer3/primer3-wasm-corresponding-source.tar.gz": "fb78d85510d54205638cb78cbc806fc0cad3b8695369923d3e1788a03fafdc53",
+    "vendor/primer3/primer3.js": "cf76ca14f40338874da3f8cceb99ad16f8cb3d6ef64c5cbc224341c34f12f878"
+  }
+}
