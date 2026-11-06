@@ -191,7 +191,7 @@ a:focus-visible{outline-color:#1F7F83}
  const p=new URLSearchParams(location.search),start=document.getElementById("googleStart");
  function safeDestination(value){
   if(typeof value!=="string"||value.length>350||!value.startsWith("/")||value.startsWith("//")||/[\u0000-\u0020\\]|%(?:0[0-9a-f]|1[0-9a-f]|20|2f|5c)/i.test(value))return "/labinsight/";
-  try{const u=new URL(value,location.origin);if(u.origin===location.origin&&(u.pathname.startsWith("/labinsight/")||["/account.html","/admin.html"].includes(u.pathname)))return u.pathname+u.search;}catch(_){}
+  try{const u=new URL(value,location.origin);if(u.origin===location.origin&&u.pathname==="/prodam")return "/prodam/"+u.search;if(u.origin===location.origin&&(u.pathname.startsWith("/labinsight/")||u.pathname.startsWith("/prodam/")||["/account.html","/admin.html"].includes(u.pathname)))return u.pathname+u.search;}catch(_){}
   return "/labinsight/";
  }
  const next=safeDestination(p.get("next"));

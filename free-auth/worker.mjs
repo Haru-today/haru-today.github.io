@@ -47,6 +47,12 @@ function validOrigin(env) {
     return url.origin;
   } catch (_) { return null; }
 }
+// Deliberately absent from the deployed configuration. Review must explicitly
+// bind the opt-in to the already-validated authentication origin.
+function prodamReviewEnabled(env) {
+  const origin = validOrigin(env);
+  return env?.PRODAM_REVIEW_ONLY === "1" && !!origin && env.PRODAM_REVIEW_ORIGIN === origin;
+}
 function configured(env) {
   if (!env?.DB || typeof env.DB.prepare !== "function" ||
       !validOrigin(env) ||
@@ -95,13 +101,14 @@ function putCookie(response, name, value, maxAge) {
   h.append("Set-Cookie", name + "=" + value + "; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=" + maxAge);
   return new Response(response.body, { status: response.status, statusText: response.statusText, headers: h });
 }
-function safeNext(value) {
+function safeNext(value, allowProdam = false) {
   if (typeof value !== "string" || value.length > 350 ||
       !value.startsWith("/") || value.startsWith("//") || /[\u0000-\u0020\\]|%(?:0[0-9a-f]|1[0-9a-f]|20|2f|5c)/i.test(value)) return "/labinsight/";
   try {
     const u = new URL(value, "https://example.test");
     if (u.origin !== "https://example.test") return "/labinsight/";
-    if (u.pathname.startsWith("/labinsight/") ||
+    if (allowProdam && u.pathname === "/prodam") return "/prodam/" + u.search;
+    if (u.pathname.startsWith("/labinsight/") || (allowProdam && u.pathname.startsWith("/prodam/")) ||
         u.pathname === "/account.html" || u.pathname === "/admin.html") {
       return u.pathname + u.search;
     }
@@ -193,7 +200,7 @@ async function oauthStart(request, env, origin, opts) {
   const now = nowSecs(opts);
   await throttle(request, env, now);
   const state = tokenRandom(), verifier = tokenRandom(40), nonce = tokenRandom(24);
-  const next = safeNext(new URL(request.url).searchParams.get("next"));
+  const next = safeNext(new URL(request.url).searchParams.get("next"), prodamReviewEnabled(env));
   await env.DB.prepare(
     "INSERT INTO oauth_states(state_hash,code_verifier,nonce,next_path,expires_at) VALUES (?,?,?,?,?)"
   ).bind(await digest(state), verifier, nonce, next, now + OAUTH_SECONDS).run();
@@ -312,7 +319,7 @@ async function oauthCallback(request, env, origin, opts) {
   const issued = await env.DB.batch(statements);
   const member = issued[issued.length - 1].results?.[0];
   if (!member) throw new LoginError(503, "가입 신청 상태를 저장할 수 없습니다.");
-  const destination = member.status === "approved" ? safeNext(stored.next_path) : "/pending.html";
+  const destination = member.status === "approved" ? safeNext(stored.next_path, prodamReviewEnabled(env)) : "/pending.html";
   let out = redirect(destination, origin);
   out = putCookie(out, COOKIE_OAUTH, "", 0);
   return putCookie(out, COOKIE_SESSION, rawSession, SESSION_SECONDS);
@@ -340,7 +347,7 @@ function validCsrf(request, member, origin) {
 }
 function isHtmlRoute(path) {
   return path === "/" || path === "/index.html" || path === "/account.html" ||
-    path === "/admin.html" || path === "/admin" || path === "/labinsight" ||
+    path === "/admin.html" || path === "/admin" || path === "/labinsight" || path === "/prodam" ||
     path.endsWith(".html") || path.endsWith("/");
 }
 // Public branding is an exact read-only allowlist, never an assets prefix.
@@ -351,7 +358,7 @@ function privatePath(path) {
       path === "/admin" || path === "/labinsight" || path === "/api/me" ||
       path === "/api/admin/applications" || path === "/api/admin/review" ||
       path === "/api/application" || path === "/api/account/delete" || path === "/auth/logout") return true;
-  return path.startsWith("/labinsight/");
+  return path.startsWith("/labinsight/") || path === "/prodam" || path.startsWith("/prodam/");
 }
 async function jsonBody(request) {
   if (!(request.headers.get("Content-Type") || "").startsWith("application/json")) {
@@ -464,7 +471,10 @@ async function assetFor(request, env, targetPath) {
   const u = new URL(request.url);
   u.pathname = targetPath;
   u.search = "";
-  return safetyHeaders(await env.ASSETS.fetch(new Request(u.toString(), { method: request.method })));
+  const response = safetyHeaders(await env.ASSETS.fetch(new Request(u.toString(), { method: request.method })));
+  if (!targetPath.startsWith("/prodam/")) return response;
+  const headers = new Headers(response.headers); headers.set("Cross-Origin-Resource-Policy", "same-origin");
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers });
 }
 async function handleRequest(request, env, opts = {}) {
   const url = new URL(request.url), path = url.pathname, method = request.method;
@@ -475,7 +485,7 @@ async function handleRequest(request, env, opts = {}) {
     // Legacy /#login bookmarks also reach the dedicated service login.
     if (["/", "/index.html", "/login"].includes(path)) {
       if (!["GET", "HEAD"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
-      return redirect("/login.html?next=" + encodeURIComponent(safeNext(url.searchParams.get("next"))), origin);
+      return redirect("/login.html?next=" + encodeURIComponent(safeNext(url.searchParams.get("next"), prodamReviewEnabled(env))), origin);
     }
     if (path === "/healthz" && method === "GET") {
       // Read-only readiness: missing OAuth secrets, D1 or static assets must
@@ -501,7 +511,7 @@ async function handleRequest(request, env, opts = {}) {
         configured(env);
         const member = await currentSession(request, env, opts);
         if (member) return redirect(member.status === "approved"
-          ? safeNext(url.searchParams.get("next")) : "/pending.html", origin);
+          ? safeNext(url.searchParams.get("next"), prodamReviewEnabled(env)) : "/pending.html", origin);
       }
       return await assetFor(request, env, "/login.html");
     }
@@ -519,13 +529,18 @@ async function handleRequest(request, env, opts = {}) {
       configured(env);
       return await oauthCallback(request, env, origin, opts);
     }
+    // Research gate only: never expose a PRODAM asset unless explicitly enabled.
+    // This flag is not configured by the production release workflow.
+    const prodamPath = path === "/prodam" || path.startsWith("/prodam/");
+    if (prodamPath && (!prodamReviewEnabled(env) || url.origin !== origin || path.includes("%") || path.includes("//"))) return simple(404, "요청한 페이지가 없습니다.");
+    if (prodamPath && !["GET", "HEAD"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
     if (!privatePath(path)) return simple(404, "요청한 페이지가 없습니다.");
     if (!["GET", "HEAD", "POST"].includes(method)) return simple(405, "허용되지 않는 요청입니다.");
     configured(env);
     const member = await currentSession(request, env, opts);
     if (!member) {
       if (method === "GET" && isHtmlRoute(path) && !path.startsWith("/api/")) {
-        return redirect("/login.html?next=" + encodeURIComponent(safeNext(path + url.search)), origin);
+        return redirect("/login.html?next=" + encodeURIComponent(safeNext(path + url.search, prodamReviewEnabled(env))), origin);
       }
       return json(401, { ok: false, code: "LOGIN_REQUIRED" });
     }
@@ -569,6 +584,8 @@ async function handleRequest(request, env, opts = {}) {
     }
     if (method !== "GET" && method !== "HEAD") return simple(405, "허용되지 않는 요청입니다.");
     if (path === "/labinsight") return redirect("/labinsight/", origin);
+    if (path === "/prodam") return redirect("/prodam/" + url.search, origin);
+    if (path === "/prodam/") return await assetFor(request, env, path);
     return await assetFor(request, env, path);
   } catch (error) {
     // Fail closed and never leak tokens, DB schema or email to the browser.
