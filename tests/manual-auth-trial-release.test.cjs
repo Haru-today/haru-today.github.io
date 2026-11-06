@@ -77,6 +77,14 @@ test("release cannot accidentally bundle protected Caffeine Atlas assets", () =>
   assert.match(yaml, /npm test --prefix free-auth\/tests\/runtime/);
 });
 
+test("existing REPODAM bundle audit runs before the verified PRODAM files are staged", () => {
+  const audit = yaml.indexOf("node --test free-auth/tests/bundle.test.cjs");
+  const stage = yaml.indexOf("node free-auth/prepare-prodam-bundle.mjs");
+  const upload = yaml.indexOf("versions upload --config");
+  assert.ok(audit > 0 && audit < stage && stage < upload);
+  assert.match(yaml.slice(stage, upload), /grep -R -i/);
+});
+
 test("remote D1 schema is read-only checked before deployment and without access to rows", () => {
   const schema = yaml.indexOf("Verify remote D1 has the expected schema");
   const deploy = yaml.indexOf("Promote protected Worker version to production traffic");
