@@ -1,10 +1,10 @@
-name: LABDAM trial Worker release (manual only)
+name: LABDAM protected Worker release (manual only)
 
 on:
   workflow_dispatch:
     inputs:
       confirmation:
-        description: "Type DEPLOY-LABDAM-TRIAL to authorize changes only to the isolated trial Worker"
+        description: "Type DEPLOY-LABDAM-PRODUCTION-PRODAM to authorize the Worker serving repodam.labdam.kr"
         type: string
         required: true
 
@@ -17,21 +17,21 @@ concurrency:
 
 jobs:
   trial-release:
-    if: ${{ github.event.inputs.confirmation == 'DEPLOY-LABDAM-TRIAL' }}
+    if: ${{ github.ref == 'refs/heads/main' && github.event.inputs.confirmation == 'DEPLOY-LABDAM-PRODUCTION-PRODAM' }}
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    timeout-minutes: 40
     environment: labdam-trial
     steps:
       - name: Fetch fully reviewed login branch snapshot (immutable)
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: 9278556831697b157975dba8e4af15ec7e9c8566
+          ref: 3939453c4097632181be41ad840bc5688c5d63b1
           persist-credentials: false
       - name: Verify read access to the reviewed app source before private checkout
         env:
           GH_TOKEN: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           HAS_SOURCE_DEPLOY_KEY: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY != '' }}
-          REVIEWED_APP_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
+          REVIEWED_APP_SHA: 2fcc297972e8b786e02d62912e302b575348f9f7
         run: |
           if [ "$HAS_SOURCE_DEPLOY_KEY" = true ]; then
             echo "Dedicated read-only source deploy key configured; checkout will verify access before any build or deployment."
@@ -45,7 +45,7 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           repository: Haru-today/repodam
-          ref: 8338575e5aab09279b9d79c6302b2165327bbf03
+          ref: 2fcc297972e8b786e02d62912e302b575348f9f7
           path: sources/labinsight
           token: ${{ secrets.LABINSIGHT_SOURCE_TOKEN || github.token }}
           ssh-key: ${{ secrets.LABINSIGHT_SOURCE_DEPLOY_KEY }}
@@ -66,10 +66,16 @@ jobs:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
           LABDAM_INCLUDE_PADDLE: "1"
         run: node free-auth/build.mjs
+      - name: Verify and stage the pinned PRODAM assets
+        run: |
+          node --test sources/labinsight/tests/prodam-release-assets.test.cjs
+          node --test free-auth/tests/prodam-cutover-guard.test.cjs
+          LABDAM_PRODAM_PRIVATE_ASSETS="$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" node --test free-auth/tests/prodam-bundle.test.cjs
+          node free-auth/prepare-prodam-bundle.mjs "$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" free-auth/dist/prodam
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
-          LABINSIGHT_RELEASE_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
-          LABDAM_AUTH_RELEASE_SHA: 9278556831697b157975dba8e4af15ec7e9c8566
+          LABINSIGHT_RELEASE_SHA: 2fcc297972e8b786e02d62912e302b575348f9f7
+          LABDAM_AUTH_RELEASE_SHA: 3939453c4097632181be41ad840bc5688c5d63b1
         run: |
           node <<'NODE'
           const fs = require('node:fs');
@@ -104,6 +110,7 @@ jobs:
           node --test free-auth/tests/bundle.test.cjs
           npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
           npm test --prefix free-auth/tests/runtime
+          LABDAM_PRODAM_REVIEW_SOURCE="$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" node --test free-auth/tests/runtime/prodam-review.test.cjs
       - name: Require separately configured Cloudflare trial secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
@@ -143,12 +150,130 @@ jobs:
           }
           console.log('Live service still matches the integrated baseline.');
           NODE
-      - name: Deploy to named free test Worker only (never Pages or production routes)
+      - name: Capture the current deployed Worker version
+        id: baseline
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          set -eu
+          npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-baseline-deployment.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-baseline-deployment.json" > "$RUNNER_TEMP/prodam-baseline.json"
+          BASELINE_VERSION=$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/prodam-baseline.json")
+          echo "version_id=$BASELINE_VERSION" >> "$GITHUB_OUTPUT"
+          npx --yes wrangler@4.151.0 versions view "$BASELINE_VERSION" --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-before-version.json"
+          npx --yes wrangler@4.151.0 versions list --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-before-list.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-before-list.json" "$BASELINE_VERSION"
+      - name: Upload candidate without changing active traffic
+        id: candidate
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/prodam-upload.jsonl
+          BASELINE_VERSION: ${{ steps.baseline.outputs.version_id }}
+        run: |
+          set -eu
+          node <<'NODE'
+          const fs = require('node:fs');
+          const config = JSON.parse(fs.readFileSync('free-auth/wrangler.jsonc', 'utf8'));
+          if (config.name !== 'labdam-free-approval' || config.assets?.run_worker_first !== true || config.vars?.REPODAM_CUSTOM_DOMAIN !== 'enabled') throw Error('Unexpected production config');
+          config.vars.PRODAM_REVIEW_ONLY = '1';
+          config.vars.PRODAM_REVIEW_ORIGIN = 'https://repodam.labdam.kr';
+          fs.writeFileSync('free-auth/.prodam-cutover.generated.jsonc', JSON.stringify(config, null, 2));
+          NODE
+          test ! -e "$WRANGLER_OUTPUT_FILE_PATH"
+          npx --yes wrangler@4.151.0 versions upload --config free-auth/.prodam-cutover.generated.jsonc --message 'Prepare protected PRODAM'
+          CANDIDATE_VERSION=$(node free-auth/scripts/prodam-cutover-guard.cjs upload "$WRANGLER_OUTPUT_FILE_PATH")
+          echo "version_id=$CANDIDATE_VERSION" >> "$GITHUB_OUTPUT"
+          npx --yes wrangler@4.151.0 versions view "$CANDIDATE_VERSION" --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-version.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs bindings "$RUNNER_TEMP/prodam-before-version.json" "$RUNNER_TEMP/prodam-after-version.json" "$BASELINE_VERSION" "$CANDIDATE_VERSION"
+          npx --yes wrangler@4.151.0 versions list --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-list.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-after-list.json" "$CANDIDATE_VERSION" "$BASELINE_VERSION"
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import assert from 'node:assert/strict';
+          const event = fs.readFileSync(process.env.WRANGLER_OUTPUT_FILE_PATH, 'utf8').trim().split(/\r?\n/).map(JSON.parse).find(value => value.type === 'version-upload');
+          if (event.preview_url) {
+            const url = new URL(event.preview_url);
+            assert.equal(url.protocol, 'https:');
+            assert.ok(url.hostname.endsWith('.workers.dev'));
+            const response = await fetch(new URL('/prodam/app.js', url), {redirect:'manual',credentials:'omit',signal:AbortSignal.timeout(20000)});
+            assert.equal(response.status, 404, 'Candidate preview must not expose PRODAM');
+          }
+          NODE
+      - name: Promote protected Worker version to production traffic
         id: deploy_trial
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
-        run: npx --yes wrangler@4.151.0 deploy --config free-auth/wrangler.jsonc
+          CANDIDATE_VERSION: ${{ steps.candidate.outputs.version_id }}
+        run: |
+          set -eu
+          npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-pre-deploy.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-pre-deploy.json" > "$RUNNER_TEMP/prodam-pre-deploy-safe.json"
+          cmp "$RUNNER_TEMP/prodam-baseline.json" "$RUNNER_TEMP/prodam-pre-deploy-safe.json"
+          npx --yes wrangler@4.151.0 versions deploy "$CANDIDATE_VERSION@100%" --yes --config free-auth/wrangler.jsonc --message 'Activate protected PRODAM'
+          npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-deploy.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-after-deploy.json" > "$RUNNER_TEMP/prodam-after-deploy-safe.json"
+          test "$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/prodam-after-deploy-safe.json")" = "$CANDIDATE_VERSION"
+          DEPLOYMENT_ID=$(node -p 'require(process.argv[1]).deployment' "$RUNNER_TEMP/prodam-after-deploy-safe.json")
+          echo "deployment_id=$DEPLOYMENT_ID" >> "$GITHUB_OUTPUT"
+      - name: Verify anonymous PRODAM denial on both hosts
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFileSync } from 'node:fs';
+          import assert from 'node:assert/strict';
+          const files = Object.keys(JSON.parse(readFileSync('free-auth/prodam-review-manifest.json','utf8')).assets);
+          assert.equal(files.length, 21, 'Expected the complete reviewed PRODAM bundle');
+          const pathList = ['', ...files];
+          let passed = false;
+          for (let attempt = 0; attempt < 5 && !passed; attempt++) {
+            try {
+              for (const file of pathList) {
+                const path = '/prodam/' + file;
+                for (const [origin, expected] of [['https://repodam.labdam.kr', !file || file.endsWith('.html') ? 303 : 401], ['https://labdam-free-approval.jleegenomics.workers.dev', 404]]) {
+                  const response = await fetch(origin + path, { redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000) });
+                  assert.equal(response.status, expected, path);
+                  if (origin === 'https://repodam.labdam.kr') {
+                    assert.match(response.headers.get('cache-control') || '', /no-store/);
+                    if (expected === 303) {
+                      const target = new URL(response.headers.get('location'), origin);
+                      assert.equal(target.origin, origin);
+                      assert.equal(target.pathname, '/login.html');
+                      assert.equal(target.searchParams.get('next'), path);
+                    }
+                  }
+                }
+              }
+              for (const method of ['HEAD','GET']) {
+                const response = await fetch('https://repodam.labdam.kr/prodam/app.js', { method, headers:{Range:'bytes=0-20','If-None-Match':'*'}, redirect:'manual', credentials:'omit', signal:AbortSignal.timeout(20000) });
+                assert.equal(response.status, 401);
+              }
+              passed = true;
+            } catch (error) {
+              if (attempt === 4) throw error;
+              await new Promise(resolve => setTimeout(resolve, 4000));
+            }
+          }
+          console.log('Anonymous protected assets were denied on the intended and legacy origins.');
+          NODE
+      - name: Verify existing REPODAM on its production domain
+        run: |
+          node --input-type=module <<'NODE'
+          import assert from 'node:assert/strict';
+          const origin = 'https://repodam.labdam.kr';
+          for (const [path, status] of [['/login.html',200],['/labinsight/',303],['/labinsight/app.js',401]]) {
+            const response = await fetch(origin + path, {redirect:'manual',credentials:'omit',signal:AbortSignal.timeout(20000)});
+            assert.equal(response.status,status,path);
+            assert.match(response.headers.get('cache-control') || '',/no-store/);
+          }
+          const response = await fetch(origin + '/membership-privacy.html', {redirect:'error',credentials:'omit',signal:AbortSignal.timeout(20000)});
+          assert.equal(response.status,200);
+          const html = await response.text();
+          assert.ok(html.includes('content="3939453c4097632181be41ad840bc5688c5d63b1"'));
+          assert.ok(html.includes('content="2fcc297972e8b786e02d62912e302b575348f9f7"'));
+          console.log('Existing production login and anonymous REPODAM gates verified.');
+          NODE
       - name: Read-only anonymous HTTP checks (no test users, OAuth writes, or PII)
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
@@ -214,8 +339,8 @@ jobs:
           NODE
       - name: Verify exact app source and confirmed public privacy contact after deployment
         env:
-          LABINSIGHT_RELEASE_SHA: 8338575e5aab09279b9d79c6302b2165327bbf03
-          LABDAM_AUTH_RELEASE_SHA: 9278556831697b157975dba8e4af15ec7e9c8566
+          LABINSIGHT_RELEASE_SHA: 2fcc297972e8b786e02d62912e302b575348f9f7
+          LABDAM_AUTH_RELEASE_SHA: 3939453c4097632181be41ad840bc5688c5d63b1
         run: |
           node --input-type=module <<'NODE'
           import assert from 'node:assert/strict';
@@ -305,3 +430,28 @@ jobs:
         env:
           TRIAL_ORIGIN: https://labdam-free-approval.jleegenomics.workers.dev
         run: node free-auth/scripts/probe-trial-worker.mjs --origin "$TRIAL_ORIGIN"
+      - name: Restore previous Worker version after a failed cutover
+        if: ${{ (failure() || cancelled()) && steps.candidate.outputs.version_id != '' && steps.baseline.outputs.version_id != '' }}
+        timeout-minutes: 3
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          BASELINE_VERSION: ${{ steps.baseline.outputs.version_id }}
+          CANDIDATE_VERSION: ${{ steps.candidate.outputs.version_id }}
+        run: |
+          set -eu
+          npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-rollback-current.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-rollback-current.json" > "$RUNNER_TEMP/prodam-rollback-current-safe.json"
+          CURRENT_VERSION=$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/prodam-rollback-current-safe.json")
+          if [ "$CURRENT_VERSION" = "$CANDIDATE_VERSION" ]; then
+            npx --yes wrangler@4.151.0 versions deploy "$BASELINE_VERSION@100%" --yes --config free-auth/wrangler.jsonc --message 'Restore previous version after failed PRODAM cutover'
+            npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-restored.json"
+            node free-auth/scripts/prodam-cutover-guard.cjs deployment "$RUNNER_TEMP/prodam-restored.json" > "$RUNNER_TEMP/prodam-restored-safe.json"
+            test "$(node -p 'require(process.argv[1]).version' "$RUNNER_TEMP/prodam-restored-safe.json")" = "$BASELINE_VERSION"
+            echo 'Previous Worker version restored.'
+          elif [ "$CURRENT_VERSION" = "$BASELINE_VERSION" ]; then
+            echo 'The previous Worker version is still active.'
+          else
+            echo '::error::Another deployment is active; refusing to overwrite it automatically.'
+            exit 1
+          fi
