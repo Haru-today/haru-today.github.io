@@ -86,6 +86,14 @@ test("existing REPODAM bundle audit runs before the verified PRODAM files are st
   assert.match(yaml.slice(stage, upload), /createHash\('sha256'\)/);
 });
 
+test("retry accepts only the previously inspected prepared version and rejects preview access", () => {
+  assert.equal((yaml.match(/PREVIOUS_PREPARED_VERSION: 603d9ea2-2a6e-485c-ab72-e849c541584c/g) || []).length, 2);
+  assert.match(yaml, /prodam-before-list\.json" "\$PREVIOUS_PREPARED_VERSION" "\$BASELINE_VERSION"/);
+  assert.match(yaml, /prodam-before-version\.json" "\$RUNNER_TEMP\/prodam-previous-version\.json"/);
+  assert.match(yaml, /prodam-after-list\.json" "\$CANDIDATE_VERSION" "\$PREVIOUS_PREPARED_VERSION"/);
+  assert.match(yaml, /assert\.equal\(response\.status, 503/);
+});
+
 test("remote D1 schema is read-only checked before deployment and without access to rows", () => {
   const schema = yaml.indexOf("Verify remote D1 has the expected schema");
   const deploy = yaml.indexOf("Promote protected Worker version to production traffic");
