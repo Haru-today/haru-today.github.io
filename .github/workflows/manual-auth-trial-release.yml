@@ -181,6 +181,9 @@ jobs:
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # This exact candidate was uploaded by run 42260447605, which verified
+          # that it inherited the deployed baseline's bindings before stopping.
+          PREVIOUS_PREPARED_VERSION: 603d9ea2-2a6e-485c-ab72-e849c541584c
         run: |
           set -eu
           npx --yes wrangler@4.151.0 deployments status --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-baseline-deployment.json"
@@ -189,7 +192,9 @@ jobs:
           echo "version_id=$BASELINE_VERSION" >> "$GITHUB_OUTPUT"
           npx --yes wrangler@4.151.0 versions view "$BASELINE_VERSION" --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-before-version.json"
           npx --yes wrangler@4.151.0 versions list --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-before-list.json"
-          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-before-list.json" "$BASELINE_VERSION"
+          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-before-list.json" "$PREVIOUS_PREPARED_VERSION" "$BASELINE_VERSION"
+          npx --yes wrangler@4.151.0 versions view "$PREVIOUS_PREPARED_VERSION" --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-previous-version.json"
+          node free-auth/scripts/prodam-cutover-guard.cjs bindings "$RUNNER_TEMP/prodam-before-version.json" "$RUNNER_TEMP/prodam-previous-version.json" "$BASELINE_VERSION" "$PREVIOUS_PREPARED_VERSION"
       - name: Upload candidate without changing active traffic
         id: candidate
         env:
@@ -197,6 +202,7 @@ jobs:
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           WRANGLER_OUTPUT_FILE_PATH: ${{ runner.temp }}/prodam-upload.jsonl
           BASELINE_VERSION: ${{ steps.baseline.outputs.version_id }}
+          PREVIOUS_PREPARED_VERSION: 603d9ea2-2a6e-485c-ab72-e849c541584c
         run: |
           set -eu
           node <<'NODE'
@@ -214,7 +220,7 @@ jobs:
           npx --yes wrangler@4.151.0 versions view "$CANDIDATE_VERSION" --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-version.json"
           node free-auth/scripts/prodam-cutover-guard.cjs bindings "$RUNNER_TEMP/prodam-before-version.json" "$RUNNER_TEMP/prodam-after-version.json" "$BASELINE_VERSION" "$CANDIDATE_VERSION"
           npx --yes wrangler@4.151.0 versions list --json --config free-auth/wrangler.jsonc > "$RUNNER_TEMP/prodam-after-list.json"
-          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-after-list.json" "$CANDIDATE_VERSION" "$BASELINE_VERSION"
+          node free-auth/scripts/prodam-cutover-guard.cjs latest "$RUNNER_TEMP/prodam-after-list.json" "$CANDIDATE_VERSION" "$PREVIOUS_PREPARED_VERSION"
           node --input-type=module <<'NODE'
           import fs from 'node:fs';
           import assert from 'node:assert/strict';
@@ -223,8 +229,12 @@ jobs:
             const url = new URL(event.preview_url);
             assert.equal(url.protocol, 'https:');
             assert.ok(url.hostname.endsWith('.workers.dev'));
-            const response = await fetch(new URL('/prodam/app.js', url), {redirect:'manual',credentials:'omit',signal:AbortSignal.timeout(20000)});
-            assert.equal(response.status, 404, 'Candidate preview must not expose PRODAM');
+            for (const path of ['/prodam/', '/prodam/app.js', '/prodam/vendor/primer3/primer3-core.wasm']) {
+              const response = await fetch(new URL(path, url), {redirect:'manual',credentials:'omit',signal:AbortSignal.timeout(20000)});
+              assert.equal(response.status, 503, 'Unexpected candidate preview response');
+              assert.match(response.headers.get('content-type') || '', /^text\/plain/);
+              assert.equal(await response.text(), '허용된 로그인 서비스 주소가 설정되지 않았습니다.');
+            }
           }
           NODE
       - name: Promote protected Worker version to production traffic
