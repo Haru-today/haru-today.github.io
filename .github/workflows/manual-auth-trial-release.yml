@@ -66,12 +66,11 @@ jobs:
           LABINSIGHT_SOURCE: ${{ github.workspace }}/sources/labinsight
           LABDAM_INCLUDE_PADDLE: "1"
         run: node free-auth/build.mjs
-      - name: Verify and stage the pinned PRODAM assets
+      - name: Verify the pinned PRODAM assets
         run: |
           node --test sources/labinsight/tests/prodam-release-assets.test.cjs
           node --test free-auth/tests/prodam-cutover-guard.test.cjs
           LABDAM_PRODAM_PRIVATE_ASSETS="$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" node --test free-auth/tests/prodam-bundle.test.cjs
-          node free-auth/prepare-prodam-bundle.mjs "$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" free-auth/dist/prodam
       - name: Stamp non-sensitive reviewed source identity in the public membership notice
         env:
           LABINSIGHT_RELEASE_SHA: 2fcc297972e8b786e02d62912e302b575348f9f7
@@ -111,6 +110,33 @@ jobs:
           npm ci --prefix free-auth/tests/runtime --no-audit --no-fund
           npm test --prefix free-auth/tests/runtime
           LABDAM_PRODAM_REVIEW_SOURCE="$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" node --test free-auth/tests/runtime/prodam-review.test.cjs
+      - name: Stage the verified PRODAM assets after the existing REPODAM bundle audit
+        run: |
+          node free-auth/prepare-prodam-bundle.mjs "$GITHUB_WORKSPACE/sources/labinsight/release-assets/prodam" free-auth/dist/prodam
+          node <<'NODE'
+          const assert = require('node:assert/strict'), fs = require('node:fs'), path = require('node:path'), crypto = require('node:crypto');
+          const root = 'free-auth/dist', prodam = path.join(root,'prodam');
+          const manifest = JSON.parse(fs.readFileSync('free-auth/prodam-review-manifest.json','utf8')).assets;
+          assert.deepEqual(fs.readdirSync(root).sort(), ['account.html','admin.html','assets','favicon.svg','index.html','labinsight','login.html','membership-privacy.html','pending.html','privacy.html','prodam','robots.txt','terms.html']);
+          const files = [];
+          function visit(dir, prefix='') {
+            for (const entry of fs.readdirSync(dir, {withFileTypes:true})) {
+              const name = prefix ? prefix + '/' + entry.name : entry.name, file = path.join(dir, entry.name);
+              assert.ok(!entry.isSymbolicLink());
+              if (entry.isDirectory()) visit(file,name);
+              else { assert.ok(entry.isFile()); files.push(name); }
+            }
+          }
+          visit(prodam);
+          assert.equal(files.length,21);
+          assert.deepEqual(files.sort(),Object.keys(manifest).sort());
+          for (const file of files) {
+            const bytes = fs.readFileSync(path.join(prodam,...file.split('/')));
+            assert.equal(crypto.createHash('sha256').update(bytes).digest('hex'), manifest[file], 'Staged PRODAM asset differs');
+            assert.ok(!/GOOGLE_CLIENT_SECRET|BOOTSTRAP_ADMIN_EMAIL|RATE_LIMIT_SECRET/i.test(bytes.toString('utf8')), 'Unexpected sensitive identifier');
+          }
+          console.log('Final bundle root and all 21 staged PRODAM hashes verified.');
+          NODE
       - name: Require separately configured Cloudflare trial secrets
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
