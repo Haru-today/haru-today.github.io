@@ -25,12 +25,14 @@ jobs:
       - name: Run desktop and mobile browser checks
         run: npm run test:browser
       - name: Upload screenshots, HTML report and traces
-        if: always()
+        # Opt in only for failed-run diagnosis; keep routine checks storage-free.
+        if: failure() && vars.LABDAM_UPLOAD_BROWSER_ARTIFACTS == 'true'
+        continue-on-error: true
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: labdam-browser-review
           path: |
             test-results/
             playwright-report/
-          retention-days: 14
+          retention-days: 1
           if-no-files-found: ignore

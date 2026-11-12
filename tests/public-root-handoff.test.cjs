@@ -3,6 +3,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const ROOT = "https://labdam.kr";
 const LEGACY = "https://haru-today.github.io";
+const REPODAM = "https://repodam.labdam.kr";
 const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev";
 async function load() { return import("../scripts/check-public-root-handoff.mjs"); }
 function fakeFetch(changes = {}) {
@@ -18,7 +19,7 @@ function fakeFetch(changes = {}) {
     if (u.origin === ROOT && u.pathname === "/") {
       return new Response('<meta name="robots" content="index,follow"><link rel="canonical" href="https://labdam.kr/">' +
         '<h1 id="hero-title">검진 결과, <em>내 결과지 기준</em>으로 보세요</h1>' +
-        '<a href="' + WORKER + '/labinsight/">리포담</a>', { status: 200 });
+        '<a href="' + REPODAM + '/labinsight/">리포담</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/") {
       return new Response('<meta name="robots" content="noindex,nofollow">' +
