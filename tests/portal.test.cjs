@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
 const html = fs.readFileSync('index.html', 'utf8');
-const worker = 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/';
+const worker = 'https://repodam.labdam.kr/labinsight/';
 
 test('homepage keeps service links and search verification', () => {
   for (const href of [worker, 'https://prodam.labdam.kr/', 'https://haru-today.github.io/caffeine-atlas/', 'https://labdam.site.aiapp.help/guide', 'mailto:jleegenomics@gmail.com']) assert.ok(html.includes('href="' + href + '"'), href);

@@ -7,6 +7,7 @@ import { resolve } from "node:path";
 
 const ROOT = "https://labdam.kr";
 const LEGACY = "https://haru-today.github.io";
+const REPODAM = "https://repodam.labdam.kr";
 const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev";
 export const CHECKS = [
   { path: "/", origin: ROOT, status: 200, kind: "root-home" },
@@ -77,7 +78,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
           html.includes('name="robots" content="index,follow"') &&
           html.includes('rel="canonical" href="https://labdam.kr/"') &&
           !/noindex/i.test(response.headers.get("X-Robots-Tag") || "") &&
-          html.includes('href="' + WORKER + '/labinsight/"') &&
+          html.includes('href="' + REPODAM + '/labinsight/"') &&
           !html.includes('/labinsight/app.js');
         if (!ok) detail = "public-root-home-mismatch";
       } else if (ok && x.kind === "labinsight-handoff") {

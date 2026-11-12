@@ -1,6 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const AxeBuilder = require('@axe-core/playwright').default;
-const WORKER = 'https://labdam-free-approval.jleegenomics.workers.dev/';
+const REPODAM = 'https://repodam.labdam.kr/';
 
 test('AiApp homepage and its locally hosted visual assets render', async ({page,baseURL}) => {
   await page.goto('/',{waitUntil:'load'}); await page.evaluate(()=>document.fonts.ready);
@@ -18,7 +18,7 @@ test('AiApp homepage and its locally hosted visual assets render', async ({page,
 
 test('service routes, safe script and no data input are preserved', async ({page,request}) => {
   await page.goto('/');
-  await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',WORKER+'labinsight/');
+  await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',REPODAM+'labinsight/');
   await expect(page.getByRole('link',{name:'프로담 시작하기',exact:true}).first()).toHaveAttribute('href','https://prodam.labdam.kr/');
   await expect(page.getByRole('link',{name:'Caffeine Atlas 열기'})).toHaveAttribute('href','https://haru-today.github.io/caffeine-atlas/');
   await expect(page.locator('form,input,textarea,select,iframe')).toHaveCount(0);
