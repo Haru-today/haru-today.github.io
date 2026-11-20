@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="REPODAM">
+  <rect width="512" height="512" rx="108" fill="#1e6bff"/>
+  <path d="M160 128h116c65 0 108 35 108 96 0 44-24 75-64 89l72 99h-78l-64-92h-28v92h-62V128zm62 58v76h52c27 0 45-13 45-38s-18-38-45-38h-52z" fill="#fff" fill-rule="evenodd"/>
+  <rect x="128" y="444" width="256" height="14" rx="7" fill="#18b7a0"/>
+</svg>
