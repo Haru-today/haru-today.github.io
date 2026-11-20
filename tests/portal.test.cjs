@@ -7,12 +7,10 @@ const html = fs.readFileSync('index.html', 'utf8');
 const worker = 'https://labdam-free-approval.jleegenomics.workers.dev/labinsight/';
 
 test('homepage keeps service links and search verification', () => {
-  for (const href of [worker, 'https://prodam.labdam.kr/', 'https://labdam.site.aiapp.help/guide', 'mailto:jleegenomics@gmail.com']) assert.ok(html.includes('href="' + href + '"'), href);
+  for (const href of [worker, 'https://prodam.labdam.kr/', 'https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html', 'https://labdam.site.aiapp.help/guide', 'mailto:jleegenomics@gmail.com']) assert.ok(html.includes('href="' + href + '"'), href);
   for (const value of ['b91d0554dc2db700b9e1128063dc6e5255500209','0f44c35ebff0b9388c37a766a57761ba04ae667e','f8IRcs_BDrorzy2olPv6CSuczflLcqPE7jSaMZ_Q1dQ','F5N4YM7fMZamidp9YHlqnddNVQ5JsWWjJSiJeX_D-G8']) assert.ok(html.includes(value));
   assert.match(html, /rel="canonical" href="https:\/\/labdam\.kr\/"/);
-  for (const publicFile of ['index.html', 'privacy.html', 'terms.html', 'sitemap.xml']) {
-    assert.doesNotMatch(fs.readFileSync(publicFile, 'utf8'), /caffeine[ -]atlas|카페인 아틀라스/i, publicFile);
-  }
+  assert.match(fs.readFileSync('sitemap.xml','utf8'), /caffeine-atlas\/caffeine-sensitivity-app\/index\.html/);
   assert.doesNotMatch(fs.readFileSync('sitemap.xml','utf8'), /labinsight|workers\.dev/);
   assert.deepEqual([...new Set([...html.matchAll(/mailto:([^"\s]+)/g)].map(match=>match[1]))], ['jleegenomics@gmail.com']);
   assert.ok(fs.existsSync('privacy.html') && fs.existsSync('terms.html'));

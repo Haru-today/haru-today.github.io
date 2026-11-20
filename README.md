@@ -7,6 +7,7 @@ LABDAM은 **Personal Health Atlas의 유일한 통합 포털**입니다. 별도�
 | LABDAM | 통합 포털 · 서비스 소개 | https://haru-today.github.io/ |
 | REPODAM | 건강검진 결과 입력·참고 정보 서비스 | https://labdam-free-approval.jleegenomics.workers.dev/labinsight/ |
 | PRODAM | 연구용 프라이머 도구 | https://prodam.labdam.kr/ |
+| Caffeine Atlas | 카페인 유전자 연구·교육용 공개 체험 | https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html |
 
 서비스별 임상적 타당성이 확립된 진단 시스템이나 의료기관을 의미하지 않습니다.
 
