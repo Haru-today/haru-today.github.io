@@ -6,9 +6,15 @@ test('AiApp homepage and its locally hosted visual assets render', async ({page,
   await page.goto('/',{waitUntil:'load'}); await page.evaluate(()=>document.fonts.ready);
   await expect(page).toHaveURL(new URL('/',baseURL).href);
   await expect(page.getByRole('heading',{level:1})).toHaveText('검진 결과를 이해하는 시작담이를 준비하고 있어요');
-  for (const label of ['검진 결과지 옆에서 노트에 질문을 적는 모습','연구용 서열 분석 도구를 연상시키는 코드 화면','Caffeine Atlas 워드마크 로고']) {
-    const image=page.getByRole('img',{name:label}); await image.scrollIntoViewIfNeeded();
-    await expect(image).toBeVisible(); expect(await image.evaluate(e=>e.naturalWidth)).toBeGreaterThan(0);
+  const serviceLogos=page.locator('#services .service-logo');
+  await expect(serviceLogos).toHaveCount(3);
+  for (const label of ['리포담 로고','프로담 로고','Caffeine Atlas 워드마크 로고']) {
+    const logo=page.getByRole('img',{name:label}); await logo.scrollIntoViewIfNeeded();
+    await expect(logo).toBeVisible();
+  }
+  for (const image of await serviceLogos.locator('img').all()) {
+    await image.scrollIntoViewIfNeeded();
+    await expect.poll(() => image.evaluate(e=>e.naturalWidth)).toBeGreaterThan(0);
   }
   await expect(page.getByRole('heading',{name:'같은 42도, 어떤 기준으로 보느냐에 따라 달라요'})).toBeVisible();
   await expect(page.getByRole('heading',{name:'결과지 한 장으로 네 단계'})).toBeVisible();
@@ -20,6 +26,8 @@ test('service routes, safe script and no data input are preserved', async ({page
   await page.goto('/');
   await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',WORKER+'labinsight/');
   await expect(page.getByRole('link',{name:'프로담 시작하기',exact:true}).first()).toHaveAttribute('href','https://prodam.labdam.kr/');
+  await expect(page.getByRole('link',{name:'리포담 서비스 열기',exact:true})).toHaveAttribute('href',WORKER+'labinsight/');
+  await expect(page.getByRole('link',{name:'프로담 서비스 열기',exact:true})).toHaveAttribute('href','https://prodam.labdam.kr/');
   const caffeine = page.locator('#caffeine-atlas');
   await expect(page.locator('#main-navigation a[href="#caffeine-atlas"]')).toHaveText('카페인 아틀라스');
   await expect(caffeine.getByRole('link',{name:'카페인 아틀라스 홈페이지'})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html');
