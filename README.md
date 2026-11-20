@@ -6,9 +6,9 @@ LABDAM은 **Personal Health Atlas의 유일한 통합 포털**입니다. 별도�
 | --- | --- | --- |
 | LABDAM | 통합 포털 · 서비스 소개 | https://haru-today.github.io/ |
 | REPODAM | 건강검진 결과 입력·참고 정보 서비스 | https://labdam-free-approval.jleegenomics.workers.dev/labinsight/ |
-| Caffeine Atlas | 카페인 유전자 연구·교육용 리포트 | https://haru-today.github.io/caffeine-atlas/ |
+| PRODAM | 연구용 프라이머 도구 | https://prodam.labdam.kr/ |
 
-Caffeine Atlas의 기존 내부 기능 주소(`caffeine-sensitivity-app/`)는 그대로 유지합니다. 서비스별 임상적 타당성이 확립된 진단 시스템이나 의료기관을 의미하지 않습니다.
+서비스별 임상적 타당성이 확립된 진단 시스템이나 의료기관을 의미하지 않습니다.
 
 ## 검색·브랜드
 - 포털의 공식 페이지와 canonical: `https://haru-today.github.io/`
@@ -27,14 +27,12 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 
 **기존 `https://haru-today.github.io/labinsight/` 주소는 GitHub Pages에서 `main /docs`로 게시 폴더를 전환해야** 검사 입력 화면이 더 이상 정적으로 공개되지 않습니다. 설정 후 해당 주소는 승인제 Worker 안내만 제공합니다. REPODAM 설정: https://github.com/Haru-today/repodam/settings/pages
 
-기존 Caffeine Atlas 학회 포스터 QR 및 `https://haru-today.github.io/caffeine-atlas/` 공개 이용은 유지합니다. GitHub Pages는 서버 인증을 수행하지 못하므로 공개 저장소 코드의 변경만으로 운영자 승인제가 적용되었다고 주장하지 않습니다.
 
 ## 2026-10-16 공개 루트 로그인 안내 전환
 
 - `https://haru-today.github.io/`는 Google 검색/직접 접근 모두 **로그인·관리자 승인제가 적용된 Worker**(`https://labdam-free-approval.jleegenomics.workers.dev/`)로 자동 안내합니다. 공개 Pages의 기존 상세 브랜드 소개 화면을 계속 제공하지 않습니다.
 - 실제 LABDAM 통합 브랜드 홈페이지와 승인된 REPODAM은 Worker 내부에서 유지합니다. 이미 승인된 브라우저는 세션 쿠키로 바로 들어갈 수 있습니다. 비로그인 시에는 로그인 페이지로 이동하며, 신규 가입은 관리자 승인이 필요합니다.
 - 기존 공개 REPODAM Pages는 `main /docs`에서 안내 페이지만 제공하며, 검사 프로그램 정적 자산은 더 이상 제공하지 않습니다.
-- Caffeine Atlas 프로젝트 Pages와 학회 포스터 QR은 그대로 공개됩니다. root `robots.txt`는 Caffeine Atlas의 크롤링까지 막지 않도록 유지합니다.
 - 검색엔진 결과/스니펫 캐시는 즉시 사라지지 않을 수 있습니다. 로그인 차단의 근거는 검색 결과가 아니라 **Worker 서버의 세션 검증**입니다.
 - GitHub 공개 저장소 과거 코드와 사용자 기기에서 이미 캐시된 페이지는 URL 이동이나 Google 검색 비노출만으로 삭제되지 않습니다.
 
@@ -56,13 +54,13 @@ LABDAM 및 REPODAM의 실제 서비스 주소는 Cloudflare Worker `https://labd
 - `https://haru-today.github.io/`는 더 이상 Worker로 자동 이동하지 않고, 랩담 원페이지 홈페이지(인스타 프로필 링크용, 390px 모바일 기준)를 보여 줍니다. 위 2026-10-16 항목의 자동 이동은 이 변경으로 대체됩니다.
 - 문구·색·글꼴은 LABDAM 디자인 시스템(2026-10-24 첫 판)과 원페이지 시안을 따릅니다. 연락처는 `jleegenomics@gmail.com` 하나입니다.
 - 상단 **리포담** 버튼은 리포담 서비스로 연결합니다. 미로그인 사용자는 리포담 전용 로그인, 승인된 세션은 리포담 홈으로 이어집니다. 아래 **리포담 로그인** 링크도 전용 로그인으로 연결합니다. Google 로그인·관리자 승인 보호는 유지합니다.
-- 홈페이지 첫 화면은 리포담 하나에 집중합니다. **리포담 시작하기** 버튼은 기존 로그인·관리자 승인 경로로, 상단 바로가기와 공개 자료 영역은 카페인 아틀라스 홈(`caffeine-atlas/caffeine-sensitivity-app/index.html`)으로 연결합니다. 포스터 QR용 `caffeine-atlas/` 주소는 이동 안내 화면을 거치므로 홈페이지 링크에는 쓰지 않습니다. 학회 포스터 QR 주소와 `robots.txt`·`sitemap.xml`은 그대로입니다.
+- 홈페이지 첫 화면은 리포담 하나에 집중합니다. **리포담 시작하기** 버튼은 기존 로그인·관리자 승인 경로로 연결합니다.
 - 공개 홈페이지는 `index,follow`와 `https://labdam.kr/` 대표 주소를 사용하며, 사이트 이름은 랩담으로 지정합니다.
 - 글꼴은 Pretendard·Wanted Sans(OFL)를 페이지에 쓰인 글자만 남겨 `assets/fonts/`에 직접 둡니다(4개 합계 약 120KB, 외부 요청 없음). 문구를 바꾸면 `python scripts/subset-home-fonts.py <전체 woff2 폴더>`를 다시 실행하세요. 빠진 글자는 시스템 글꼴로 보입니다.
 
 
 ## 2026-10-25 홈페이지 서비스 동선 정리
 
-- 리포담을 첫 화면의 주 동선으로 두고, 카페인 아틀라스는 상단 바로가기와 설명이 있는 공개 자료 영역으로 구분했습니다.
+- 리포담을 첫 화면의 주 동선으로 배치했습니다.
 - 반복된 색상 띠를 구분선으로 정리하고, 운영 안내는 출시 준비 중임을 표시합니다.
-- 서비스 주소, Google 로그인·관리자 승인, 카페인 공개 주소와 QR은 유지합니다.
+- 리포담 이용에는 Google 로그인과 관리자 승인이 필요합니다.
