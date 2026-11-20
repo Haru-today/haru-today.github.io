@@ -20,7 +20,11 @@ test('service routes, safe script and no data input are preserved', async ({page
   await page.goto('/');
   await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',WORKER+'labinsight/');
   await expect(page.getByRole('link',{name:'프로담 시작하기',exact:true}).first()).toHaveAttribute('href','https://prodam.labdam.kr/');
-  await expect(page.getByRole('link',{name:'Caffeine Atlas 열기'})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html');
+  const caffeine = page.locator('#caffeine-atlas');
+  await expect(page.locator('#main-navigation a[href="#caffeine-atlas"]')).toHaveText('카페인 아틀라스');
+  await expect(caffeine.getByRole('link',{name:'카페인 아틀라스 홈페이지'})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html');
+  await expect(caffeine.getByRole('link',{name:'체험 시작',exact:true})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/analyzer.html');
+  await expect(caffeine.getByRole('link',{name:'가상 예시 리포트 보기'})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/analyzer.html?example=1');
   await expect(page.locator('form,input,textarea,select,iframe')).toHaveCount(0);
   await expect(page.locator('script')).toHaveCount(2);
   for(const path of ['/privacy.html','/terms.html','/assets/aiapp-exact/home.js']) expect((await request.get(path)).status(),path).toBe(200);
@@ -35,6 +39,11 @@ test('mobile menu opens and closes accessibly', async ({page},info) => {
   await expect(page.getByRole('button',{name:'메뉴 닫기'})).toHaveAttribute('aria-expanded','true');
   await expect(page.getByRole('navigation',{name:'주 메뉴'}).getByRole('link',{name:'이용 방법·FAQ'})).toBeVisible();
   await page.keyboard.press('Escape'); await expect(toggle).toHaveAttribute('aria-expanded','false'); await expect(toggle).toBeFocused();
+  await toggle.click();
+  await page.getByRole('navigation',{name:'주 메뉴'}).getByRole('link',{name:'카페인 아틀라스',exact:true}).click();
+  await expect(toggle).toHaveAttribute('aria-expanded','false');
+  await expect(page).toHaveURL(/#caffeine-atlas$/);
+  await expect(page.getByRole('heading',{name:'카페인 아틀라스',exact:true})).toBeInViewport();
 });
 
 test('desktop step illustrations follow scrolling', async ({page},info) => {
