@@ -11,13 +11,14 @@ const WORKER = "https://labdam-free-approval.jleegenomics.workers.dev";
 export const CHECKS = [
   { path: "/", origin: ROOT, status: 200, kind: "root-home" },
   { path: "/", origin: LEGACY, status: 301, kind: "legacy-redirect" },
-  { path: "/caffeine-atlas/", origin: LEGACY, status: 301, kind: "retired-redirect" },
-  { path: "/caffeine-atlas/?audit=qr", origin: LEGACY, status: 301, kind: "retired-redirect" },
+  { path: "/caffeine-atlas/", origin: LEGACY, status: 301, kind: "legacy-redirect" },
+  { path: "/caffeine-atlas/?audit=qr", origin: LEGACY, status: 301, kind: "legacy-redirect" },
   { path: "/labinsight/app.js", origin: LEGACY, status: 301, kind: "legacy-redirect" },
   { path: "/labinsight/", origin: ROOT, status: 200, kind: "labinsight-handoff" },
   { path: "/labinsight/app.js", origin: ROOT, status: 404, kind: "gone" },
-  { path: "/caffeine-atlas/", origin: ROOT, status: 404, kind: "retired" },
-  { path: "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html", origin: ROOT, status: 404, kind: "retired" },
+  { path: "/caffeine-atlas/", origin: ROOT, status: 200, kind: "caffeine" },
+  { path: "/caffeine-atlas/caffeine-sensitivity-app/index.html", origin: ROOT, status: 200, kind: "caffeine" },
+  { path: "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html", origin: ROOT, status: 200, kind: "caffeine" },
   { path: "/", origin: WORKER, status: 303, kind: "worker-login" },
   { path: "/labinsight/", origin: WORKER, status: 303, kind: "worker-login" },
   { path: "/labinsight/app.js", origin: WORKER, status: 401, kind: "worker-deny" },
@@ -70,8 +71,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
         signal: AbortSignal.timeout(10000)
       });
       status = response.status;
-      const retired = x.kind === "retired-redirect" || x.kind === "retired";
-      ok = status === x.status || (retired && (status === 404 || status === 410));
+      ok = status === x.status;
       if (ok && x.kind === "root-home") {
         const html = await response.text();
         ok = validHomepageContent(html) &&
@@ -79,7 +79,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
           html.includes('rel="canonical" href="https://labdam.kr/"') &&
           !/noindex/i.test(response.headers.get("X-Robots-Tag") || "") &&
           html.includes('href="' + WORKER + '/labinsight/"') &&
-          !html.includes('/labinsight/app.js') && !/caffeine[ -]atlas|카페인 아틀라스/i.test(html);
+          !html.includes('/labinsight/app.js');
         if (!ok) detail = "public-root-home-mismatch";
       } else if (ok && x.kind === "labinsight-handoff") {
         const html = await response.text();
@@ -92,7 +92,7 @@ export async function inspectPublicEntry(fetchImpl = fetch) {
         ok = html.includes('id="portalAccountLink"') && html.includes('id="portalGoogleStart"') &&
           !/<(?:form|input)\b/i.test(html) && !html.includes('/labinsight/app.js');
         if (!ok) detail = "public-brand-login-missing";
-      } else if (ok && (x.kind === "legacy-redirect" || (x.kind === "retired-redirect" && status === 301))) {
+      } else if (ok && x.kind === "legacy-redirect") {
         let location = null;
         try { location = new URL(response.headers.get("Location"), LEGACY); } catch (_) {}
         const expected = new URL(x.path, ROOT);
@@ -131,7 +131,7 @@ async function main() {
         "expected", r.expected, r.ok ? "" : "[" + r.detail + "]");
     }
     if (audit.ok) {
-      console.log("PASS: public LABDAM homepage is live with the approved-user login entry, REPODAM protected; legacy REPODAM app and retired Caffeine Atlas routes unavailable.");
+      console.log("PASS: public LABDAM homepage is live with the approved-user login entry, REPODAM protected; legacy REPODAM app inaccessible, Caffeine Atlas public.");
       return;
     }
     if (attempt === 6) {

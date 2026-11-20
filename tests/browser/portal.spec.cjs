@@ -6,7 +6,7 @@ test('AiApp homepage and its locally hosted visual assets render', async ({page,
   await page.goto('/',{waitUntil:'load'}); await page.evaluate(()=>document.fonts.ready);
   await expect(page).toHaveURL(new URL('/',baseURL).href);
   await expect(page.getByRole('heading',{level:1})).toHaveText('검진 결과를 이해하는 시작담이를 준비하고 있어요');
-  for (const label of ['검진 결과지 옆에서 노트에 질문을 적는 모습','연구용 서열 분석 도구를 연상시키는 코드 화면']) {
+  for (const label of ['검진 결과지 옆에서 노트에 질문을 적는 모습','연구용 서열 분석 도구를 연상시키는 코드 화면','Caffeine Atlas 워드마크 로고']) {
     const image=page.getByRole('img',{name:label}); await image.scrollIntoViewIfNeeded();
     await expect(image).toBeVisible(); expect(await image.evaluate(e=>e.naturalWidth)).toBeGreaterThan(0);
   }
@@ -20,8 +20,7 @@ test('service routes, safe script and no data input are preserved', async ({page
   await page.goto('/');
   await expect(page.getByRole('link',{name:'리포담 시작하기',exact:true}).first()).toHaveAttribute('href',WORKER+'labinsight/');
   await expect(page.getByRole('link',{name:'프로담 시작하기',exact:true}).first()).toHaveAttribute('href','https://prodam.labdam.kr/');
-  await expect(page.getByRole('heading',{name:'Caffeine Atlas'})).toHaveCount(0);
-  await expect(page.locator('a[href*="caffeine-atlas"]')).toHaveCount(0);
+  await expect(page.getByRole('link',{name:'Caffeine Atlas 열기'})).toHaveAttribute('href','https://labdam.kr/caffeine-atlas/caffeine-sensitivity-app/index.html');
   await expect(page.locator('form,input,textarea,select,iframe')).toHaveCount(0);
   await expect(page.locator('script')).toHaveCount(2);
   for(const path of ['/privacy.html','/terms.html','/assets/aiapp-exact/home.js']) expect((await request.get(path)).status(),path).toBe(200);

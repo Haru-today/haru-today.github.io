@@ -25,7 +25,7 @@ function fakeFetch(changes = {}) {
         '<a href="' + WORKER + '/labinsight/">REPODAM</a>', { status: 200 });
     }
     if (u.origin === ROOT && u.pathname === "/labinsight/app.js") return new Response(null, { status: 404 });
-    if (u.origin === ROOT && u.pathname.startsWith("/caffeine-atlas/")) return new Response(null, { status: 404 });
+    if (u.origin === ROOT && u.pathname.startsWith("/caffeine-atlas/")) return new Response("", { status: 200 });
     if (u.origin === WORKER && u.pathname === "/") return new Response(null,{status:303,headers:{Location:WORKER+'/login.html?next=%2Flabinsight%2F','Cache-Control':'no-store'}});
     if (u.origin === WORKER && u.pathname === "/labinsight/") return new Response(null, { status: 303,
       headers: { Location: WORKER + "/login.html?next=%2Flabinsight%2F", "Cache-Control": "no-store" }
@@ -37,9 +37,9 @@ function fakeFetch(changes = {}) {
     throw Error("Unexpected route");
   };
 }
-test("root homepage, private Worker and retired Caffeine routes all pass anonymous checks", async () => {
+test("root homepage, private Worker and Caffeine public demo all pass anonymous checks", async () => {
   const { inspectPublicEntry, CHECKS } = await load();
-  assert.equal(CHECKS.length, 13);
+  assert.equal(CHECKS.length, 14);
   const a = await inspectPublicEntry(fakeFetch());
   assert.equal(a.ok, true, JSON.stringify(a.results.filter(x => !x.ok)));
 });
@@ -75,11 +75,11 @@ test("a redirect that drops QR parameters fails", async () => {
   assert.equal(a.ok, false);
   assert.equal(a.results.find(x => x.path === "/caffeine-atlas/?audit=qr").detail, "legacy-redirect-mismatch");
 });
-test("private file exposure and a republished analyzer fail independently", async () => {
+test("private file exposure and Caffeine QR regression fail independently", async () => {
   const { inspectPublicEntry } = await load();
   const a = await inspectPublicEntry(fakeFetch({
     [WORKER + "/labinsight/app.js"]: new Response("leak", { status: 200 }),
-    [ROOT + "/caffeine-atlas/caffeine-sensitivity-app/analyzer.html"]: new Response("republished", { status: 200 })
+    [ROOT + "/caffeine-atlas/caffeine-sensitivity-app/index.html"]: new Response(null, { status: 404 })
   }));
   assert.equal(a.ok, false);
   assert.equal(a.results.filter(x => !x.ok).length, 2);
